@@ -1,4 +1,4 @@
-# PostgresOutboxPatternWithCDC.NET
+# Postgres Outbox Pattern with CDC and .NET
 PoC of doing Outbox Pattern with CDC and .NET
 
 ## Links
