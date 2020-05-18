@@ -10,3 +10,4 @@ PoC of doing Outbox Pattern with CDC and .NET
 - http://staging.kraken.hr/blog/2018/postgresql-replication-elasticsearch
 - https://azure.microsoft.com/en-us/updates/azure-database-for-postgresql-logical-decoding-and-wal2json-for-change-data-capture/
 - http://staging.kraken.hr/blog/2018/postgresql-replication-elasticsearch
+- https://github.com/npgsql/npgsql/pull/2477/files
