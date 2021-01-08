@@ -2,6 +2,7 @@
 PoC of doing Outbox Pattern with CDC and .NET
 
 ## Links
+- [Chris Hanks - Turning PostgreSQL into a queue serving 10,000 jobs per second](https://gist.github.com/chanks/7585810)
 - https://dev.to/thiagosilvaf/how-to-use-change-database-capture-cdc-in-postgres-37b8
 - https://medium.com/@ramesh.esl/change-data-capture-cdc-in-postgresql-7dee2d467d1b
 - https://github.com/eulerto/wal2json
