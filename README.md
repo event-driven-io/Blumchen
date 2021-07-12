@@ -23,3 +23,6 @@ PoC of doing Outbox Pattern with CDC and .NET
 - [Nickolay Ihalainen - PostgreSQL locking, Part 1: Row Locks](https://www.percona.com/blog/2018/10/16/postgresql-locking-part-1-row-locks/)
 - [Nickolay Ihalainen - PostgreSQL locking, part 2: heavyweight locks](https://www.percona.com/blog/2018/10/24/postgresql-locking-part-2-heavyweight-locks/)
 - [Nickolay Ihalainen - PostgreSQL locking, part 3: lightweight locks](https://www.percona.com/blog/2018/10/30/postgresql-locking-part-3-lightweight-locks/)
+
+### Outbox implementations
+- [Robert Kawecki - esdf2-eventstore-pg](https://github.com/rkaw92/esdf2-eventstore-pg/blob/a49f88cd1f10d4f06a12ef0982293a8c7abb4ff9/src/PostgresEventStore.ts#L116)
