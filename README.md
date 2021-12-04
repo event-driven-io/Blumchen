@@ -14,6 +14,11 @@ PoC of doing Outbox Pattern with CDC and .NET
 - [Azure Database for PostgreSQL—Logical decoding and wal2json for change data capture](https://azure.microsoft.com/en-us/updates/azure-database-for-postgresql-logical-decoding-and-wal2json-for-change-data-capture/)
 - [Npgsql - Logical Replication](https://www.npgsql.org/doc/replication.html)
 - [Postgresql To Kinesis For Java - Disney Streaming](https://github.com/disneystreaming/pg2k4j)
+- [Postgres Documentation - Write Ahead Log](https://www.postgresql.org/docs/13/runtime-config-wal.html)
+- [Hevo - Working With Postgres WAL Made Easy](https://hevodata.com/learn/working-with-postgres-wal/)
+- [The Internals of PostgreSQL - Write Ahead Logging — WAL](https://www.interdb.jp/pg/pgsql09.html)
+- [EDB - PostgreSQL Write-Ahead Logging (WAL) Trade-offs: Bounded vs. Archived vs. Replication Slots](https://www.enterprisedb.com/blog/postgresql-wal-write-ahead-logging-management-strategy-tradeoffs)
+- [2nd Quadrant - Basics of Tuning Checkpoints](https://www.2ndquadrant.com/en/blog/basics-of-tuning-checkpoints/)
 
 ### Locks
 - [Chris Hanks - Turning PostgreSQL into a queue serving 10,000 jobs per second](https://gist.github.com/chanks/7585810)
