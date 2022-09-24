@@ -1,6 +1,21 @@
 # Postgres Outbox Pattern with CDC and .NET
 PoC of doing Outbox Pattern with CDC and .NET
 
+Uses [Postgres logical replication](https://www.postgresql.org/docs/current/logical-replication.html) with [Npgsql integration](https://www.npgsql.org/doc/replication.html).
+
+Main logic is placed in [EventsSubscription](./PostgresOutbox/Subscriptions/EventsSubscription.cs). Check [LogicalReplicationTest](./PostgresOutboxPatternWithCDC.NET.Tests/LogicalReplicationTest.cs) for sample usage.
+
+## Running
+
+1. Start Postgres with WAL enabled from Docker image.
+```shell
+docker-compose up
+```
+2. Run tests
+```shell
+dotnet test
+```
+
 ## Links
 
 ### WAL

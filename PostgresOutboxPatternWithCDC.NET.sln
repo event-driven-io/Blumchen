@@ -1,0 +1,42 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PostgresOutboxPatternWithCDC.NET.Tests", "PostgresOutboxPatternWithCDC.NET.Tests\PostgresOutboxPatternWithCDC.NET.Tests.csproj", "{CAC01DAE-078B-474C-8C38-B528F27B2E16}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docker", "docker", "{CD59A1A0-F40D-4047-87A3-66C0F1519FA5}"
+	ProjectSection(SolutionItems) = preProject
+		docker-compose.yml = docker-compose.yml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sql", "sql", "{9F497531-24EF-4744-B06C-B766562A9852}"
+	ProjectSection(SolutionItems) = preProject
+		sql\init.sql = sql\init.sql
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PostgresOutbox", "PostgresOutbox\PostgresOutbox.csproj", "{E1AD98FC-42B1-4B7B-AF44-8057B7A61FDD}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{D0AB0FF4-C8A1-4B4B-A682-64F353A2D248}"
+	ProjectSection(SolutionItems) = preProject
+		Directory.Build.props = Directory.Build.props
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{47B6EDAC-2EBC-4368-BAD6-2B8695E7D067}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CAC01DAE-078B-474C-8C38-B528F27B2E16}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CAC01DAE-078B-474C-8C38-B528F27B2E16}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CAC01DAE-078B-474C-8C38-B528F27B2E16}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CAC01DAE-078B-474C-8C38-B528F27B2E16}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E1AD98FC-42B1-4B7B-AF44-8057B7A61FDD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E1AD98FC-42B1-4B7B-AF44-8057B7A61FDD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E1AD98FC-42B1-4B7B-AF44-8057B7A61FDD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E1AD98FC-42B1-4B7B-AF44-8057B7A61FDD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
