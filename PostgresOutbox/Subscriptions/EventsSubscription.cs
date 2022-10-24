@@ -12,16 +12,15 @@ public record EventsSubscriptionOptions(
     string PublicationName
 );
 
-public class EventsSubscription
+public interface IEventsSubscription
 {
-    private readonly EventsSubscriptionOptions options;
+    IAsyncEnumerable<object> Subscribe(EventsSubscriptionOptions options, CancellationToken ct);
+}
 
-    public EventsSubscription(EventsSubscriptionOptions options)
-    {
-        this.options = options;
-    }
-
-    public async IAsyncEnumerable<object> Subscribe([EnumeratorCancellation] CancellationToken ct)
+public class EventsSubscription: IEventsSubscription
+{
+    public async IAsyncEnumerable<object> Subscribe(EventsSubscriptionOptions options,
+        [EnumeratorCancellation] CancellationToken ct)
     {
         var (connectionString, slotName, publicationName) = options;
         await using var conn = new LogicalReplicationConnection(connectionString);
@@ -29,7 +28,8 @@ public class EventsSubscription
 
         var slot = new PgOutputReplicationSlot(slotName);
 
-        await foreach (var message in conn.StartReplication(slot, new PgOutputReplicationOptions(publicationName, 1), ct))
+        await foreach (var message in conn.StartReplication(slot, new PgOutputReplicationOptions(publicationName, 1),
+                           ct))
         {
             if (message is InsertMessage insertMessage)
             {

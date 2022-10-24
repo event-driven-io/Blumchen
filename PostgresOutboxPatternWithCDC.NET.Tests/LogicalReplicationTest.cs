@@ -30,9 +30,9 @@ public class LogicalReplicationTest
         await EventsAppender.AppendAsync(@event, ConnectrionString, ct);
 
         var subscriptionOptions = new EventsSubscriptionOptions(ConnectrionString, "events_slot", "events_pub");
-        var subscription = new EventsSubscription(subscriptionOptions);
+        var subscription = new EventsSubscription();
 
-        await foreach (var readEvent in subscription.Subscribe(ct))
+        await foreach (var readEvent in subscription.Subscribe(subscriptionOptions, ct))
         {
             testOutputHelper.WriteLine(JsonSerialization.ToJson(readEvent));
             Assert.Equal(@event, readEvent);

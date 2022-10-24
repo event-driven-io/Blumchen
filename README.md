@@ -20,6 +20,20 @@ dotnet test
 
 ### WAL
 - [Devrim Gündüz -WAL: Everything you want to know](https://www.youtube.com/watch?v=feTihjJJs3g)
+- [Postgres Documentation - Write Ahead Log](https://www.postgresql.org/docs/13/runtime-config-wal.html)
+- [The Internals of PostgreSQL - Write Ahead Logging — WAL](https://www.interdb.jp/pg/pgsql09.html)
+- [Hevo - Working With Postgres WAL Made Easy](https://hevodata.com/learn/working-with-postgres-wal/)
+
+### Logical Replication
+- [Fujistsu - How PostgreSQL 15 improved communication in logical replication](https://www.postgresql.fastware.com/blog/how-postgresql-15-improved-communication-in-logical-replication)
+- [Amit Kapila  - Replication Improvements In PostgreSQL-14](https://amitkapila16.blogspot.com/2021/09/logical-replication-improvements-in.html)
+- [Postgresql Wiki - Logical Decoding Plugins](https://wiki.postgresql.org/wiki/Logical_Decoding_Plugins)
+- [Npgsql - Logical Replication](https://www.npgsql.org/doc/replication.html)
+- [Konstantin Evteev - Recovery use cases for Logical Replication in PostgreSQL 10](https://medium.com/avitotech/recovery-use-cases-for-logical-replication-in-postgresql-10-a1e6bab03072)
+- [Several9s - Using PostgreSQL Logical Replication to Maintain an Always Up-to-Date Read/Write TEST Server](https://severalnines.com/blog/using-postgresql-logical-replication-maintain-always-date-readwrite-test-server/)
+- [EDB - PostgreSQL Write-Ahead Logging (WAL) Trade-offs: Bounded vs. Archived vs. Replication Slots](https://www.enterprisedb.com/blog/postgresql-wal-write-ahead-logging-management-strategy-tradeoffs)
+- [Percona - The 1-2-3 for PostgreSQL Logical Replication Using an RDS Snapshot](https://www.percona.com/blog/postgresql-logical-replication-using-an-rds-snapshot/)
+- [2nd Quadrant - Basics of Tuning Checkpoints](https://www.2ndquadrant.com/en/blog/basics-of-tuning-checkpoints/)
 - [Thiago - How to use Change Data Capture (CDC) with Postgres](https://dev.to/thiagosilvaf/how-to-use-change-database-capture-cdc-in-postgres-37b8)
 - [Ramesh naik E - Change Data Capture(CDC) in PostgreSQL](https://medium.com/@ramesh.esl/change-data-capture-cdc-in-postgresql-7dee2d467d1b)
 - [Wal2Json - JSON output plugin for changeset extraction](https://github.com/eulerto/wal2json)
@@ -27,13 +41,7 @@ dotnet test
 - [PGDeltaStream - Streaming Postgres logical replication changes atleast-once over websockets ](https://github.com/hasura/pgdeltastream)
 - [Hrvoje Milković - Replicate PostreSQL data to Elasticsearch via Logical replication slots](http://staging.kraken.hr/blog/2018/postgresql-replication-elasticsearch)
 - [Azure Database for PostgreSQL—Logical decoding and wal2json for change data capture](https://azure.microsoft.com/en-us/updates/azure-database-for-postgresql-logical-decoding-and-wal2json-for-change-data-capture/)
-- [Npgsql - Logical Replication](https://www.npgsql.org/doc/replication.html)
 - [Postgresql To Kinesis For Java - Disney Streaming](https://github.com/disneystreaming/pg2k4j)
-- [Postgres Documentation - Write Ahead Log](https://www.postgresql.org/docs/13/runtime-config-wal.html)
-- [Hevo - Working With Postgres WAL Made Easy](https://hevodata.com/learn/working-with-postgres-wal/)
-- [The Internals of PostgreSQL - Write Ahead Logging — WAL](https://www.interdb.jp/pg/pgsql09.html)
-- [EDB - PostgreSQL Write-Ahead Logging (WAL) Trade-offs: Bounded vs. Archived vs. Replication Slots](https://www.enterprisedb.com/blog/postgresql-wal-write-ahead-logging-management-strategy-tradeoffs)
-- [2nd Quadrant - Basics of Tuning Checkpoints](https://www.2ndquadrant.com/en/blog/basics-of-tuning-checkpoints/)
 
 ### Locks
 - [Depesz - Picking task from queue – revisit](https://www.depesz.com/2016/05/04/picking-task-from-queue-revisit/)
