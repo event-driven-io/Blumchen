@@ -25,6 +25,9 @@ dotnet test
 - [Hevo - Working With Postgres WAL Made Easy](https://hevodata.com/learn/working-with-postgres-wal/)
 
 ### Logical Replication
+- [Gunnar Morling - Open-source Change Data Capture With Debezium - video](https://www.youtube.com/watch?v=G7TvRzPQH-U)
+- [Gunnar Morling - Open-source Change Data Capture With Debezium - slides](https://speakerdeck.com/gunnarmorling/open-source-change-data-capture-with-debezium?slide=21)
+- [Dmitry Narizhnykh - PostgreSQL Change Data Capture and Golang Sample Code](https://hackernoon.com/postgresql-change-data-capture-and-golang-sample-code)
 - [Fujistsu - How PostgreSQL 15 improved communication in logical replication](https://www.postgresql.fastware.com/blog/how-postgresql-15-improved-communication-in-logical-replication)
 - [Amit Kapila  - Replication Improvements In PostgreSQL-14](https://amitkapila16.blogspot.com/2021/09/logical-replication-improvements-in.html)
 - [Postgresql Wiki - Logical Decoding Plugins](https://wiki.postgresql.org/wiki/Logical_Decoding_Plugins)
