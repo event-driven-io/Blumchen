@@ -15,13 +15,11 @@ public static class InsertMessageHandler
             switch (columnNumber)
             {
                 case 1:
-                    eventTypeName = await value.GetTextReader().ReadToEndAsync();
+                    eventTypeName = await value.GetTextReader().ReadToEndAsync(ct);
                     break;
                 case 2 when value.GetDataTypeName().ToLower() == "jsonb":
                 {
-                    var eventType = Type.GetType(eventTypeName);
-                    if (eventType is null)
-                        throw new ArgumentOutOfRangeException(nameof(eventType));
+                    var eventType = Reflection.GetType.ByName(eventTypeName);
 
                     var @event = await JsonSerialization.FromJsonAsync(eventType, value.GetStream(), ct);
 

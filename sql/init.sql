@@ -4,7 +4,3 @@ CREATE TABLE events (
    event_type VARCHAR(250) NOT NULL,
    data       JSONB        NOT NULL
 );
-
-CREATE PUBLICATION events_pub FOR TABLE events;
-
-SELECT * FROM pg_create_logical_replication_slot('events_slot', 'pgoutput');
