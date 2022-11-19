@@ -1,15 +1,23 @@
+using System.Reflection;
 using System.Runtime.CompilerServices;
+using Npgsql;
 using Npgsql.Replication;
+using Npgsql.Replication.Internal;
 using Npgsql.Replication.PgOutput;
 using Npgsql.Replication.PgOutput.Messages;
+using PostgresOutbox.Database;
 using PostgresOutbox.Subscriptions.ReplicationMessageHandlers;
+using PostgresOutbox.Subscriptions.SnapshotReader;
 
 namespace PostgresOutbox.Subscriptions;
+
+using static EventsSubscription.CreateReplicationSlotResult;
 
 public record EventsSubscriptionOptions(
     string ConnectionString,
     string SlotName,
-    string PublicationName
+    string PublicationName,
+    string TableName
 );
 
 public interface IEventsSubscription
@@ -19,12 +27,47 @@ public interface IEventsSubscription
 
 public class EventsSubscription: IEventsSubscription
 {
-    public async IAsyncEnumerable<object> Subscribe(EventsSubscriptionOptions options,
-        [EnumeratorCancellation] CancellationToken ct)
+    private async Task<CreateReplicationSlotResult> CreateSubscription(
+        LogicalReplicationConnection connection,
+        EventsSubscriptionOptions options,
+        CancellationToken ct
+    )
     {
-        var (connectionString, slotName, publicationName) = options;
+        if (!await PublicationExists(options, ct))
+            await CreatePublication(options, ct);
+
+        if (await ReplicationSlotExists(options, ct))
+            return new AlreadyExists();
+
+        var result = await connection.CreateLogicalReplicationSlot(options.SlotName, "pgoutput",
+            slotSnapshotInitMode: LogicalSlotSnapshotInitMode.Export, cancellationToken: ct);
+
+        //Temp hack until is merged and released https://github.com/npgsql/npgsql/pull/4776
+        var snapshotName = typeof(ReplicationSlotOptions)
+            .GetProperty("SnapshotName", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(result) as string;
+
+        return new Created(options.TableName, snapshotName!);
+    }
+
+    public async IAsyncEnumerable<object> Subscribe(
+        EventsSubscriptionOptions options,
+        [EnumeratorCancellation] CancellationToken ct
+    )
+    {
+        var (connectionString, slotName, publicationName, _) = options;
         await using var conn = new LogicalReplicationConnection(connectionString);
         await conn.Open(ct);
+
+        var result = await CreateSubscription(conn, options, ct);
+
+        if (result is Created created)
+        {
+            await foreach (var @event in ReadExistingEventsFromSnapshot(created.SnapshotName, options, ct))
+            {
+                yield return @event;
+            }
+        }
 
         var slot = new PgOutputReplicationSlot(slotName);
 
@@ -41,5 +84,57 @@ public class EventsSubscription: IEventsSubscription
             conn.SetReplicationStatus(message.WalEnd);
             await conn.SendStatusUpdate(ct);
         }
+    }
+
+    private async Task<bool> ReplicationSlotExists(
+        EventsSubscriptionOptions options,
+        CancellationToken ct
+    )
+    {
+        var (connectionString, slotName, _, _) = options;
+        await using var dataSource = NpgsqlDataSource.Create(connectionString);
+        return await dataSource.Exists("pg_replication_slots", "slot_name = $1", new object[] { slotName }, ct);
+    }
+
+    private async Task CreatePublication(
+        EventsSubscriptionOptions options,
+        CancellationToken ct
+    )
+    {
+        var (connectionString, _, publicationName, tableName) = options;
+        await using var dataSource = NpgsqlDataSource.Create(connectionString);
+        await dataSource.Execute($"CREATE PUBLICATION {publicationName} FOR TABLE {tableName};", ct);
+    }
+
+    private async Task<bool> PublicationExists(
+        EventsSubscriptionOptions options,
+        CancellationToken ct
+    )
+    {
+        var (connectionString, slotName, _, _) = options;
+        await using var dataSource = NpgsqlDataSource.Create(connectionString);
+        return await dataSource.Exists("pg_publication", "pubname = $1", new object[] { slotName }, ct);
+    }
+
+    private async IAsyncEnumerable<object> ReadExistingEventsFromSnapshot(
+        string snapshotName,
+        EventsSubscriptionOptions options,
+        [EnumeratorCancellation] CancellationToken ct
+    )
+    {
+        await using var connection = new NpgsqlConnection(options.ConnectionString);
+        await connection.OpenAsync(ct);
+
+        await foreach (var @event in connection.GetEventsFromSnapshot(snapshotName, options.TableName, ct))
+        {
+            yield return @event;
+        }
+    }
+
+    internal abstract record CreateReplicationSlotResult
+    {
+        public record AlreadyExists: CreateReplicationSlotResult;
+
+        public record Created(string TableName, string SnapshotName): CreateReplicationSlotResult;
     }
 }
