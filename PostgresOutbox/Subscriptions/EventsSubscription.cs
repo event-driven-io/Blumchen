@@ -39,15 +39,10 @@ public class EventsSubscription: IEventsSubscription
         if (await ReplicationSlotExists(options, ct))
             return new AlreadyExists();
 
-        var result = await connection.CreateLogicalReplicationSlot(options.SlotName, "pgoutput",
+        var result = await connection.CreatePgOutputReplicationSlot(options.SlotName,
             slotSnapshotInitMode: LogicalSlotSnapshotInitMode.Export, cancellationToken: ct);
 
-        //Temp hack until is merged and released https://github.com/npgsql/npgsql/pull/4776
-        var snapshotName = typeof(ReplicationSlotOptions)
-            .GetProperty("SnapshotName", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?.GetValue(result) as string;
-
-        return new Created(options.TableName, snapshotName!);
+        return new Created(options.TableName, result.SnapshotName!);
     }
 
     public async IAsyncEnumerable<object> Subscribe(

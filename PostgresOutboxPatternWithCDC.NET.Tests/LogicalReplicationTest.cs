@@ -45,7 +45,7 @@ public class LogicalReplicationTest
             return;
         }
     }
-    
+
     [Fact]
     public async Task WALSubscriptionForOldEventsShouldWork()
     {
