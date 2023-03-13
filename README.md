@@ -29,13 +29,15 @@ dotnet test
 - [Hevo - Working With Postgres WAL Made Easy](https://hevodata.com/learn/working-with-postgres-wal/)
 
 ### Logical Replication
+
+#### General Introduction
 - [Gunnar Morling - The Wonders of Postgres Logical Decoding Messages](https://www.infoq.com/articles/wonders-of-postgres-logical-decoding-messages/)
 - [Gunnar Morling - Open-source Change Data Capture With Debezium - video](https://www.youtube.com/watch?v=G7TvRzPQH-U)
 - [Gunnar Morling - Open-source Change Data Capture With Debezium - slides](https://speakerdeck.com/gunnarmorling/open-source-change-data-capture-with-debezium?slide=21)
 - [Several9s - Using PostgreSQL Logical Replication to Maintain an Always Up-to-Date Read/Write TEST Server](https://severalnines.com/blog/using-postgresql-logical-replication-maintain-always-date-readwrite-test-server/)
 - [Matt Tanner - PostgreSQL CDC: A Comprehensive Guide](https://www.arcion.io/learn/postgresql-cdc)
 
-### General Introduction
+#### Other
 - [Dmitry Narizhnykh - PostgreSQL Change Data Capture and Golang Sample Code](https://hackernoon.com/postgresql-change-data-capture-and-golang-sample-code)
 - [Fujistsu - How PostgreSQL 15 improved communication in logical replication](https://www.postgresql.fastware.com/blog/how-postgresql-15-improved-communication-in-logical-replication)
 - [Kinsta - PostgreSQL Replication: A Comprehensive Guide](https://kinsta.com/blog/postgresql-replication/)
@@ -53,7 +55,7 @@ dotnet test
 - [PGDeltaStream - Streaming Postgres logical replication changes atleast-once over websockets ](https://github.com/hasura/pgdeltastream)
 - [Hrvoje Milković - Replicate PostreSQL data to Elasticsearch via Logical replication slots](http://staging.kraken.hr/blog/2018/postgresql-replication-elasticsearch)
 - [Azure Database for PostgreSQL—Logical decoding and wal2json for change data capture](https://azure.microsoft.com/en-us/updates/azure-database-for-postgresql-logical-decoding-and-wal2json-for-change-data-capture/)
-- [Postgresql To Kinesis For Java - Disney Streaming](https://github.com/disneystreaming/pg2k4j)
+- [Amit Langote - Postgresql To Kinesis For Java - Disney Streaming](https://github.com/disneystreaming/pg2k4j)
 
 #### Performance
 - [2ndQuadrant - Performance limits of logical replication solutions](https://www.2ndquadrant.com/en/blog/performance-limits-of-logical-replication-solutions/)
@@ -63,6 +65,9 @@ dotnet test
 
 #### Ordering
 - [Virender Singla - Postgres — Logical Replication and long running transactions](https://virender-cse.medium.com/postgres-logical-replication-and-long-running-transactions-81a69b7ac470)
+
+#### Partitioning
+- [Postgres: partitioned tables can now be replicated](https://amitlan.com/2020/05/14/partition-logical-replication.html)
 
 ### Locks
 - [Depesz - Picking task from queue – revisit](https://www.depesz.com/2016/05/04/picking-task-from-queue-revisit/)
