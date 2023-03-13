@@ -29,6 +29,7 @@ dotnet test
 - [Hevo - Working With Postgres WAL Made Easy](https://hevodata.com/learn/working-with-postgres-wal/)
 
 ### Logical Replication
+- [Gunnar Morling - The Wonders of Postgres Logical Decoding Messages](https://www.infoq.com/articles/wonders-of-postgres-logical-decoding-messages/)
 - [Gunnar Morling - Open-source Change Data Capture With Debezium - video](https://www.youtube.com/watch?v=G7TvRzPQH-U)
 - [Gunnar Morling - Open-source Change Data Capture With Debezium - slides](https://speakerdeck.com/gunnarmorling/open-source-change-data-capture-with-debezium?slide=21)
 - [Several9s - Using PostgreSQL Logical Replication to Maintain an Always Up-to-Date Read/Write TEST Server](https://severalnines.com/blog/using-postgresql-logical-replication-maintain-always-date-readwrite-test-server/)
