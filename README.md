@@ -31,13 +31,17 @@ dotnet test
 ### Logical Replication
 - [Gunnar Morling - Open-source Change Data Capture With Debezium - video](https://www.youtube.com/watch?v=G7TvRzPQH-U)
 - [Gunnar Morling - Open-source Change Data Capture With Debezium - slides](https://speakerdeck.com/gunnarmorling/open-source-change-data-capture-with-debezium?slide=21)
+- [Several9s - Using PostgreSQL Logical Replication to Maintain an Always Up-to-Date Read/Write TEST Server](https://severalnines.com/blog/using-postgresql-logical-replication-maintain-always-date-readwrite-test-server/)
+- [Matt Tanner - PostgreSQL CDC: A Comprehensive Guide](https://www.arcion.io/learn/postgresql-cdc)
+
+### General Introduction
 - [Dmitry Narizhnykh - PostgreSQL Change Data Capture and Golang Sample Code](https://hackernoon.com/postgresql-change-data-capture-and-golang-sample-code)
 - [Fujistsu - How PostgreSQL 15 improved communication in logical replication](https://www.postgresql.fastware.com/blog/how-postgresql-15-improved-communication-in-logical-replication)
+- [Kinsta - PostgreSQL Replication: A Comprehensive Guide](https://kinsta.com/blog/postgresql-replication/)
 - [Amit Kapila  - Replication Improvements In PostgreSQL-14](https://amitkapila16.blogspot.com/2021/09/logical-replication-improvements-in.html)
 - [Postgresql Wiki - Logical Decoding Plugins](https://wiki.postgresql.org/wiki/Logical_Decoding_Plugins)
 - [Npgsql - Logical Replication](https://www.npgsql.org/doc/replication.html)
 - [Konstantin Evteev - Recovery use cases for Logical Replication in PostgreSQL 10](https://medium.com/avitotech/recovery-use-cases-for-logical-replication-in-postgresql-10-a1e6bab03072)
-- [Several9s - Using PostgreSQL Logical Replication to Maintain an Always Up-to-Date Read/Write TEST Server](https://severalnines.com/blog/using-postgresql-logical-replication-maintain-always-date-readwrite-test-server/)
 - [EDB - PostgreSQL Write-Ahead Logging (WAL) Trade-offs: Bounded vs. Archived vs. Replication Slots](https://www.enterprisedb.com/blog/postgresql-wal-write-ahead-logging-management-strategy-tradeoffs)
 - [Percona - The 1-2-3 for PostgreSQL Logical Replication Using an RDS Snapshot](https://www.percona.com/blog/postgresql-logical-replication-using-an-rds-snapshot/)
 - [2nd Quadrant - Basics of Tuning Checkpoints](https://www.2ndquadrant.com/en/blog/basics-of-tuning-checkpoints/)
@@ -49,6 +53,15 @@ dotnet test
 - [Hrvoje Milković - Replicate PostreSQL data to Elasticsearch via Logical replication slots](http://staging.kraken.hr/blog/2018/postgresql-replication-elasticsearch)
 - [Azure Database for PostgreSQL—Logical decoding and wal2json for change data capture](https://azure.microsoft.com/en-us/updates/azure-database-for-postgresql-logical-decoding-and-wal2json-for-change-data-capture/)
 - [Postgresql To Kinesis For Java - Disney Streaming](https://github.com/disneystreaming/pg2k4j)
+
+#### Performance
+- [2ndQuadrant - Performance limits of logical replication solutions](https://www.2ndquadrant.com/en/blog/performance-limits-of-logical-replication-solutions/)
+
+#### Snapshots
+- [Christos Christoudias - Creating a Logical Replica from a Snapshot in RDS Postgres](https://tech.instacart.com/creating-a-logical-replica-from-a-snapshot-in-rds-postgres-886d9d2c7343)
+
+#### Ordering
+- [Virender Singla - Postgres — Logical Replication and long running transactions](https://virender-cse.medium.com/postgres-logical-replication-and-long-running-transactions-81a69b7ac470)
 
 ### Locks
 - [Depesz - Picking task from queue – revisit](https://www.depesz.com/2016/05/04/picking-task-from-queue-revisit/)
