@@ -65,6 +65,7 @@ dotnet test
 
 #### Ordering
 - [Virender Singla - Postgres — Logical Replication and long running transactions](https://virender-cse.medium.com/postgres-logical-replication-and-long-running-transactions-81a69b7ac470)
+- [Ordering with Advisory Locks](https://www.postgresql.org/message-id/CACjxUsMKA6k-mDOdkos3k0i-KE4HFRwkd=PXPArYy4UabTd-LA@mail.gmail.com)
 
 #### Partitioning
 - [Postgres: partitioned tables can now be replicated](https://amitlan.com/2020/05/14/partition-logical-replication.html)
