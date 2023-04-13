@@ -11,7 +11,7 @@ var ct = cancellationTokenSource.Token;
 
 var slotName = "events_slot" + Guid.NewGuid().ToString().Replace("-", "");
 
-var subscriptionOptions = new EventsSubscriptionOptions(Settings.ConnectionString, slotName, "events_pub", "trips" , new EventDataMapper());
+var subscriptionOptions = new EventsSubscriptionOptions(Settings.ConnectionString, slotName, "events_pub", "events" , new EventDataMapper());
 var subscription = new EventsSubscription();
 
 await foreach (var readEvent in subscription.Subscribe(subscriptionOptions, ct:ct))

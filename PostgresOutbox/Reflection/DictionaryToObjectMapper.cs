@@ -1,16 +1,29 @@
-﻿using System.Dynamic;
-
-namespace PostgresOutbox.Reflection;
+﻿namespace PostgresOutbox.Reflection;
 
 public static class DictionaryToObjectMapper
 {
-    public static T Map<T>(this IDictionary<string, object> dict)
+    public static T Map<T>(this IDictionary<string, object> dict, Func<string, string>? transformName = null)
     {
-        var expando = new ExpandoObject() as IDictionary<string, object>;
-        foreach (var kvp in dict)
-            expando.Add(kvp);
+        var properties = typeof(T).GetProperties();
+        var obj = ObjectFactory<T>.GetDefaultOrUninitialized();
 
-        dynamic dyn = expando;
-        return dyn;
+        foreach (var kvp in dict)
+        {
+            var property = properties.FirstOrDefault(p =>
+                p.Name.Equals(transformName != null ? transformName(kvp.Key) : kvp.Key,
+                    StringComparison.OrdinalIgnoreCase)
+            );
+            if (property == null) continue;
+
+            var targetType =  Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;;
+
+            var value = kvp.Value is IConvertible && kvp.GetType() != property.PropertyType
+                ? Convert.ChangeType(kvp.Value, targetType)
+                : kvp.Value;
+
+            property.SetValue(obj, value);
+        }
+
+        return obj;
     }
 }
