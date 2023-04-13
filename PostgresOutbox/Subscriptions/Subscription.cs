@@ -23,8 +23,16 @@ public record SubscriptionOptions(
     string SlotName,
     string PublicationName,
     string TableName,
-    IReplicationDataMapper DataMapper
+    IReplicationDataMapper DataMapper,
+    CreateStyle CreateStyle = CreateStyle.WhenNotExists
 );
+
+public enum CreateStyle
+{
+    WhenNotExists,
+    AlwaysRecreate,
+    Never
+}
 
 public class Subscription: ISubscription
 {
@@ -33,7 +41,8 @@ public class Subscription: ISubscription
         [EnumeratorCancellation] CancellationToken ct = default
     )
     {
-        var (connectionString, slotName, publicationName, _, _) = options;
+        var (connectionString, slotName, publicationName, _, _, _) = options;
+
         await using var conn = new LogicalReplicationConnection(connectionString);
         await conn.Open(ct);
 
@@ -49,8 +58,8 @@ public class Subscription: ISubscription
 
         var slot = new PgOutputReplicationSlot(slotName);
 
-        await foreach (var message in conn.StartReplication(slot, new PgOutputReplicationOptions(publicationName, 1),
-                           ct))
+        await foreach (var message in
+                       conn.StartReplication(slot, new PgOutputReplicationOptions(publicationName, 1), ct))
         {
             if (message is InsertMessage insertMessage)
             {
@@ -73,7 +82,8 @@ public class Subscription: ISubscription
         await using var connection = new NpgsqlConnection(options.ConnectionString);
         await connection.OpenAsync(ct);
 
-        await foreach (var row in connection.GetRowsFromSnapshot(snapshotName, options.TableName, options.DataMapper, ct))
+        await foreach (var row in connection.GetRowsFromSnapshot(snapshotName, options.TableName, options.DataMapper,
+                           ct))
         {
             yield return row;
         }

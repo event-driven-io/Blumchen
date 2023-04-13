@@ -12,11 +12,19 @@ public static class SubscriptionManagement
         CancellationToken ct
     )
     {
+        if(options.CreateStyle == CreateStyle.Never)
+            return new CreateReplicationSlotResult.AlreadyExists();
+
         if (!await PublicationExists(options, ct))
             await CreatePublication(options, ct);
 
         if (await ReplicationSlotExists(options, ct))
-            return new CreateReplicationSlotResult.AlreadyExists();
+        {
+            if (options.CreateStyle == CreateStyle.WhenNotExists)
+                return new CreateReplicationSlotResult.AlreadyExists();
+
+            await connection.DropReplicationSlot(options.SlotName, true, ct);
+        }
 
         var result = await connection.CreatePgOutputReplicationSlot(
             options.SlotName,
@@ -32,7 +40,7 @@ public static class SubscriptionManagement
         CancellationToken ct
     )
     {
-        var (connectionString, slotName, _, _, _) = options;
+        var (connectionString, slotName, _, _, _, _) = options;
         await using var dataSource = NpgsqlDataSource.Create(connectionString);
         return await dataSource.Exists("pg_replication_slots", "slot_name = $1", new object[] { slotName }, ct);
     }
@@ -42,7 +50,7 @@ public static class SubscriptionManagement
         CancellationToken ct
     )
     {
-        var (connectionString, _, publicationName, tableName, _) = options;
+        var (connectionString, _, publicationName, tableName, _, _) = options;
         await using var dataSource = NpgsqlDataSource.Create(connectionString);
         await dataSource.Execute($"CREATE PUBLICATION {publicationName} FOR TABLE {tableName};", ct);
     }
@@ -52,7 +60,7 @@ public static class SubscriptionManagement
         CancellationToken ct
     )
     {
-        var (connectionString, _, publicationName, _, _) = options;
+        var (connectionString, _, publicationName, _, _, _) = options;
         await using var dataSource = NpgsqlDataSource.Create(connectionString);
         return await dataSource.Exists("pg_publication", "pubname = $1", new object[] { publicationName }, ct);
     }
