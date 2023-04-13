@@ -1,19 +1,17 @@
-using Npgsql.Replication.PgOutput.Messages;
+﻿using Npgsql;
+using Npgsql.Replication.PgOutput;
 using PostgresOutbox.Serialization;
 
-namespace PostgresOutbox.Subscriptions.ReplicationMessageHandlers;
+namespace PostgresOutbox.Database;
 
-public static class InsertMessageHandler
+public class EventDataMapper: IReplicationDataMapper
 {
-    public static async Task<object> Handle(
-        InsertMessage message,
-        CancellationToken ct
-    )
+    public async Task<object> ReadFromReplication(ReplicationTuple tuple, CancellationToken ct)
     {
         var columnNumber = 0;
         var eventTypeName = string.Empty;
 
-        await foreach (var value in message.NewRow)
+        await foreach (var value in tuple)
         {
             switch (columnNumber)
             {
@@ -34,5 +32,15 @@ public static class InsertMessageHandler
         }
 
         throw new InvalidOperationException("You should not get here");
+    }
+
+    public async Task<object> ReadFromSnapshot(NpgsqlDataReader reader, CancellationToken ct)
+    {
+        var eventTypeName = reader.GetString(1);
+        var eventType = Reflection.GetType.ByName(eventTypeName);
+
+        var @event = await JsonSerialization.FromJsonAsync(eventType, await reader.GetStreamAsync(2, ct), ct);
+
+        return @event!;
     }
 }

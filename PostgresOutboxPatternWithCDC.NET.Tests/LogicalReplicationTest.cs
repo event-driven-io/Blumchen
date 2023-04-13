@@ -1,4 +1,3 @@
-using Npgsql;
 using PostgresOutbox.Database;
 using PostgresOutbox.Events;
 using PostgresOutbox.Serialization;
@@ -29,7 +28,8 @@ public class LogicalReplicationTest
             ConnectrionString,
             Randomise("events_slot"),
             Randomise("events_pub"),
-            eventsTable
+            eventsTable,
+            new EventDataMapper()
         );
         var subscription = new EventsSubscription();
 
@@ -58,7 +58,8 @@ public class LogicalReplicationTest
             ConnectrionString,
             Randomise("events_slot"),
             Randomise("events_pub"),
-            eventsTable
+            eventsTable,
+            new EventDataMapper()
         );
         var subscription = new EventsSubscription();
 

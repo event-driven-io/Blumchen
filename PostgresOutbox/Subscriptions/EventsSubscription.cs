@@ -1,8 +1,6 @@
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using Npgsql;
 using Npgsql.Replication;
-using Npgsql.Replication.Internal;
 using Npgsql.Replication.PgOutput;
 using Npgsql.Replication.PgOutput.Messages;
 using PostgresOutbox.Database;
@@ -17,8 +15,11 @@ public record EventsSubscriptionOptions(
     string ConnectionString,
     string SlotName,
     string PublicationName,
-    string TableName
+    string TableName,
+    IReplicationDataMapper DataMapper
 );
+
+
 
 public interface IEventsSubscription
 {
@@ -47,10 +48,10 @@ public class EventsSubscription: IEventsSubscription
 
     public async IAsyncEnumerable<object> Subscribe(
         EventsSubscriptionOptions options,
-        [EnumeratorCancellation] CancellationToken ct
+        [EnumeratorCancellation] CancellationToken ct = default
     )
     {
-        var (connectionString, slotName, publicationName, _) = options;
+        var (connectionString, slotName, publicationName, _, _) = options;
         await using var conn = new LogicalReplicationConnection(connectionString);
         await conn.Open(ct);
 
@@ -86,7 +87,7 @@ public class EventsSubscription: IEventsSubscription
         CancellationToken ct
     )
     {
-        var (connectionString, slotName, _, _) = options;
+        var (connectionString, slotName, _, _, _) = options;
         await using var dataSource = NpgsqlDataSource.Create(connectionString);
         return await dataSource.Exists("pg_replication_slots", "slot_name = $1", new object[] { slotName }, ct);
     }
@@ -96,7 +97,7 @@ public class EventsSubscription: IEventsSubscription
         CancellationToken ct
     )
     {
-        var (connectionString, _, publicationName, tableName) = options;
+        var (connectionString, _, publicationName, tableName, _) = options;
         await using var dataSource = NpgsqlDataSource.Create(connectionString);
         await dataSource.Execute($"CREATE PUBLICATION {publicationName} FOR TABLE {tableName};", ct);
     }
@@ -106,21 +107,22 @@ public class EventsSubscription: IEventsSubscription
         CancellationToken ct
     )
     {
-        var (connectionString, slotName, _, _) = options;
+        var (connectionString, _, publicationName, _, _) = options;
         await using var dataSource = NpgsqlDataSource.Create(connectionString);
-        return await dataSource.Exists("pg_publication", "pubname = $1", new object[] { slotName }, ct);
+        return await dataSource.Exists("pg_publication", "pubname = $1", new object[] { publicationName }, ct);
     }
 
     private async IAsyncEnumerable<object> ReadExistingEventsFromSnapshot(
         string snapshotName,
         EventsSubscriptionOptions options,
-        [EnumeratorCancellation] CancellationToken ct
+
+        [EnumeratorCancellation] CancellationToken ct = default
     )
     {
         await using var connection = new NpgsqlConnection(options.ConnectionString);
         await connection.OpenAsync(ct);
 
-        await foreach (var @event in connection.GetEventsFromSnapshot(snapshotName, options.TableName, ct))
+        await foreach (var @event in connection.GetEventsFromSnapshot(snapshotName, options.TableName, options.DataMapper, ct))
         {
             yield return @event;
         }
