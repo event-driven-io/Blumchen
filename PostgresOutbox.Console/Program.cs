@@ -1,5 +1,4 @@
 ﻿using PostgresForDotnetDev.CLI;
-using PostgresOutbox.Database;
 using PostgresOutbox.Serialization;
 using PostgresOutbox.Subscriptions;
 using PostgresOutbox.Subscriptions.Replication;

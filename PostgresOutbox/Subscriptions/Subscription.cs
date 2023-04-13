@@ -3,14 +3,20 @@ using Npgsql;
 using Npgsql.Replication;
 using Npgsql.Replication.PgOutput;
 using Npgsql.Replication.PgOutput.Messages;
-using PostgresOutbox.Database;
+using PostgresOutbox.Subscriptions.Management;
 using PostgresOutbox.Subscriptions.Replication;
 using PostgresOutbox.Subscriptions.ReplicationMessageHandlers;
 using PostgresOutbox.Subscriptions.SnapshotReader;
 
 namespace PostgresOutbox.Subscriptions;
 
-using static Subscription.CreateReplicationSlotResult;
+using static SubscriptionManagement;
+using static SubscriptionManagement.CreateReplicationSlotResult;
+
+public interface ISubscription
+{
+    IAsyncEnumerable<object> Subscribe(SubscriptionOptions options, CancellationToken ct);
+}
 
 public record SubscriptionOptions(
     string ConnectionString,
@@ -20,33 +26,8 @@ public record SubscriptionOptions(
     IReplicationDataMapper DataMapper
 );
 
-
-
-public interface ISubscription
-{
-    IAsyncEnumerable<object> Subscribe(SubscriptionOptions options, CancellationToken ct);
-}
-
 public class Subscription: ISubscription
 {
-    private async Task<CreateReplicationSlotResult> CreateSubscription(
-        LogicalReplicationConnection connection,
-        SubscriptionOptions options,
-        CancellationToken ct
-    )
-    {
-        if (!await PublicationExists(options, ct))
-            await CreatePublication(options, ct);
-
-        if (await ReplicationSlotExists(options, ct))
-            return new AlreadyExists();
-
-        var result = await connection.CreatePgOutputReplicationSlot(options.SlotName,
-            slotSnapshotInitMode: LogicalSlotSnapshotInitMode.Export, cancellationToken: ct);
-
-        return new Created(options.TableName, result.SnapshotName!);
-    }
-
     public async IAsyncEnumerable<object> Subscribe(
         SubscriptionOptions options,
         [EnumeratorCancellation] CancellationToken ct = default
@@ -83,37 +64,7 @@ public class Subscription: ISubscription
         }
     }
 
-    private async Task<bool> ReplicationSlotExists(
-        SubscriptionOptions options,
-        CancellationToken ct
-    )
-    {
-        var (connectionString, slotName, _, _, _) = options;
-        await using var dataSource = NpgsqlDataSource.Create(connectionString);
-        return await dataSource.Exists("pg_replication_slots", "slot_name = $1", new object[] { slotName }, ct);
-    }
-
-    private async Task CreatePublication(
-        SubscriptionOptions options,
-        CancellationToken ct
-    )
-    {
-        var (connectionString, _, publicationName, tableName, _) = options;
-        await using var dataSource = NpgsqlDataSource.Create(connectionString);
-        await dataSource.Execute($"CREATE PUBLICATION {publicationName} FOR TABLE {tableName};", ct);
-    }
-
-    private async Task<bool> PublicationExists(
-        SubscriptionOptions options,
-        CancellationToken ct
-    )
-    {
-        var (connectionString, _, publicationName, _, _) = options;
-        await using var dataSource = NpgsqlDataSource.Create(connectionString);
-        return await dataSource.Exists("pg_publication", "pubname = $1", new object[] { publicationName }, ct);
-    }
-
-    private async IAsyncEnumerable<object> ReadExistingRowsFromSnapshot(
+    private static async IAsyncEnumerable<object> ReadExistingRowsFromSnapshot(
         string snapshotName,
         SubscriptionOptions options,
         [EnumeratorCancellation] CancellationToken ct = default
@@ -126,12 +77,5 @@ public class Subscription: ISubscription
         {
             yield return row;
         }
-    }
-
-    internal abstract record CreateReplicationSlotResult
-    {
-        public record AlreadyExists: CreateReplicationSlotResult;
-
-        public record Created(string TableName, string SnapshotName): CreateReplicationSlotResult;
     }
 }
