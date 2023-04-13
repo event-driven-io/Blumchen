@@ -4,6 +4,7 @@ using Npgsql.Replication;
 using Npgsql.Replication.PgOutput;
 using Npgsql.Replication.PgOutput.Messages;
 using PostgresOutbox.Database;
+using PostgresOutbox.Subscriptions.Replication;
 using PostgresOutbox.Subscriptions.ReplicationMessageHandlers;
 using PostgresOutbox.Subscriptions.SnapshotReader;
 

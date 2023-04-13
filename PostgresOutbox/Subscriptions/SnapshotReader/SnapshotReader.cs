@@ -2,6 +2,7 @@
 using Npgsql;
 using PostgresOutbox.Database;
 using PostgresOutbox.Serialization;
+using PostgresOutbox.Subscriptions.Replication;
 
 namespace PostgresOutbox.Subscriptions.SnapshotReader;
 

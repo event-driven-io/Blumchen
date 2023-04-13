@@ -2,6 +2,7 @@ using PostgresOutbox.Database;
 using PostgresOutbox.Events;
 using PostgresOutbox.Serialization;
 using PostgresOutbox.Subscriptions;
+using PostgresOutbox.Subscriptions.Replication;
 using PostgresOutboxPatternWithCDC.NET.Tests.Events;
 using Xunit.Abstractions;
 

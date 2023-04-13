@@ -1,8 +1,9 @@
 ﻿using Npgsql;
 using Npgsql.Replication.PgOutput;
+using PostgresOutbox.Database;
 using PostgresOutbox.Serialization;
 
-namespace PostgresOutbox.Database;
+namespace PostgresOutbox.Subscriptions.Replication;
 
 public class EventDataMapper: IReplicationDataMapper
 {

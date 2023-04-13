@@ -1,6 +1,7 @@
 ﻿using System.Data;
 using System.Runtime.CompilerServices;
 using Npgsql;
+using PostgresOutbox.Subscriptions.Replication;
 
 namespace PostgresOutbox.Database;
 

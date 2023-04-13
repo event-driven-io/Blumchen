@@ -1,7 +1,8 @@
 ﻿using Npgsql;
 using Npgsql.Replication.PgOutput;
+using PostgresOutbox.Database;
 
-namespace PostgresOutbox.Database;
+namespace PostgresOutbox.Subscriptions.Replication;
 
 public interface IReplicationDataMapper
 {
