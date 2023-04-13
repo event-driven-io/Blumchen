@@ -8,7 +8,7 @@ namespace PostgresOutbox.Subscriptions.SnapshotReader;
 
 public static class SnapshotReader
 {
-    public static async IAsyncEnumerable<object> GetEventsFromSnapshot(
+    public static async IAsyncEnumerable<object> GetRowsFromSnapshot(
         this NpgsqlConnection connection,
         string snapshotName,
         string tableName,

@@ -25,14 +25,14 @@ public class LogicalReplicationTest
 
         var eventsTable = await CreateEventsTable(ConnectrionString, ct);
 
-        var subscriptionOptions = new EventsSubscriptionOptions(
+        var subscriptionOptions = new SubscriptionOptions(
             ConnectrionString,
             Randomise("events_slot"),
             Randomise("events_pub"),
             eventsTable,
             new EventDataMapper()
         );
-        var subscription = new EventsSubscription();
+        var subscription = new Subscription();
 
         var events = subscription.Subscribe(subscriptionOptions, ct);
 
@@ -55,14 +55,14 @@ public class LogicalReplicationTest
 
         var eventsTable = await CreateEventsTable(ConnectrionString, ct);
 
-        var subscriptionOptions = new EventsSubscriptionOptions(
+        var subscriptionOptions = new SubscriptionOptions(
             ConnectrionString,
             Randomise("events_slot"),
             Randomise("events_pub"),
             eventsTable,
             new EventDataMapper()
         );
-        var subscription = new EventsSubscription();
+        var subscription = new Subscription();
 
         var @event = new UserCreated(Guid.NewGuid(), Guid.NewGuid().ToString());
         await EventsAppender.AppendAsync(eventsTable, @event, ConnectrionString, ct);

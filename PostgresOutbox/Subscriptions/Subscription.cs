@@ -10,9 +10,9 @@ using PostgresOutbox.Subscriptions.SnapshotReader;
 
 namespace PostgresOutbox.Subscriptions;
 
-using static EventsSubscription.CreateReplicationSlotResult;
+using static Subscription.CreateReplicationSlotResult;
 
-public record EventsSubscriptionOptions(
+public record SubscriptionOptions(
     string ConnectionString,
     string SlotName,
     string PublicationName,
@@ -22,16 +22,16 @@ public record EventsSubscriptionOptions(
 
 
 
-public interface IEventsSubscription
+public interface ISubscription
 {
-    IAsyncEnumerable<object> Subscribe(EventsSubscriptionOptions options, CancellationToken ct);
+    IAsyncEnumerable<object> Subscribe(SubscriptionOptions options, CancellationToken ct);
 }
 
-public class EventsSubscription: IEventsSubscription
+public class Subscription: ISubscription
 {
     private async Task<CreateReplicationSlotResult> CreateSubscription(
         LogicalReplicationConnection connection,
-        EventsSubscriptionOptions options,
+        SubscriptionOptions options,
         CancellationToken ct
     )
     {
@@ -48,7 +48,7 @@ public class EventsSubscription: IEventsSubscription
     }
 
     public async IAsyncEnumerable<object> Subscribe(
-        EventsSubscriptionOptions options,
+        SubscriptionOptions options,
         [EnumeratorCancellation] CancellationToken ct = default
     )
     {
@@ -60,7 +60,7 @@ public class EventsSubscription: IEventsSubscription
 
         if (result is Created created)
         {
-            await foreach (var @event in ReadExistingEventsFromSnapshot(created.SnapshotName, options, ct))
+            await foreach (var @event in ReadExistingRowsFromSnapshot(created.SnapshotName, options, ct))
             {
                 yield return @event;
             }
@@ -84,7 +84,7 @@ public class EventsSubscription: IEventsSubscription
     }
 
     private async Task<bool> ReplicationSlotExists(
-        EventsSubscriptionOptions options,
+        SubscriptionOptions options,
         CancellationToken ct
     )
     {
@@ -94,7 +94,7 @@ public class EventsSubscription: IEventsSubscription
     }
 
     private async Task CreatePublication(
-        EventsSubscriptionOptions options,
+        SubscriptionOptions options,
         CancellationToken ct
     )
     {
@@ -104,7 +104,7 @@ public class EventsSubscription: IEventsSubscription
     }
 
     private async Task<bool> PublicationExists(
-        EventsSubscriptionOptions options,
+        SubscriptionOptions options,
         CancellationToken ct
     )
     {
@@ -113,19 +113,18 @@ public class EventsSubscription: IEventsSubscription
         return await dataSource.Exists("pg_publication", "pubname = $1", new object[] { publicationName }, ct);
     }
 
-    private async IAsyncEnumerable<object> ReadExistingEventsFromSnapshot(
+    private async IAsyncEnumerable<object> ReadExistingRowsFromSnapshot(
         string snapshotName,
-        EventsSubscriptionOptions options,
-
+        SubscriptionOptions options,
         [EnumeratorCancellation] CancellationToken ct = default
     )
     {
         await using var connection = new NpgsqlConnection(options.ConnectionString);
         await connection.OpenAsync(ct);
 
-        await foreach (var @event in connection.GetEventsFromSnapshot(snapshotName, options.TableName, options.DataMapper, ct))
+        await foreach (var row in connection.GetRowsFromSnapshot(snapshotName, options.TableName, options.DataMapper, ct))
         {
-            yield return @event;
+            yield return row;
         }
     }
 
