@@ -1,18 +1,23 @@
 ﻿using Npgsql;
 using Npgsql.Replication.PgOutput;
+using Npgsql.Replication.PgOutput.Messages;
 
 namespace PostgresOutbox.Database;
 
 public static class DatabaseResultToDictionaryMapper
 {
-    public static async ValueTask<Dictionary<string, object>> ToDictionary(this ReplicationTuple tuple, CancellationToken ct)
+    public static async ValueTask<Dictionary<string, object>> ToDictionary(this InsertMessage message, CancellationToken ct)
     {
         var result = new Dictionary<string, object>();
-        await foreach (var value in tuple)
+        var columnIndex = 0;
+
+        await foreach (var value in message.NewRow)
         {
-            var fieldName = value.GetPostgresType().Name;
+            var fieldName = message.Relation.Columns[columnIndex].ColumnName;
             var fieldValue = await value.Get<object>(ct);
             result.Add(fieldName, fieldValue);
+
+            columnIndex++;
         }
         return result;
     }

@@ -3,6 +3,7 @@ using Npgsql;
 using Npgsql.Replication;
 using Npgsql.Replication.PgOutput;
 using Npgsql.Replication.PgOutput.Messages;
+using NpgsqlTypes;
 using PostgresOutbox.Subscriptions.Management;
 using PostgresOutbox.Subscriptions.Replication;
 using PostgresOutbox.Subscriptions.ReplicationMessageHandlers;
@@ -48,22 +49,29 @@ public class Subscription: ISubscription
 
         var result = await CreateSubscription(conn, options, ct);
 
-        if (result is Created created)
+        PgOutputReplicationSlot slot;
+
+        if (result is not Created created)
         {
+            slot = new PgOutputReplicationSlot(slotName);
+        }
+        else
+        {
+            slot = new PgOutputReplicationSlot(new ReplicationSlotOptions(slotName, created.LogSequenceNumber));
             await foreach (var @event in ReadExistingRowsFromSnapshot(created.SnapshotName, options, ct))
             {
                 yield return @event;
             }
         }
 
-        var slot = new PgOutputReplicationSlot(slotName);
-
+        var cancellationTokenSource = new CancellationTokenSource();
         await foreach (var message in
-                       conn.StartReplication(slot, new PgOutputReplicationOptions(publicationName, 1), ct))
+                       conn.StartReplication(slot, new PgOutputReplicationOptions(publicationName, 1),
+                           cancellationTokenSource.Token))
         {
             if (message is InsertMessage insertMessage)
             {
-                yield return await InsertMessageHandler.Handle(insertMessage, ct);
+                yield return await InsertMessageHandler.Handle(insertMessage, options.DataMapper, ct);
             }
 
             // Always call SetReplicationStatus() or assign LastAppliedLsn and LastFlushedLsn individually

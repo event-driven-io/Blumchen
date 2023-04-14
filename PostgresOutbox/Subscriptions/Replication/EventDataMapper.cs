@@ -1,5 +1,6 @@
 ﻿using Npgsql;
 using Npgsql.Replication.PgOutput;
+using Npgsql.Replication.PgOutput.Messages;
 using PostgresOutbox.Database;
 using PostgresOutbox.Serialization;
 
@@ -7,12 +8,12 @@ namespace PostgresOutbox.Subscriptions.Replication;
 
 public class EventDataMapper: IReplicationDataMapper
 {
-    public async Task<object> ReadFromReplication(ReplicationTuple tuple, CancellationToken ct)
+    public async Task<object> ReadFromReplication(InsertMessage insertMessage, CancellationToken ct)
     {
         var columnNumber = 0;
         var eventTypeName = string.Empty;
 
-        await foreach (var value in tuple)
+        await foreach (var value in insertMessage.NewRow)
         {
             switch (columnNumber)
             {

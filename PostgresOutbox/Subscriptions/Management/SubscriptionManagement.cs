@@ -1,5 +1,6 @@
 ﻿using Npgsql;
 using Npgsql.Replication;
+using NpgsqlTypes;
 using PostgresOutbox.Database;
 
 namespace PostgresOutbox.Subscriptions.Management;
@@ -32,7 +33,7 @@ public static class SubscriptionManagement
             cancellationToken: ct
         );
 
-        return new CreateReplicationSlotResult.Created(options.TableName, result.SnapshotName!);
+        return new CreateReplicationSlotResult.Created(options.TableName, result.SnapshotName!, result.ConsistentPoint);
     }
 
     private static async Task<bool> ReplicationSlotExists(
@@ -69,6 +70,6 @@ public static class SubscriptionManagement
     {
         public record AlreadyExists: CreateReplicationSlotResult;
 
-        public record Created(string TableName, string SnapshotName): CreateReplicationSlotResult;
+        public record Created(string TableName, string SnapshotName, NpgsqlLogSequenceNumber LogSequenceNumber): CreateReplicationSlotResult;
     }
 }
