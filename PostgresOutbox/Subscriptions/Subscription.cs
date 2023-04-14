@@ -64,10 +64,8 @@ public class Subscription: ISubscription
             }
         }
 
-        var cancellationTokenSource = new CancellationTokenSource();
         await foreach (var message in
-                       conn.StartReplication(slot, new PgOutputReplicationOptions(publicationName, 1),
-                           cancellationTokenSource.Token))
+                       conn.StartReplication(slot, new PgOutputReplicationOptions(publicationName, 1), ct))
         {
             if (message is InsertMessage insertMessage)
             {
