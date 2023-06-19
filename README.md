@@ -22,6 +22,12 @@ dotnet test
 
 ## Links
 
+### Postgres Logical Replication
+- [Postgres Docs - Postgres logical replication](https://www.postgresql.org/docs/current/logical-replication.html)
+- [Npgsql - Logical Replication](https://www.npgsql.org/doc/replication.html)
+- [Robert Treat - Logical Replication...LIVE!](https://www.youtube.com/watch?v=YpsJu2mtBKA)
+- [Dmitry Narizhnykh - PostgreSQL Change Data Capture and Golang Sample Code](https://hackernoon.com/postgresql-change-data-capture-and-golang-sample-code)
+
 ### WAL
 - [Devrim Gündüz -WAL: Everything you want to know](https://www.youtube.com/watch?v=feTihjJJs3g)
 - [Postgres Documentation - Write Ahead Log](https://www.postgresql.org/docs/13/runtime-config-wal.html)
@@ -51,9 +57,11 @@ dotnet test
 - [Thiago - How to use Change Data Capture (CDC) with Postgres](https://dev.to/thiagosilvaf/how-to-use-change-database-capture-cdc-in-postgres-37b8)
 - [Ramesh naik E - Change Data Capture(CDC) in PostgreSQL](https://medium.com/@ramesh.esl/change-data-capture-cdc-in-postgresql-7dee2d467d1b)
 - [Wal2Json - JSON output plugin for changeset extraction](https://github.com/eulerto/wal2json)
+- [AWS Database Blog - Using logical replication to replicate managed Amazon RDS for PostgreSQL and Amazon Aurora to self-managed PostgreSQL](https://aws.amazon.com/blogs/database/using-logical-replication-to-replicate-managed-amazon-rds-for-postgresql-and-amazon-aurora-to-self-managed-postgresql/)
 - [AWS Database Blog - Stream changes from Amazon RDS for PostgreSQL using Amazon Kinesis Data Streams and AWS Lambda](https://aws.amazon.com/blogs/database/stream-changes-from-amazon-rds-for-postgresql-using-amazon-kinesis-data-streams-and-aws-lambda/)
-- [PGDeltaStream - Streaming Postgres logical replication changes atleast-once over websockets ](https://github.com/hasura/pgdeltastream)
+- [PGDeltaStream - Streaming Postgres logical replication changes atleast-once over websockets](https://github.com/hasura/pgdeltastream)
 - [Hrvoje Milković - Replicate PostreSQL data to Elasticsearch via Logical replication slots](http://staging.kraken.hr/blog/2018/postgresql-replication-elasticsearch)
+- [Azure - Azure Database for PostgreSQL : Logical Replication](https://techcommunity.microsoft.com/t5/azure-database-for-postgresql/azure-database-for-postgresql-logical-replication/ba-p/3799509)
 - [Azure Database for PostgreSQL—Logical decoding and wal2json for change data capture](https://azure.microsoft.com/en-us/updates/azure-database-for-postgresql-logical-decoding-and-wal2json-for-change-data-capture/)
 - [Amit Langote - Postgresql To Kinesis For Java - Disney Streaming](https://github.com/disneystreaming/pg2k4j)
 
