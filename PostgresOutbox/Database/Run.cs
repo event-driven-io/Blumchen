@@ -7,12 +7,21 @@ namespace PostgresOutbox.Database;
 
 public static class Run
 {
-
     public static async Task Execute(
         this NpgsqlDataSource dataSource,
         string sql,
         CancellationToken ct)
     {
+        await using var command = dataSource.CreateCommand(sql);
+        await command.ExecuteNonQueryAsync(ct);
+    }
+
+    public static async Task Execute(
+        string connectionString,
+        string sql,
+        CancellationToken ct)
+    {
+        await using var dataSource = NpgsqlDataSource.Create(connectionString);
         await using var command = dataSource.CreateCommand(sql);
         await command.ExecuteNonQueryAsync(ct);
     }
