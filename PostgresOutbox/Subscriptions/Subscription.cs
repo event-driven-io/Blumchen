@@ -3,7 +3,6 @@ using Npgsql;
 using Npgsql.Replication;
 using Npgsql.Replication.PgOutput;
 using Npgsql.Replication.PgOutput.Messages;
-using NpgsqlTypes;
 using PostgresOutbox.Subscriptions.Management;
 using PostgresOutbox.Subscriptions.Replication;
 using PostgresOutbox.Subscriptions.ReplicationMessageHandlers;
@@ -11,8 +10,9 @@ using PostgresOutbox.Subscriptions.SnapshotReader;
 
 namespace PostgresOutbox.Subscriptions;
 
-using static SubscriptionManagement;
-using static SubscriptionManagement.CreateReplicationSlotResult;
+using static PublicationManagement;
+using static ReplicationSlotManagement;
+using static ReplicationSlotManagement.CreateReplicationSlotResult;
 
 public interface ISubscription
 {
@@ -21,11 +21,9 @@ public interface ISubscription
 
 public record SubscriptionOptions(
     string ConnectionString,
-    string SlotName,
-    string PublicationName,
-    string TableName,
-    IReplicationDataMapper DataMapper,
-    CreateStyle CreateStyle = CreateStyle.WhenNotExists
+    PublicationSetupOptions PublicationSetupOptions,
+    ReplicationSlotSetupOptions SlotSetupOptions,
+    IReplicationDataMapper DataMapper
 );
 
 public enum CreateStyle
@@ -42,34 +40,43 @@ public class Subscription: ISubscription
         [EnumeratorCancellation] CancellationToken ct = default
     )
     {
-        var (connectionString, slotName, publicationName, _, _, _) = options;
+        var (connectionString, publicationSetupOptions, slotSetupOptions, replicationDataMapper) = options;
+        var dataSource = NpgsqlDataSource.Create(connectionString);
 
         await using var conn = new LogicalReplicationConnection(connectionString);
         await conn.Open(ct);
 
-        var result = await CreateSubscription(conn, options, ct);
+        await dataSource.SetupPublication(publicationSetupOptions, ct);
+        var result = await dataSource.SetupReplicationSlot(conn, slotSetupOptions, ct);
 
         PgOutputReplicationSlot slot;
 
         if (result is not Created created)
         {
-            slot = new PgOutputReplicationSlot(slotName);
+            slot = new PgOutputReplicationSlot(slotSetupOptions.SlotName);
         }
         else
         {
-            slot = new PgOutputReplicationSlot(new ReplicationSlotOptions(slotName, created.LogSequenceNumber));
-            await foreach (var @event in ReadExistingRowsFromSnapshot(created.SnapshotName, options, ct))
+            slot = new PgOutputReplicationSlot(
+                new ReplicationSlotOptions(
+                    slotSetupOptions.SlotName,
+                    created.LogSequenceNumber
+                )
+            );
+
+            await foreach (var @event in ReadExistingRowsFromSnapshot(dataSource, created.SnapshotName, options, ct))
             {
                 yield return @event;
             }
         }
 
         await foreach (var message in
-                       conn.StartReplication(slot, new PgOutputReplicationOptions(publicationName, 1), ct))
+                       conn.StartReplication(slot,
+                           new PgOutputReplicationOptions(publicationSetupOptions.PublicationName, 1), ct))
         {
             if (message is InsertMessage insertMessage)
             {
-                yield return await InsertMessageHandler.Handle(insertMessage, options.DataMapper, ct);
+                yield return await InsertMessageHandler.Handle(insertMessage, replicationDataMapper, ct);
             }
 
             // Always call SetReplicationStatus() or assign LastAppliedLsn and LastFlushedLsn individually
@@ -80,15 +87,18 @@ public class Subscription: ISubscription
     }
 
     private static async IAsyncEnumerable<object> ReadExistingRowsFromSnapshot(
+        NpgsqlDataSource dataSource,
         string snapshotName,
         SubscriptionOptions options,
         [EnumeratorCancellation] CancellationToken ct = default
     )
     {
-        await using var connection = new NpgsqlConnection(options.ConnectionString);
-        await connection.OpenAsync(ct);
+        await using var connection = await dataSource.OpenConnectionAsync(ct);
 
-        await foreach (var row in connection.GetRowsFromSnapshot(snapshotName, options.TableName, options.DataMapper,
+        await foreach (var row in connection.GetRowsFromSnapshot(
+                           snapshotName,
+                           options.PublicationSetupOptions.TableName,
+                           options.DataMapper,
                            ct))
         {
             yield return row;

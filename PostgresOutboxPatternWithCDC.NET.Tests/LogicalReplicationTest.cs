@@ -1,10 +1,11 @@
-using PostgresOutbox.Database;
 using PostgresOutbox.Events;
 using PostgresOutbox.Serialization;
 using PostgresOutbox.Subscriptions;
 using PostgresOutbox.Subscriptions.Replication;
 using PostgresOutboxPatternWithCDC.NET.Tests.Events;
 using Xunit.Abstractions;
+using static PostgresOutbox.Subscriptions.Management.PublicationManagement;
+using static PostgresOutbox.Subscriptions.Management.ReplicationSlotManagement;
 
 namespace PostgresOutboxPatternWithCDC.NET.Tests;
 
@@ -27,9 +28,8 @@ public class LogicalReplicationTest
 
         var subscriptionOptions = new SubscriptionOptions(
             ConnectrionString,
-            Randomise("events_slot"),
-            Randomise("events_pub"),
-            eventsTable,
+            new PublicationSetupOptions(Randomise("events_pub"),eventsTable),
+            new ReplicationSlotSetupOptions(Randomise("events_slot")),
             new EventDataMapper()
         );
         var subscription = new Subscription();
@@ -57,9 +57,8 @@ public class LogicalReplicationTest
 
         var subscriptionOptions = new SubscriptionOptions(
             ConnectrionString,
-            Randomise("events_slot"),
-            Randomise("events_pub"),
-            eventsTable,
+            new PublicationSetupOptions(Randomise("events_pub"),eventsTable),
+            new ReplicationSlotSetupOptions(Randomise("events_slot")),
             new EventDataMapper()
         );
         var subscription = new Subscription();
@@ -69,7 +68,7 @@ public class LogicalReplicationTest
 
         var events = subscription.Subscribe(subscriptionOptions, ct);
 
-        await foreach (var readEvent in events.WithCancellation(ct))
+        await foreach (var readEvent in events)
         {
             testOutputHelper.WriteLine(JsonSerialization.ToJson(readEvent));
             Assert.Equal(@event, readEvent);

@@ -1,7 +1,5 @@
 ﻿using Npgsql;
-using Npgsql.Replication.PgOutput;
 using Npgsql.Replication.PgOutput.Messages;
-using PostgresOutbox.Database;
 using PostgresOutbox.Serialization;
 
 namespace PostgresOutbox.Subscriptions.Replication;

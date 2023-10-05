@@ -1,6 +1,4 @@
-﻿using System.Reflection;
-
-namespace PostgresOutbox.Reflection;
+﻿namespace PostgresOutbox.Reflection;
 
 public class GetType
 {

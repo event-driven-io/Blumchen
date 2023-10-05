@@ -1,5 +1,4 @@
 ﻿using Npgsql;
-using Npgsql.Replication.PgOutput;
 using Npgsql.Replication.PgOutput.Messages;
 
 namespace PostgresOutbox.Database;
