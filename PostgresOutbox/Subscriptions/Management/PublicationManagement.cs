@@ -69,7 +69,7 @@ public static class PublicationManagement
                  AND tablename = '{tableName}';
 
                  IF v_count > 0 THEN
-                     EXECUTE format('ALTER PUBLICATION %I DROP TABLE %I', 'your_publication_name', 'your_table_name');
+                     EXECUTE format('ALTER PUBLICATION %I DROP TABLE %I', '{publicationName}', '{tableName}');
                  END IF;
              END $$;
              ALTER PUBLICATION {publicationName} ADD TABLE {tableName};
