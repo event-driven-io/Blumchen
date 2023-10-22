@@ -65,6 +65,9 @@ dotnet test
 - [Azure Database for PostgreSQL—Logical decoding and wal2json for change data capture](https://azure.microsoft.com/en-us/updates/azure-database-for-postgresql-logical-decoding-and-wal2json-for-change-data-capture/)
 - [Amit Langote - Postgresql To Kinesis For Java - Disney Streaming](https://github.com/disneystreaming/pg2k4j)
 
+#### Queue
+- [Adriano Caloiaro - Choose Postgres queue technology](https://adriano.fyi/posts/2023-09-24-choose-postgres-queue-technology/)
+
 #### Performance
 - [2ndQuadrant - Performance limits of logical replication solutions](https://www.2ndquadrant.com/en/blog/performance-limits-of-logical-replication-solutions/)
 
