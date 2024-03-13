@@ -1,4 +1,4 @@
-﻿namespace PostgresOutbox.Reflection;
+namespace PostgresOutbox.Reflection;
 
 public class GetType
 {
@@ -6,15 +6,12 @@ public class GetType
 
     public static Type ByName(string typeName)
     {
-        if (Types.ContainsKey(typeName))
-            return Types[typeName];
+        if (Types.TryGetValue(typeName, out var name))
+            return name;
 
         var type = GetFirstMatchingTypeFromCurrentDomainAssembly(typeName);
 
-        if (type is null)
-            throw new ArgumentOutOfRangeException(nameof(typeName));
-
-        return Types[typeName] = type;
+        return type is null ? throw new ArgumentOutOfRangeException(nameof(typeName)) : Types[typeName] = type;
     }
 
     private static Type? GetFirstMatchingTypeFromCurrentDomainAssembly(string typeName)

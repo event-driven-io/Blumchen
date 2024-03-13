@@ -1,4 +1,4 @@
-﻿using PostgresForDotnetDev.CLI;
+using Commons;
 using PostgresOutbox.Serialization;
 using PostgresOutbox.Subscriptions;
 using PostgresOutbox.Subscriptions.Replication;
@@ -6,6 +6,9 @@ using PostgresOutbox.Subscriptions.Replication;
 using static PostgresOutbox.Subscriptions.Management.PublicationManagement;
 using static PostgresOutbox.Subscriptions.Management.ReplicationSlotManagement;
 
+#pragma warning disable CS8601 // Possible null reference assignment.
+Console.Title = typeof(Program).Assembly.GetName().Name;
+#pragma warning restore CS8601 // Possible null reference assignment.
 var cancellationTokenSource = new CancellationTokenSource();
 
 var ct = cancellationTokenSource.Token;

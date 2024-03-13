@@ -2,20 +2,19 @@ using Commons.Events;
 using PostgresOutbox.Events;
 using PostgresOutbox.Serialization;
 using PostgresOutbox.Subscriptions;
+using PostgresOutbox.Subscriptions.Management;
 using PostgresOutbox.Subscriptions.Replication;
 using Xunit.Abstractions;
-using static PostgresOutbox.Subscriptions.Management.PublicationManagement;
-using static PostgresOutbox.Subscriptions.Management.ReplicationSlotManagement;
 
-namespace PostgresOutboxPatternWithCDC.NET.Tests;
+namespace Tests;
 
 public class LogicalReplicationTest
 {
-    private readonly ITestOutputHelper testOutputHelper;
+    private readonly ITestOutputHelper _testOutputHelper;
 
     public LogicalReplicationTest(ITestOutputHelper testOutputHelper)
     {
-        this.testOutputHelper = testOutputHelper;
+        _testOutputHelper = testOutputHelper;
     }
 
     [Fact]
@@ -28,8 +27,8 @@ public class LogicalReplicationTest
 
         var subscriptionOptions = new SubscriptionOptions(
             ConnectrionString,
-            new PublicationSetupOptions(Randomise("events_pub"),eventsTable),
-            new ReplicationSlotSetupOptions(Randomise("events_slot")),
+            new PublicationManagement.PublicationSetupOptions(Randomise("events_pub"),eventsTable),
+            new ReplicationSlotManagement.ReplicationSlotSetupOptions(Randomise("events_slot")),
             new EventDataMapper()
         );
         var subscription = new Subscription();
@@ -41,7 +40,7 @@ public class LogicalReplicationTest
 
         await foreach (var readEvent in events.WithCancellation(ct))
         {
-            testOutputHelper.WriteLine(JsonSerialization.ToJson(readEvent));
+            _testOutputHelper.WriteLine(JsonSerialization.ToJson(readEvent));
             Assert.Equal(@event, readEvent);
             return;
         }
@@ -57,8 +56,8 @@ public class LogicalReplicationTest
 
         var subscriptionOptions = new SubscriptionOptions(
             ConnectrionString,
-            new PublicationSetupOptions(Randomise("events_pub"),eventsTable),
-            new ReplicationSlotSetupOptions(Randomise("events_slot")),
+            new PublicationManagement.PublicationSetupOptions(Randomise("events_pub"),eventsTable),
+            new ReplicationSlotManagement.ReplicationSlotSetupOptions(Randomise("events_slot")),
             new EventDataMapper()
         );
         var subscription = new Subscription();
@@ -70,7 +69,7 @@ public class LogicalReplicationTest
 
         await foreach (var readEvent in events)
         {
-            testOutputHelper.WriteLine(JsonSerialization.ToJson(readEvent));
+            _testOutputHelper.WriteLine(JsonSerialization.ToJson(readEvent));
             Assert.Equal(@event, readEvent);
             return;
         }
@@ -92,5 +91,5 @@ public class LogicalReplicationTest
         $"{prefix}_{Guid.NewGuid().ToString().Replace("-", "")}";
 
     private const string ConnectrionString =
-        "PORT = 5432; HOST = localhost; TIMEOUT = 15; POOLING = True; MINPOOLSIZE = 1; MAXPOOLSIZE = 100; COMMANDTIMEOUT = 20; DATABASE = 'postgres'; PASSWORD = 'Password12!'; USER ID = 'postgres'";
+        "PORT = 5432; HOST = localhost; TIMEOUT = 15; POOLING = True; MINPOOLSIZE = 1; MAXPOOLSIZE = 100; COMMANDTIMEOUT = 20; DATABASE = 'postgres'; PASSWORD = 'postgres'; USER ID = 'postgres'";
 }

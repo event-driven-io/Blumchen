@@ -5,7 +5,7 @@ services:
       - "5432:5432"
     environment:
       - POSTGRES_DB=postgres
-      - POSTGRES_PASSWORD=Password12!
+      - POSTGRES_PASSWORD=postgres
     command:
       - "postgres"
       - "-c"

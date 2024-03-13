@@ -1,4 +1,4 @@
-﻿namespace PostgresForDotnetDev.CLI;
+namespace Commons;
 
 public static class Settings
 {
