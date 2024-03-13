@@ -1,7 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PostgresOutboxPatternWithCDC.NET.Tests", "PostgresOutboxPatternWithCDC.NET.Tests\PostgresOutboxPatternWithCDC.NET.Tests.csproj", "{CAC01DAE-078B-474C-8C38-B528F27B2E16}"
-EndProject
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34622.214
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docker", "docker", "{CD59A1A0-F40D-4047-87A3-66C0F1519FA5}"
 	ProjectSection(SolutionItems) = preProject
 		docker-compose.yml = docker-compose.yml
@@ -12,7 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sql", "sql", "{9F497531-24E
 		sql\init.sql = sql\init.sql
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PostgresOutbox", "PostgresOutbox\PostgresOutbox.csproj", "{E1AD98FC-42B1-4B7B-AF44-8057B7A61FDD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PostgresOutbox", "PostgresOutbox\PostgresOutbox.csproj", "{E1AD98FC-42B1-4B7B-AF44-8057B7A61FDD}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{D0AB0FF4-C8A1-4B4B-A682-64F353A2D248}"
 	ProjectSection(SolutionItems) = preProject
@@ -24,7 +25,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{47B6EDAC-2
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PostgresOutbox.Console", "PostgresOutbox.Console\PostgresOutbox.Console.csproj", "{06A60918-32EB-4C38-B369-7E1D76B809A0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Subscriber", "Subscriber\Subscriber.csproj", "{06A60918-32EB-4C38-B369-7E1D76B809A0}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Publisher", "Publisher\Publisher.csproj", "{F2878625-0919-4C26-8DC9-58CD8FA34050}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Commons", "Commons\Commons.csproj", "{F81E2D5B-FC59-4396-A911-56BE65E4FE80}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{2BBDA071-FB1C-4D62-A954-B22EA6B1C738}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -32,10 +39,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{CAC01DAE-078B-474C-8C38-B528F27B2E16}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{CAC01DAE-078B-474C-8C38-B528F27B2E16}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{CAC01DAE-078B-474C-8C38-B528F27B2E16}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{CAC01DAE-078B-474C-8C38-B528F27B2E16}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E1AD98FC-42B1-4B7B-AF44-8057B7A61FDD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E1AD98FC-42B1-4B7B-AF44-8057B7A61FDD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E1AD98FC-42B1-4B7B-AF44-8057B7A61FDD}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -44,5 +47,23 @@ Global
 		{06A60918-32EB-4C38-B369-7E1D76B809A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{06A60918-32EB-4C38-B369-7E1D76B809A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{06A60918-32EB-4C38-B369-7E1D76B809A0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F2878625-0919-4C26-8DC9-58CD8FA34050}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F2878625-0919-4C26-8DC9-58CD8FA34050}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F2878625-0919-4C26-8DC9-58CD8FA34050}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F2878625-0919-4C26-8DC9-58CD8FA34050}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F81E2D5B-FC59-4396-A911-56BE65E4FE80}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F81E2D5B-FC59-4396-A911-56BE65E4FE80}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F81E2D5B-FC59-4396-A911-56BE65E4FE80}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F81E2D5B-FC59-4396-A911-56BE65E4FE80}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2BBDA071-FB1C-4D62-A954-B22EA6B1C738}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2BBDA071-FB1C-4D62-A954-B22EA6B1C738}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2BBDA071-FB1C-4D62-A954-B22EA6B1C738}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2BBDA071-FB1C-4D62-A954-B22EA6B1C738}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9A868C51-0460-4700-AF33-E1A921192614}
 	EndGlobalSection
 EndGlobal

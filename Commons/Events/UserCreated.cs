@@ -1,4 +1,4 @@
-﻿namespace PostgresOutbox.Console.Events;
+namespace Commons.Events;
 
 public record UserCreated(
     Guid Id,
