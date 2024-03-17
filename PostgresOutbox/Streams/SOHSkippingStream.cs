@@ -1,103 +1,76 @@
 namespace PostgresOutbox.Streams
 {
-    internal class SOHSkippingStream: Stream
+    internal class SohSkippingStream(Stream inner): Stream
     {
-        private readonly Stream _inner;
-
-        public SOHSkippingStream(Stream inner)
-        {
-            _inner = inner;
-        }
-
         public override int ReadByte()
         {
-            var initialPosition = _inner.Position;
-            var result = _inner.ReadByte();
-            if (result == 1 && initialPosition == 0) result = _inner.ReadByte();
-
+            var result = inner.ReadByte();
+            if (result == 1 && inner.Position == 0) result = inner.ReadByte();
             return result;
         }
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            var totalRead = 0;
-            if (_inner.Position == 0)
-            {
-                var readBytes = _inner.Read(buffer, 0, 1);
-                if (readBytes <= 0) return readBytes;
+            if (inner.Position != 0) return inner.Read(buffer, offset, count);
+            var readBytes = inner.Read(buffer, 0, 1);
+            if (readBytes <= 0) return readBytes;
 
-                if (buffer[0] != 1)
-                {
-                    offset += 1;
-                    count -= 1;
-                    totalRead = 1;
-                }
-            }
-
-            return totalRead + _inner.Read(buffer, offset, count);
+            if (buffer[0] == 1) return inner.Read(buffer, offset, count);
+            offset += 1;
+            count -= 1;
+            return 1 + inner.Read(buffer, offset, count);
         }
 
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count,
             CancellationToken cancellationToken)
         {
-            var totalRead = 0;
-            if (_inner.Position == 0)
-            {
-                var readBytes = await _inner.ReadAsync(buffer, 0, 1, cancellationToken).ConfigureAwait(false);
-                if (readBytes <= 0) return readBytes;
+            if (inner.Position != 0)
+                return await inner.ReadAsync(new Memory<byte>(buffer, offset, count), cancellationToken)
+                    .ConfigureAwait(false);
+            var readBytes = await inner.ReadAsync(new Memory<byte>(buffer, 0, 1), cancellationToken)
+                .ConfigureAwait(false);
+            if (readBytes <= 0) return readBytes;
 
-                if (buffer[0] != 1)
-                {
-                    offset += 1;
-                    count -= 1;
-                    totalRead = 1;
-                }
-            }
-
-            return totalRead + await _inner.ReadAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
+            if (buffer[0] == 1)
+                return await inner.ReadAsync(new Memory<byte>(buffer, offset, count), cancellationToken)
+                    .ConfigureAwait(false);
+            offset += 1;
+            count -= 1;
+            return 1 + await inner.ReadAsync(new Memory<byte>(buffer, offset, count), cancellationToken)
+                .ConfigureAwait(false);
         }
 
         public override async ValueTask<int> ReadAsync(Memory<byte> buffer,
             CancellationToken cancellationToken = default)
         {
-            var totalRead = 0;
-            if (_inner.Position == 0)
-            {
-                var singleByteBuffer = buffer[..1];
+            if (inner.Position != 0)
+                return await inner.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+            var singleByteBuffer = buffer[..1];
 
-                var readBytes = await _inner.ReadAsync(singleByteBuffer, cancellationToken).ConfigureAwait(false);
-                if (readBytes <= 0) return readBytes;
+            var readBytes = await inner.ReadAsync(singleByteBuffer, cancellationToken).ConfigureAwait(false);
+            if (readBytes <= 0) return readBytes;
 
-                if (singleByteBuffer.Span[0] != 1)
-                {
-                    totalRead = 1;
-                    buffer = buffer[1..];
-                }
-            }
+            if (singleByteBuffer.Span[0] == 1)
+                return await inner.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+            buffer = buffer[1..];
 
-            return totalRead + await _inner.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+            return 1 + await inner.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
         }
 
         public override int Read(Span<byte> buffer)
         {
-            var totalRead = 0;
-            if (_inner.Position == 0)
-            {
-                var singleByteBuffer = buffer[..1];
-                var readBytes = _inner.Read(singleByteBuffer);
-                if (readBytes <= 0) return readBytes;
+            if (inner.Position != 0) return inner.Read(buffer);
+            var readBytes = inner.Read(buffer[..1]);
+            if (readBytes <= 0) return readBytes;
 
-                if (singleByteBuffer[0] != 1)
-                {
-                    totalRead = 1;
-                    buffer = buffer[1..];
-                }
-            }
+            if (buffer[..1][0] == 1) return inner.Read(buffer);
+            buffer = buffer[1..];
 
-            return totalRead + _inner.Read(buffer);
+            return 1 + inner.Read(buffer);
         }
 
-        public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state)
+        public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback? callback,
+            object? state)
         {
             throw new NotSupportedException();
         }
@@ -126,7 +99,7 @@ namespace PostgresOutbox.Streams
         public override bool CanRead => true;
         public override bool CanSeek => false;
         public override bool CanWrite => false;
-        public override long Length => _inner.Length;
+        public override long Length => inner.Length;
 
         public override long Position
         {
@@ -141,12 +114,12 @@ namespace PostgresOutbox.Streams
 
         protected override void Dispose(bool disposing)
         {
-            _inner.Dispose();
+            inner.Dispose();
         }
 
         public override ValueTask DisposeAsync()
         {
-            return _inner.DisposeAsync();
+            return inner.DisposeAsync();
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using Npgsql;
+using Npgsql;
 using Npgsql.Replication.PgOutput.Messages;
 
 namespace PostgresOutbox.Database;
@@ -22,16 +22,16 @@ public static class DatabaseResultToDictionaryMapper
     }
 
 
-    public static ValueTask<Dictionary<string, object>> ToDictionary(this NpgsqlDataReader reader, CancellationToken ct)
+    public static async ValueTask<Dictionary<string, object>> ToDictionary(this NpgsqlDataReader reader, CancellationToken ct)
     {
         var result = new Dictionary<string, object>();
 
         for (var i = 0; i < reader.FieldCount; i++)
         {
-            var value = reader.GetValue(i);
+            var value = await reader.GetFieldValueAsync<string>(i,ct);
             result[reader.GetName(i)] = value;
         }
 
-        return new ValueTask<Dictionary<string, object>>(result);
+        return await new ValueTask<Dictionary<string, object>>(result);
     }
 }

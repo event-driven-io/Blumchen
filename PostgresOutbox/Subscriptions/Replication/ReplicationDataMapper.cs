@@ -1,4 +1,4 @@
-﻿using Npgsql;
+using Npgsql;
 using Npgsql.Replication.PgOutput.Messages;
 using PostgresOutbox.Database;
 
@@ -24,30 +24,13 @@ public interface IReplicationDataMapper<T>: IReplicationDataMapper where T : not
         await ReadFromReplication(message, ct);
 }
 
-public class DictionaryReplicationDataMapper<T>: IReplicationDataMapper<T> where T : notnull
+public class DictionaryReplicationDataMapper<T>(Func<IDictionary<string, object>, CancellationToken, ValueTask<T>> map)
+    : IReplicationDataMapper<T>
+    where T : notnull
 {
-    private readonly Func<IDictionary<string, object>, CancellationToken, ValueTask<T>> map;
-
-    public DictionaryReplicationDataMapper(Func<IDictionary<string, object>, CancellationToken, ValueTask<T>> map) =>
-        this.map = map;
-
     public async Task<T> ReadFromSnapshot(NpgsqlDataReader reader, CancellationToken ct) =>
         await map(await reader.ToDictionary(ct), ct);
 
     public async Task<T> ReadFromReplication(InsertMessage message, CancellationToken ct) =>
         await map(await message.ToDictionary(ct), ct);
-}
-
-public class DictionaryReplicationDataMapper: DictionaryReplicationDataMapper<object>
-{
-    public static DictionaryReplicationDataMapper<T> For<T>(
-        Func<IDictionary<string, object>, CancellationToken, ValueTask<T>> map) where T : notnull => new(map);
-
-    public static DictionaryReplicationDataMapper For(
-        Func<IDictionary<string, object>, CancellationToken, ValueTask<object>> map) => new(map);
-
-    public DictionaryReplicationDataMapper(Func<IDictionary<string, object>, CancellationToken, ValueTask<object>> map):
-        base(map)
-    {
-    }
 }

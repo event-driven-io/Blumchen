@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using System.Runtime.CompilerServices;
 using Npgsql;
 using PostgresOutbox.Subscriptions.Replication;
@@ -36,10 +36,7 @@ public static class Run
         await using var command = dataSource.CreateCommand(
             $"SELECT EXISTS(SELECT 1 FROM {table} WHERE {where})"
         );
-        foreach (var parameter in parameters)
-        {
-            command.Parameters.AddWithValue(parameter);
-        }
+        foreach (var parameter in parameters) command.Parameters.AddWithValue(parameter);
 
         return ((await command.ExecuteScalarAsync(ct)) as bool?) == true;
     }
@@ -61,8 +58,6 @@ public static class Run
         await using var reader =  await cmd.ExecuteReaderAsync(ct);
 
         while (await reader.ReadAsync(ct))
-        {
             yield return await dataMapper.ReadFromSnapshot(reader, ct);
-        }
     }
 }

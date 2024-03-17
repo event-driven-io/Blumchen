@@ -1,4 +1,4 @@
-﻿using Npgsql;
+using Npgsql;
 using Npgsql.Replication;
 using NpgsqlTypes;
 using PostgresOutbox.Database;
@@ -42,7 +42,7 @@ public static class ReplicationSlotManagement
         string slotName,
         CancellationToken ct
     ) =>
-        dataSource.Exists("pg_replication_slots", "slot_name = $1", new object[] { slotName }, ct);
+        dataSource.Exists("pg_replication_slots", "slot_name = $1", [slotName], ct);
 
     public record ReplicationSlotSetupOptions(
         string SlotName,

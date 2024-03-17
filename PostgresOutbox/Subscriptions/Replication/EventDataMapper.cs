@@ -1,4 +1,4 @@
-﻿using Npgsql;
+using Npgsql;
 using Npgsql.Replication.PgOutput.Messages;
 using PostgresOutbox.Serialization;
 
@@ -18,7 +18,7 @@ public class EventDataMapper: IReplicationDataMapper
                 case 1:
                     eventTypeName = await value.GetTextReader().ReadToEndAsync(ct);
                     break;
-                case 2 when value.GetDataTypeName().ToLower() == "jsonb":
+                case 2 when value.GetDataTypeName().Equals("jsonb", StringComparison.OrdinalIgnoreCase):
                 {
                     var eventType = Reflection.GetType.ByName(eventTypeName);
 
@@ -39,7 +39,8 @@ public class EventDataMapper: IReplicationDataMapper
         var eventTypeName = reader.GetString(1);
         var eventType = Reflection.GetType.ByName(eventTypeName);
 
-        var @event = await JsonSerialization.FromJsonAsync(eventType, await reader.GetStreamAsync(2, ct), ct);
+        var stream = await reader.GetStreamAsync(2, ct);
+        var @event = await JsonSerialization.FromJsonAsync(eventType, stream, ct);
 
         return @event!;
     }
