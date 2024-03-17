@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using Npgsql;
 using PostgresOutbox.Database;
 using PostgresOutbox.Subscriptions.Replication;
@@ -16,8 +16,6 @@ public static class SnapshotReader
     )
     {
         await foreach (var @event in connection.QueryTransactionSnapshot(snapshotName, tableName, dataMapper, ct))
-        {
             yield return @event;
-        }
     }
 }

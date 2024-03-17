@@ -1,3 +1,4 @@
+
 using Npgsql.Replication.PgOutput.Messages;
 using PostgresOutbox.Subscriptions.Replication;
 

@@ -13,18 +13,12 @@ var cancellationTokenSource = new CancellationTokenSource();
 
 var ct = cancellationTokenSource.Token;
 
-var slotName = "events_slot" + Guid.NewGuid().ToString().Replace("-", "");
-
-var subscriptionOptions = new SubscriptionOptions(
-    Settings.ConnectionString,
-    new PublicationSetupOptions("events_pub","events" ),
-    new ReplicationSlotSetupOptions(slotName),
-    new EventDataMapper()
-);
-
-var subscription = new Subscription();
-
-await foreach (var readEvent in subscription.Subscribe(subscriptionOptions, ct:ct))
+await foreach (var readEvent in new Subscription().Subscribe(new SubscriptionOptions(
+                   Settings.ConnectionString,
+                   new PublicationSetupOptions("events_pub","events" ),
+                   new ReplicationSlotSetupOptions("events_slot"),
+                   new EventDataMapper()
+               ), ct:ct))
 {
     Console.WriteLine(JsonSerialization.ToJson(readEvent));
 }

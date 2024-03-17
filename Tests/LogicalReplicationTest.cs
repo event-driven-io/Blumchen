@@ -8,17 +8,10 @@ using Xunit.Abstractions;
 
 namespace Tests;
 
-public class LogicalReplicationTest
+public class LogicalReplicationTest(ITestOutputHelper testOutputHelper)
 {
-    private readonly ITestOutputHelper _testOutputHelper;
-
-    public LogicalReplicationTest(ITestOutputHelper testOutputHelper)
-    {
-        _testOutputHelper = testOutputHelper;
-    }
-
     [Fact]
-    public async Task WALSubscriptionForNewEventsShouldWork()
+    public async Task WalSubscriptionForNewEventsShouldWork()
     {
         var cancellationTokenSource = new CancellationTokenSource();
         var ct = cancellationTokenSource.Token;
@@ -40,14 +33,14 @@ public class LogicalReplicationTest
 
         await foreach (var readEvent in events.WithCancellation(ct))
         {
-            _testOutputHelper.WriteLine(JsonSerialization.ToJson(readEvent));
+            testOutputHelper.WriteLine(JsonSerialization.ToJson(readEvent));
             Assert.Equal(@event, readEvent);
             return;
         }
     }
 
     [Fact]
-    public async Task WALSubscriptionForOldEventsShouldWork()
+    public async Task WalSubscriptionForOldEventsShouldWork()
     {
         var cancellationTokenSource = new CancellationTokenSource();
         var ct = cancellationTokenSource.Token;
@@ -69,7 +62,7 @@ public class LogicalReplicationTest
 
         await foreach (var readEvent in events)
         {
-            _testOutputHelper.WriteLine(JsonSerialization.ToJson(readEvent));
+            testOutputHelper.WriteLine(JsonSerialization.ToJson(readEvent));
             Assert.Equal(@event, readEvent);
             return;
         }

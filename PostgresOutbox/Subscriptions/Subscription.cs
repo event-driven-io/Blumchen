@@ -65,9 +65,7 @@ public class Subscription: ISubscription
             );
 
             await foreach (var @event in ReadExistingRowsFromSnapshot(dataSource, created.SnapshotName, options, ct))
-            {
                 yield return @event;
-            }
         }
 
         await foreach (var message in
@@ -75,9 +73,7 @@ public class Subscription: ISubscription
                            new PgOutputReplicationOptions(publicationSetupOptions.PublicationName, 1), ct))
         {
             if (message is InsertMessage insertMessage)
-            {
                 yield return await InsertMessageHandler.Handle(insertMessage, replicationDataMapper, ct);
-            }
 
             // Always call SetReplicationStatus() or assign LastAppliedLsn and LastFlushedLsn individually
             // so that Npgsql can inform the server which WAL files can be removed/recycled.
@@ -100,8 +96,6 @@ public class Subscription: ISubscription
                            options.PublicationSetupOptions.TableName,
                            options.DataMapper,
                            ct))
-        {
             yield return row;
-        }
     }
 }
