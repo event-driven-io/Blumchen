@@ -15,24 +15,43 @@ public static class PublicationManagement
     {
         var (publicationName, tableName, createStyle, shouldReAddTablesIfWereRecreated) = options;
 
-        if (createStyle == CreateStyle.Never)
-            return new None();
-
-        if (createStyle == CreateStyle.AlwaysRecreate)
-            await dataSource.DropPublication(publicationName, ct);
-
-        if (createStyle == CreateStyle.WhenNotExists
-            && await dataSource.PublicationExists(publicationName, ct))
+        return createStyle switch
         {
-            if (shouldReAddTablesIfWereRecreated)
-                await dataSource.RefreshPublicationTables(publicationName, tableName, ct);
+            CreateStyle.Never => new None(),
+            CreateStyle.AlwaysRecreate => await ReCreate(dataSource, publicationName, tableName, ct),
+            CreateStyle.WhenNotExists when await dataSource.PublicationExists(publicationName, ct) => await Refresh(dataSource, publicationName, tableName, shouldReAddTablesIfWereRecreated, ct),
+            CreateStyle.WhenNotExists => await Create(dataSource, publicationName, tableName, ct),
+            _ => throw new ArgumentOutOfRangeException(nameof(options.CreateStyle))
+        };
 
-            return new AlreadyExists();
+        static async Task<SetupPublicationResult> ReCreate(
+            NpgsqlDataSource dataSource,
+            string publicationName,
+            string tableName, CancellationToken ct)
+        {
+            await dataSource.DropPublication(publicationName, ct);
+            return await Create(dataSource, publicationName, tableName, ct);
         }
 
-        await dataSource.CreatePublication(publicationName, tableName, ct);
+        static async Task<SetupPublicationResult> Create(
+            NpgsqlDataSource dataSource,
+            string publicationName,
+            string tableName, CancellationToken ct)
+        {
+            await dataSource.CreatePublication(publicationName, tableName, ct);
+            return new Created();
+        }
 
-        return new Created();
+        static async Task<SetupPublicationResult> Refresh(NpgsqlDataSource dataSource,
+            string publicationName,
+            string tableName,
+            bool shouldReAddTablesIfWereRecreated,
+            CancellationToken ct)
+        {
+            if(shouldReAddTablesIfWereRecreated)
+                await dataSource.RefreshPublicationTables(publicationName, tableName, ct);
+            return new AlreadyExists();
+        }
     }
 
     private static Task CreatePublication(
@@ -80,7 +99,7 @@ public static class PublicationManagement
         string publicationName,
         CancellationToken ct
     ) =>
-        dataSource.Exists("pg_publication", "pubname = $1", new object[] { publicationName }, ct);
+        dataSource.Exists("pg_publication", "pubname = $1", [publicationName], ct);
 
     public abstract record SetupPublicationResult
     {
