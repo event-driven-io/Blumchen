@@ -17,24 +17,38 @@ public static class ReplicationSlotManagement
     {
         var (slotName, createStyle) = options;
 
-        if(createStyle == CreateStyle.Never)
-            return new None();
-
-        if (await dataSource.ReplicationSlotExists(slotName, ct))
+        return (createStyle, await dataSource.ReplicationSlotExists(slotName, ct)) switch
         {
-            if (createStyle == CreateStyle.WhenNotExists)
-                return new AlreadyExists();
+            (CreateStyle.Never,_) => new None(),
+            (CreateStyle.WhenNotExists,true) => new AlreadyExists(),
+            (CreateStyle.WhenNotExists,false) => await Create(connection, slotName, ct),
+            (CreateStyle.AlwaysRecreate,true) => await ReCreate(connection, slotName, ct),
+            (CreateStyle.AlwaysRecreate, false) => await Create(connection, slotName, ct),
+            _ => throw new ArgumentOutOfRangeException(nameof(options.CreateStyle))
+        };
 
+        static async Task<CreateReplicationSlotResult> ReCreate(
+            LogicalReplicationConnection connection,
+            string slotName,
+            CancellationToken ct)
+        {
             await connection.DropReplicationSlot(slotName, true, ct);
+            return await Create(connection, slotName, ct);
         }
 
-        var result = await connection.CreatePgOutputReplicationSlot(
-            slotName,
-            slotSnapshotInitMode: LogicalSlotSnapshotInitMode.Export,
-            cancellationToken: ct
-        );
+        static async Task<CreateReplicationSlotResult> Create(
+            LogicalReplicationConnection connection,
+            string slotName,
+            CancellationToken ct)
+        {
+            var result = await connection.CreatePgOutputReplicationSlot(
+                slotName,
+                slotSnapshotInitMode: LogicalSlotSnapshotInitMode.Export,
+                cancellationToken: ct
+            );
 
-        return new Created(result.SnapshotName!, result.ConsistentPoint);
+            return new Created(result.SnapshotName!, result.ConsistentPoint);
+        }
     }
 
     private static Task<bool> ReplicationSlotExists(
