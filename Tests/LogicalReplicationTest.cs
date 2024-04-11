@@ -4,12 +4,26 @@ using PostgresOutbox.Serialization;
 using PostgresOutbox.Subscriptions;
 using PostgresOutbox.Subscriptions.Management;
 using PostgresOutbox.Subscriptions.Replication;
+using Testcontainers.PostgreSql;
 using Xunit.Abstractions;
 
 namespace Tests;
-//TODO: https://dotnet.testcontainers.org/
-public class LogicalReplicationTest(ITestOutputHelper testOutputHelper)
+public class LogicalReplicationTest(ITestOutputHelper testOutputHelper) : IAsyncLifetime
 {
+    private readonly PostgreSqlContainer _postgreSqlContainer = new PostgreSqlBuilder()
+        .WithCommand("-c", "wal_level=logical")
+        .Build();
+
+    public Task InitializeAsync()
+    {
+        return _postgreSqlContainer.StartAsync();
+    }
+
+    public Task DisposeAsync()
+    {
+        return _postgreSqlContainer.DisposeAsync().AsTask();
+    }
+
     [Fact]
     public async Task WalSubscriptionForNewEventsShouldWork()
     {
@@ -73,7 +87,7 @@ public class LogicalReplicationTest(ITestOutputHelper testOutputHelper)
         CancellationToken ct
     )
     {
-        var tableName = Randomise("events");
+        var tableName = Randomise("outbox");
 
         await EventsTable.Create(connectionString, tableName, ct);
 
@@ -84,5 +98,5 @@ public class LogicalReplicationTest(ITestOutputHelper testOutputHelper)
         $"{prefix}_{Guid.NewGuid().ToString().Replace("-", "")}";
 
     private const string ConnectionString =
-        "PORT = 5432; HOST = localhost; TIMEOUT = 15; POOLING = True; MINPOOLSIZE = 1; MAXPOOLSIZE = 100; COMMANDTIMEOUT = 20; DATABASE = 'postgres'; PASSWORD = 'postgres'; USER ID = 'postgres'";
+        $"PORT = 5432; HOST = localhost; TIMEOUT = 15; POOLING = True; MINPOOLSIZE = 1; MAXPOOLSIZE = 100; COMMANDTIMEOUT = 20; DATABASE = 'postgres'; PASSWORD = 'postgres'; USER ID = 'postgres'";
 }
