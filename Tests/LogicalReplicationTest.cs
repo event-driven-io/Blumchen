@@ -7,7 +7,7 @@ using PostgresOutbox.Subscriptions.Replication;
 using Xunit.Abstractions;
 
 namespace Tests;
-
+//TODO: https://dotnet.testcontainers.org/
 public class LogicalReplicationTest(ITestOutputHelper testOutputHelper)
 {
     [Fact]
