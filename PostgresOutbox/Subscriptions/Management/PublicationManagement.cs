@@ -60,7 +60,7 @@ public static class PublicationManagement
         string tableName,
         CancellationToken ct
     ) =>
-        dataSource.Execute($"CREATE PUBLICATION {publicationName} FOR TABLE {tableName};", ct);
+        dataSource.Execute($"CREATE PUBLICATION {publicationName} FOR TABLE {tableName} WITH (publish = 'insert');", ct);//TODO: row filter
 
     private static Task DropPublication(
         this NpgsqlDataSource dataSource,
