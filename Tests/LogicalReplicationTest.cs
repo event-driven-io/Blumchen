@@ -30,24 +30,31 @@ public class LogicalReplicationTest(ITestOutputHelper testOutputHelper) : IAsync
         var cancellationTokenSource = new CancellationTokenSource();
         var ct = cancellationTokenSource.Token;
 
-        var eventsTable = await CreateEventsTable(ConnectionString, ct);
+        var connectionString = _postgreSqlContainer.GetConnectionString();
+        var eventsTable = await CreateEventsTable(connectionString, ct);
 
-        var subscriptionOptions = new SubscriptionOptions(
-            ConnectionString,
-            new PublicationManagement.PublicationSetupOptions(Randomise("events_pub"),eventsTable),
-            new ReplicationSlotManagement.ReplicationSlotSetupOptions(Randomise("events_slot")),
-            new EventDataMapper()
-        );
+        var typeResolver = new FQNTypeResolver().WhiteList(typeof(UserCreated),SourceGenerationContext.Default.UserCreated);
+        var subscriptionOptions = new SubscriptionOptionsBuilder()
+            .WithConnectionString(connectionString)
+            .WithMapper(
+                new EventDataMapper(SourceGenerationContext.Default, typeResolver))
+            .WitPublicationOptions(
+                new PublicationManagement.PublicationSetupOptions(Randomise("events_pub"), eventsTable)
+            )
+            .WithReplicationOptions(
+                new ReplicationSlotManagement.ReplicationSlotSetupOptions(Randomise("events_slot"))
+            ).Build();
+        
         var subscription = new Subscription();
 
         var events = subscription.Subscribe(subscriptionOptions, ct);
 
         var @event = new UserCreated(Guid.NewGuid(), Guid.NewGuid().ToString());
-        await EventsAppender.AppendAsync(eventsTable, @event, ConnectionString, ct);
+        await EventsAppender.AppendAsync(eventsTable, @event, typeResolver, connectionString, ct);
 
-        await foreach (var readEvent in events.WithCancellation(ct))
+        await foreach (var readEvent in events)
         {
-            testOutputHelper.WriteLine(JsonSerialization.ToJson(readEvent));
+            testOutputHelper.WriteLine(JsonSerialization.ToJson(readEvent, SourceGenerationContext.Default.UserCreated));
             Assert.Equal(@event, readEvent);
             return;
         }
@@ -59,24 +66,30 @@ public class LogicalReplicationTest(ITestOutputHelper testOutputHelper) : IAsync
         var cancellationTokenSource = new CancellationTokenSource();
         var ct = cancellationTokenSource.Token;
 
-        var eventsTable = await CreateEventsTable(ConnectionString, ct);
-
-        var subscriptionOptions = new SubscriptionOptions(
-            ConnectionString,
-            new PublicationManagement.PublicationSetupOptions(Randomise("events_pub"),eventsTable),
-            new ReplicationSlotManagement.ReplicationSlotSetupOptions(Randomise("events_slot")),
-            new EventDataMapper()
-        );
+        var connectionString = _postgreSqlContainer.GetConnectionString();
+        var eventsTable = await CreateEventsTable(connectionString, ct);
+            
+        var typeResolver = new FQNTypeResolver().WhiteList(typeof(UserCreated), SourceGenerationContext.Default.UserCreated);
+        var subscriptionOptions = new SubscriptionOptionsBuilder()
+            .WithConnectionString(connectionString)
+            .WithMapper(
+                new EventDataMapper(SourceGenerationContext.Default, typeResolver))
+            .WitPublicationOptions(
+                new PublicationManagement.PublicationSetupOptions(Randomise("events_pub"), eventsTable)
+            )
+            .WithReplicationOptions(
+                new ReplicationSlotManagement.ReplicationSlotSetupOptions(Randomise("events_slot"))
+            ).Build();
         var subscription = new Subscription();
 
         var @event = new UserCreated(Guid.NewGuid(), Guid.NewGuid().ToString());
-        await EventsAppender.AppendAsync(eventsTable, @event, ConnectionString, ct);
+        await EventsAppender.AppendAsync(eventsTable, @event, typeResolver, connectionString, ct);
 
         var events = subscription.Subscribe(subscriptionOptions, ct);
 
         await foreach (var readEvent in events)
         {
-            testOutputHelper.WriteLine(JsonSerialization.ToJson(readEvent));
+            testOutputHelper.WriteLine(JsonSerialization.ToJson(readEvent, SourceGenerationContext.Default.UserCreated));
             Assert.Equal(@event, readEvent);
             return;
         }
@@ -96,7 +109,4 @@ public class LogicalReplicationTest(ITestOutputHelper testOutputHelper) : IAsync
 
     private static string Randomise(string prefix) =>
         $"{prefix}_{Guid.NewGuid().ToString().Replace("-", "")}";
-
-    private const string ConnectionString =
-        $"PORT = 5432; HOST = localhost; TIMEOUT = 15; POOLING = True; MINPOOLSIZE = 1; MAXPOOLSIZE = 100; COMMANDTIMEOUT = 20; DATABASE = 'postgres'; PASSWORD = 'postgres'; USER ID = 'postgres'";
 }

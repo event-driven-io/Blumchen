@@ -1,16 +1,19 @@
 using System.Collections;
+using System.Text.Json.Serialization.Metadata;
 using Npgsql;
 using PostgresOutbox.Serialization;
+using PostgresOutbox.Subscriptions.Replication;
 
 namespace PostgresOutbox.Events;
 
 public static class EventsAppender
 {
-    public static async Task AppendAsync<T>(string tableName, T @event, string connectionString, CancellationToken ct)
+    public static async Task AppendAsync<T>(string tableName, T @event, ITypeResolver resolver, string connectionString, CancellationToken ct)
         where T: class
     {
-        var eventTypeName = typeof(T).AssemblyQualifiedName;
-        var eventData = JsonSerialization.ToJson(@event);
+        var type = typeof(T);
+        var (eventTypeName, jsonTypeInfo) = resolver.Resolve(type);
+        var eventData = JsonSerialization.ToJson(@event, jsonTypeInfo);
 
         await using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync(ct);
@@ -19,7 +22,7 @@ public static class EventsAppender
         await command.ExecuteNonQueryAsync(ct);
     }
 
-    public static async Task AppendAsync<T>(string tableName, T @input, NpgsqlConnection connection, NpgsqlTransaction transaction, CancellationToken ct)
+    public static async Task AppendAsync<T>(string tableName, T @input, ITypeResolver resolver, NpgsqlConnection connection, NpgsqlTransaction transaction, CancellationToken ct)
         where T : class
     {
         switch (@input)
@@ -27,23 +30,30 @@ public static class EventsAppender
             case null:
                 throw new ArgumentNullException(nameof(@input));
             case IEnumerable @events:
-                await AppendBatchAsyncOfT(tableName, events, connection, transaction, ct);
+                await AppendBatchAsyncOfT(tableName, events, resolver, connection, transaction, ct);
                 break;
             default:
-                await AppendAsyncOfT(tableName, input, connection, transaction, ct);
+                await AppendAsyncOfT(tableName, input, resolver, connection, transaction, ct);
                 break;
         }
     }
 
-    private static async Task AppendBatchAsyncOfT<T>(string tableName, T @events, NpgsqlConnection connection, NpgsqlTransaction transaction, CancellationToken ct)
-        where T : class, IEnumerable
+    private static async Task AppendBatchAsyncOfT<T>(
+        string tableName
+        , T events
+        , ITypeResolver resolver
+        , NpgsqlConnection connection
+        , NpgsqlTransaction transaction
+        , CancellationToken ct) where T : class, IEnumerable
     {
             var batch = new NpgsqlBatch(connection, transaction);
             foreach (var @event in @events)
             {
+                var (eventTypeName, jsonTypeInfo) = resolver.Resolve(@event.GetType());
                 var batchCommand = batch.CreateBatchCommand();
-                var eventData = JsonSerialization.ToJson(@event);
-                var eventTypeName = @event.GetType().AssemblyQualifiedName;
+                var eventData = JsonSerialization.ToJson(@event, jsonTypeInfo);
+
+            
                 batchCommand.CommandText =
                     $"INSERT INTO {tableName}(event_type, data) values ('{eventTypeName}', '{eventData}')";
                 batch.BatchCommands.Add(batchCommand);
@@ -51,11 +61,17 @@ public static class EventsAppender
             await batch.ExecuteNonQueryAsync(ct);
     }
 
-    private static async Task AppendAsyncOfT<T>(string tableName, T @event, NpgsqlConnection connection, NpgsqlTransaction transaction, CancellationToken ct)
-        where T : class
+    private static async Task AppendAsyncOfT<T>(
+        string tableName
+        , T @event
+        , ITypeResolver resolver
+        , NpgsqlConnection connection
+        , NpgsqlTransaction transaction
+        , CancellationToken ct) where T : class
     {
-        var eventTypeName = typeof(T).AssemblyQualifiedName;
-        var eventData = JsonSerialization.ToJson(@event);
+
+        var (eventTypeName, jsonTypeInfo) = resolver.Resolve(typeof(T));
+        var eventData = JsonSerialization.ToJson(@event, jsonTypeInfo);
         var command = new NpgsqlCommand(
             $"INSERT INTO {tableName}(event_type, data) values ('{eventTypeName}', '{eventData}')",
             connection,

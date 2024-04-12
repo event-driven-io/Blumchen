@@ -1,5 +1,6 @@
 using Npgsql;
 using PostgresOutbox.Database;
+#pragma warning disable CA2208
 
 namespace PostgresOutbox.Subscriptions.Management;
 
@@ -60,7 +61,7 @@ public static class PublicationManagement
         string tableName,
         CancellationToken ct
     ) =>
-        dataSource.Execute($"CREATE PUBLICATION {publicationName} FOR TABLE {tableName} WITH (publish = 'insert');", ct);//TODO: row filter
+        dataSource.Execute($"CREATE PUBLICATION {publicationName} FOR TABLE {tableName} WITH (publish = 'insert');", ct);
 
     private static Task DropPublication(
         this NpgsqlDataSource dataSource,
@@ -111,9 +112,12 @@ public static class PublicationManagement
     }
 
     public record PublicationSetupOptions(
-        string PublicationName,
-        string TableName,
+        string PublicationName = "pub",
+        string TableName = PublicationSetupOptions.DefaultTableName,
         CreateStyle CreateStyle = CreateStyle.WhenNotExists,
         bool ShouldReAddTablesIfWereRecreated = false
-    );
+    )
+    {
+        internal const string DefaultTableName = "outbox";
+    }
 }
