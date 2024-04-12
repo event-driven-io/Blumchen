@@ -13,6 +13,8 @@ services:
       - "postgres"
       - "-c"
       - "wal_level=logical"
+      - "-c"
+      - "wal_compression=on"
     volumes:
       - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
   

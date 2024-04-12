@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using JetBrains.Annotations;
 using Npgsql;
 using Npgsql.Replication;
 using Npgsql.Replication.PgOutput;
@@ -16,15 +17,84 @@ using static ReplicationSlotManagement.CreateReplicationSlotResult;
 
 public interface ISubscription
 {
-    IAsyncEnumerable<object> Subscribe(SubscriptionOptions options, CancellationToken ct);
+    IAsyncEnumerable<object> Subscribe(ISubscriptionOptions options, CancellationToken ct);
 }
 
-public record SubscriptionOptions(
+public interface ISubscriptionOptions
+{
+    [UsedImplicitly] string ConnectionString { get; }
+    IReplicationDataMapper DataMapper { get; }
+    PublicationSetupOptions PublicationOptions { get; }
+    [UsedImplicitly] ReplicationSlotSetupOptions ReplicationOptions { get; }
+
+    void Deconstruct(
+        out string connectionString,
+        out PublicationSetupOptions publicationSetupOptions,
+        out ReplicationSlotSetupOptions replicationSlotSetupOptions,
+        out IReplicationDataMapper dataMapper);
+}
+
+internal record SubscriptionOptions(
     string ConnectionString,
-    PublicationSetupOptions PublicationSetupOptions,
-    ReplicationSlotSetupOptions SlotSetupOptions,
+    PublicationSetupOptions PublicationOptions,
+    ReplicationSlotSetupOptions ReplicationOptions,
     IReplicationDataMapper DataMapper
-);
+    ): ISubscriptionOptions;
+
+
+public class SubscriptionOptionsBuilder
+{
+    private static string? _connectionString = null;
+    private static PublicationSetupOptions? _publicationSetupOptions;
+    private static ReplicationSlotSetupOptions? _slotOptions;
+    private static IReplicationDataMapper? _dataMapper;
+
+
+    static SubscriptionOptionsBuilder()
+    {
+        _connectionString = null;
+        _publicationSetupOptions = default;
+        _slotOptions = default;
+        _dataMapper = default;
+    }
+
+    public SubscriptionOptionsBuilder WithConnectionString(string connectionString)
+    {
+        _connectionString = connectionString;
+        return this;
+    }
+
+    public SubscriptionOptionsBuilder WithMapper(IReplicationDataMapper dataMapper)
+    {
+        _dataMapper = dataMapper;
+        return this;
+    }
+
+    public SubscriptionOptionsBuilder WitPublicationOptions(PublicationSetupOptions publicationSetupOptions)
+    {
+        _publicationSetupOptions = publicationSetupOptions;
+        return this;
+    }
+
+    public SubscriptionOptionsBuilder WithReplicationOptions(ReplicationSlotSetupOptions replicationSlotOptions)
+    {
+        _slotOptions = replicationSlotOptions;
+        return this;
+    }
+
+    public ISubscriptionOptions Build()
+    {
+        ArgumentNullException.ThrowIfNull(_connectionString);
+        ArgumentNullException.ThrowIfNull(_dataMapper);
+        return new SubscriptionOptions(
+            _connectionString,
+            _publicationSetupOptions ?? new PublicationSetupOptions(),
+            _slotOptions ?? new ReplicationSlotSetupOptions(),
+            _dataMapper);
+    }
+}
+
+
 
 public enum CreateStyle
 {
@@ -36,7 +106,7 @@ public enum CreateStyle
 public class Subscription: ISubscription
 {
     public async IAsyncEnumerable<object> Subscribe(
-        SubscriptionOptions options,
+        ISubscriptionOptions options,
         [EnumeratorCancellation] CancellationToken ct = default
     )
     {
@@ -85,7 +155,7 @@ public class Subscription: ISubscription
     private static async IAsyncEnumerable<object> ReadExistingRowsFromSnapshot(
         NpgsqlDataSource dataSource,
         string snapshotName,
-        SubscriptionOptions options,
+        ISubscriptionOptions options,
         [EnumeratorCancellation] CancellationToken ct = default
     )
     {
@@ -93,7 +163,7 @@ public class Subscription: ISubscription
 
         await foreach (var row in connection.GetRowsFromSnapshot(
                            snapshotName,
-                           options.PublicationSetupOptions.TableName,
+                           options.PublicationOptions.TableName,
                            options.DataMapper,
                            ct))
             yield return row;

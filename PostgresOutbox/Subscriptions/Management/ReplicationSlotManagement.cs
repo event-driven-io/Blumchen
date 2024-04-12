@@ -59,7 +59,7 @@ public static class ReplicationSlotManagement
         dataSource.Exists("pg_replication_slots", "slot_name = $1", [slotName], ct);
 
     public record ReplicationSlotSetupOptions(
-        string SlotName,
+        string SlotName = $"{PublicationManagement.PublicationSetupOptions.DefaultTableName}_slot",
         CreateStyle CreateStyle = CreateStyle.WhenNotExists
     );
 

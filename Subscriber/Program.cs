@@ -1,10 +1,8 @@
 using Commons;
+using Commons.Events;
 using PostgresOutbox.Serialization;
 using PostgresOutbox.Subscriptions;
 using PostgresOutbox.Subscriptions.Replication;
-
-using static PostgresOutbox.Subscriptions.Management.PublicationManagement;
-using static PostgresOutbox.Subscriptions.Management.ReplicationSlotManagement;
 
 #pragma warning disable CS8601 // Possible null reference assignment.
 Console.Title = typeof(Program).Assembly.GetName().Name;
@@ -13,13 +11,21 @@ var cancellationTokenSource = new CancellationTokenSource();
 
 var ct = cancellationTokenSource.Token;
 
-await foreach (var readEvent in new Subscription().Subscribe(new SubscriptionOptions(
-                   Settings.ConnectionString,
-                   new PublicationSetupOptions("events_pub","events" ),
-                   new ReplicationSlotSetupOptions("events_slot"),
-                   new EventDataMapper()
-               ), ct:ct))
-{
-    Console.WriteLine(JsonSerialization.ToJson(readEvent));
-}
+
+await foreach (var @event in new Subscription().Subscribe(
+                   new SubscriptionOptionsBuilder()
+                       .WithConnectionString(Settings.ConnectionString)
+                       .WithMapper(new EventDataMapper(SourceGenerationContext.Default, new TypeResolver()))
+                   .Build(), ct
+               ))
+
+    switch (@event)
+    {
+        case UserCreated c:
+            Console.WriteLine(JsonSerialization.ToJson(c, SourceGenerationContext.Default.UserCreated));
+            break;
+        case UserDeleted d:
+            Console.WriteLine(JsonSerialization.ToJson(d, SourceGenerationContext.Default.UserDeleted));
+            break;
+    }
 

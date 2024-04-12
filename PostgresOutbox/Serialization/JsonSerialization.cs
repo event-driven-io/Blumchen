@@ -1,18 +1,16 @@
-using System.Data.Common;
 using System.Text.Json;
-using Npgsql;
+using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using PostgresOutbox.Streams;
 
 namespace PostgresOutbox.Serialization;
 
 public static class JsonSerialization
 {
-    private static readonly JsonSerializerOptions Options = new();
+    public static string ToJson<T>(T data, JsonTypeInfo typeInfo) where T:class=>
+        JsonSerializer.Serialize(data, typeInfo);
 
-    public static string ToJson(object data, JsonSerializerOptions? options = null) =>
-        JsonSerializer.Serialize(data, options ?? Options);
-
-    public static ValueTask<object?> FromJsonAsync(Type type, Stream stream, CancellationToken ct = default) =>
-        JsonSerializer.DeserializeAsync(stream.ToSohSkippingStream(), type, Options, ct);
+    public static ValueTask<object?> FromJsonAsync(Type type, Stream stream, JsonSerializerContext context, CancellationToken ct = default) =>
+        JsonSerializer.DeserializeAsync(stream.ToSohSkippingStream(), type, context, ct);
 
 }

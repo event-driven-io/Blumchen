@@ -1,9 +1,14 @@
 # Postgres Outbox Pattern with CDC and .NET
 PoC of doing Outbox Pattern with CDC and .NET
 
+## Features:
+
+- Publication filter [is enabled](https://www.postgresql.org/docs/current/sql-createpublication.html#SQL-CREATEPUBLICATION-WITH) to trigger only INSERTed rows;
+- AOT compliant compilation enforced by design
+
 Uses [Postgres logical replication](https://www.postgresql.org/docs/current/logical-replication.html) with [Npgsql integration](https://www.npgsql.org/doc/replication.html).
 
-Main logic is placed in [EventsSubscription](./PostgresOutbox/Subscriptions/EventsSubscription.cs). Check [LogicalReplicationTest](./PostgresOutboxPatternWithCDC.NET.Tests/LogicalReplicationTest.cs) for sample usage.
+Main logic is placed in [EventsSubscription](./PostgresOutbox/Subscriptions/Subscription.cs). Check [LogicalReplicationTest](./PostgresOutboxPatternWithCDC.NET.Tests/LogicalReplicationTest.cs) for sample usage.
 
 Read more details in:
 - [Push-based Outbox Pattern with Postgres Logical Replication](https://event-driven.io/en/push_based_outbox_pattern_with_postgres_logical_replication/?utm_source=github_outbox_cdc).
