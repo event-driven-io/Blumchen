@@ -75,6 +75,7 @@ dotnet test
 
 #### Performance
 - [2ndQuadrant - Performance limits of logical replication solutions](https://www.2ndquadrant.com/en/blog/performance-limits-of-logical-replication-solutions/)
+- [Some benchmarking techniques](https://fluca1978.github.io/2021/07/15/PostgreSQLWalTraffic2.html)
 
 #### Snapshots
 - [Christos Christoudias - Creating a Logical Replica from a Snapshot in RDS Postgres](https://tech.instacart.com/creating-a-logical-replica-from-a-snapshot-in-rds-postgres-886d9d2c7343)
