@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Text.Json.Serialization.Metadata;
 using Npgsql;
 using PostgresOutbox.Serialization;
 using PostgresOutbox.Subscriptions.Replication;
