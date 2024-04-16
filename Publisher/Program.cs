@@ -7,7 +7,7 @@ using PostgresOutbox.Events;
 Console.Title = typeof(Program).Assembly.GetName().Name!;
 Console.WriteLine("How many messages do you want to publish?(press CTRL+C to exit):");
 
-var resolver = new TypeResolver();
+var resolver = new CommonTypesResolver();
 
 do
 {

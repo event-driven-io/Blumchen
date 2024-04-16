@@ -15,7 +15,7 @@ var ct = cancellationTokenSource.Token;
 await foreach (var @event in new Subscription().Subscribe(
                            builder => builder
                                .WithConnectionString(Settings.ConnectionString)
-                               .WithMapper(new EventDataMapper(SourceGenerationContext.Default, new TypeResolver()))
+                               .WithMapper(new EventDataMapper(SourceGenerationContext.Default, new CommonTypesResolver()))
                    .Build(), ct
                ))
 
