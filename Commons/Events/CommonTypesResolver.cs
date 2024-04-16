@@ -3,9 +3,9 @@ using PostgresOutbox.Subscriptions.Replication;
 
 namespace Commons.Events;
 
-public class TypeResolver: ITypeResolver
+public class CommonTypesResolver: ITypeResolver
 {
-    private readonly FQNTypeResolver _inner = new FQNTypeResolver()
+    private readonly TypeResolver _inner = new TypeResolver()
         .WhiteList(SourceGenerationContext.Default.UserCreated )
         .WhiteList(SourceGenerationContext.Default.UserDeleted);
 

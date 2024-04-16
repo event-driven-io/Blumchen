@@ -8,21 +8,31 @@ public interface ITypeResolver
     (string, JsonTypeInfo) Resolve(Type type);
 }
 
-public class FQNTypeResolver: ITypeResolver
+public interface INamingPolicy
+{
+    Func<Type, string> Bind { get; }
+}
+
+public class FQNNamingPolicy: INamingPolicy
+{
+    public Func<Type, string> Bind { get; } = type => type.AssemblyQualifiedName!;
+}
+
+
+public class TypeResolver(INamingPolicy? policy=default): ITypeResolver
 {
     private readonly Dictionary<string, Type> _typeDictionary = new();
     private readonly Dictionary<Type, JsonTypeInfo> _typeInfoDictionary = new();
 
-    public FQNTypeResolver WhiteList(JsonTypeInfo typeInfo)
+    public TypeResolver WhiteList(JsonTypeInfo typeInfo)
     {
-        _typeDictionary.Add(typeInfo.Type.AssemblyQualifiedName!, typeInfo.Type);
+        _typeDictionary.Add((policy ?? new FQNNamingPolicy()).Bind(typeInfo.Type), typeInfo.Type);
         _typeInfoDictionary.Add(typeInfo.Type, typeInfo);
         return this;
     }
 
     public (string, JsonTypeInfo) Resolve(Type type) =>
         (_typeDictionary.Single(kv => kv.Value == type).Key, _typeInfoDictionary[type]);
-
-
+    
     public Type Resolve(string type) => _typeDictionary[type];
 }

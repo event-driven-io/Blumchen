@@ -33,7 +33,7 @@ public class LogicalReplicationTest(ITestOutputHelper testOutputHelper) : IAsync
         var connectionString = _postgreSqlContainer.GetConnectionString();
         var eventsTable = await CreateEventsTable(connectionString, ct);
 
-        var typeResolver = new FQNTypeResolver().WhiteList(SourceGenerationContext.Default.UserCreated);
+        var typeResolver = new TypeResolver().WhiteList(SourceGenerationContext.Default.UserCreated);
         var subscriptionOptions = new SubscriptionOptionsBuilder()
             .WithConnectionString(connectionString)
             .WithMapper(
@@ -47,7 +47,7 @@ public class LogicalReplicationTest(ITestOutputHelper testOutputHelper) : IAsync
         
         var subscription = new Subscription();
 
-        var events = subscription.Subscribe(builder =>  subscriptionOptions, ct);
+        var events = subscription.Subscribe(_ =>  subscriptionOptions, ct);
 
         var @event = new UserCreated(Guid.NewGuid(), Guid.NewGuid().ToString());
         await EventsAppender.AppendAsync(eventsTable, @event, typeResolver, connectionString, ct);
@@ -69,7 +69,7 @@ public class LogicalReplicationTest(ITestOutputHelper testOutputHelper) : IAsync
         var connectionString = _postgreSqlContainer.GetConnectionString();
         var eventsTable = await CreateEventsTable(connectionString, ct);
             
-        var typeResolver = new FQNTypeResolver().WhiteList(SourceGenerationContext.Default.UserCreated);
+        var typeResolver = new TypeResolver().WhiteList(SourceGenerationContext.Default.UserCreated);
         var subscriptionOptions = new SubscriptionOptionsBuilder()
             .WithConnectionString(connectionString)
             .WithMapper(
@@ -85,7 +85,7 @@ public class LogicalReplicationTest(ITestOutputHelper testOutputHelper) : IAsync
         var @event = new UserCreated(Guid.NewGuid(), Guid.NewGuid().ToString());
         await EventsAppender.AppendAsync(eventsTable, @event, typeResolver, connectionString, ct);
 
-        var events = subscription.Subscribe(builder => subscriptionOptions, ct);
+        var events = subscription.Subscribe(_ => subscriptionOptions, ct);
 
         await foreach (var readEvent in events)
         {
