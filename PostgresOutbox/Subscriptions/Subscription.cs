@@ -17,7 +17,7 @@ using static ReplicationSlotManagement.CreateReplicationSlotResult;
 
 public interface ISubscription
 {
-    IAsyncEnumerable<object> Subscribe(ISubscriptionOptions options, CancellationToken ct);
+    IAsyncEnumerable<object> Subscribe(Func<SubscriptionOptionsBuilder, ISubscriptionOptions> builder, CancellationToken ct);
 }
 
 public interface ISubscriptionOptions
@@ -44,7 +44,7 @@ internal record SubscriptionOptions(
 
 public class SubscriptionOptionsBuilder
 {
-    private static string? _connectionString = null;
+    private static string? _connectionString;
     private static PublicationSetupOptions? _publicationSetupOptions;
     private static ReplicationSlotSetupOptions? _slotOptions;
     private static IReplicationDataMapper? _dataMapper;
@@ -105,11 +105,13 @@ public enum CreateStyle
 
 public class Subscription: ISubscription
 {
+    private static readonly SubscriptionOptionsBuilder Builder = new();
     public async IAsyncEnumerable<object> Subscribe(
-        ISubscriptionOptions options,
+        Func<SubscriptionOptionsBuilder, ISubscriptionOptions> builder,
         [EnumeratorCancellation] CancellationToken ct = default
     )
     {
+        var options = builder(Builder);
         var (connectionString, publicationSetupOptions, slotSetupOptions, replicationDataMapper) = options;
         var dataSource = NpgsqlDataSource.Create(connectionString);
 
