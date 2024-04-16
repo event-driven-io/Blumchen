@@ -1,5 +1,4 @@
 using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
 using Npgsql;
 using Npgsql.Replication.PgOutput.Messages;
 using PostgresOutbox.Serialization;
