@@ -47,7 +47,7 @@ public class LogicalReplicationTest(ITestOutputHelper testOutputHelper) : IAsync
         
         var subscription = new Subscription();
 
-        var events = subscription.Subscribe(subscriptionOptions, ct);
+        var events = subscription.Subscribe(builder =>  subscriptionOptions, ct);
 
         var @event = new UserCreated(Guid.NewGuid(), Guid.NewGuid().ToString());
         await EventsAppender.AppendAsync(eventsTable, @event, typeResolver, connectionString, ct);
@@ -85,7 +85,7 @@ public class LogicalReplicationTest(ITestOutputHelper testOutputHelper) : IAsync
         var @event = new UserCreated(Guid.NewGuid(), Guid.NewGuid().ToString());
         await EventsAppender.AppendAsync(eventsTable, @event, typeResolver, connectionString, ct);
 
-        var events = subscription.Subscribe(subscriptionOptions, ct);
+        var events = subscription.Subscribe(builder => subscriptionOptions, ct);
 
         await foreach (var readEvent in events)
         {
