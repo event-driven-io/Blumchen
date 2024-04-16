@@ -33,7 +33,7 @@ public class LogicalReplicationTest(ITestOutputHelper testOutputHelper) : IAsync
         var connectionString = _postgreSqlContainer.GetConnectionString();
         var eventsTable = await CreateEventsTable(connectionString, ct);
 
-        var typeResolver = new FQNTypeResolver().WhiteList(typeof(UserCreated),SourceGenerationContext.Default.UserCreated);
+        var typeResolver = new FQNTypeResolver().WhiteList(SourceGenerationContext.Default.UserCreated);
         var subscriptionOptions = new SubscriptionOptionsBuilder()
             .WithConnectionString(connectionString)
             .WithMapper(
@@ -69,7 +69,7 @@ public class LogicalReplicationTest(ITestOutputHelper testOutputHelper) : IAsync
         var connectionString = _postgreSqlContainer.GetConnectionString();
         var eventsTable = await CreateEventsTable(connectionString, ct);
             
-        var typeResolver = new FQNTypeResolver().WhiteList(typeof(UserCreated), SourceGenerationContext.Default.UserCreated);
+        var typeResolver = new FQNTypeResolver().WhiteList(SourceGenerationContext.Default.UserCreated);
         var subscriptionOptions = new SubscriptionOptionsBuilder()
             .WithConnectionString(connectionString)
             .WithMapper(
