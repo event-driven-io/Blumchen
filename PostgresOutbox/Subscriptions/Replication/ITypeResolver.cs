@@ -13,11 +13,10 @@ public class FQNTypeResolver: ITypeResolver
     private readonly Dictionary<string, Type> _typeDictionary = new();
     private readonly Dictionary<Type, JsonTypeInfo> _typeInfoDictionary = new();
 
-    public FQNTypeResolver WhiteList(Type supportedType, JsonTypeInfo typeInfo)
+    public FQNTypeResolver WhiteList(JsonTypeInfo typeInfo)
     {
-        ArgumentException.ThrowIfNullOrEmpty(supportedType.AssemblyQualifiedName);
-        _typeDictionary.Add(supportedType.AssemblyQualifiedName, supportedType);
-        _typeInfoDictionary.Add(supportedType, typeInfo);
+        _typeDictionary.Add(typeInfo.Type.AssemblyQualifiedName!, typeInfo.Type);
+        _typeInfoDictionary.Add(typeInfo.Type, typeInfo);
         return this;
     }
 
