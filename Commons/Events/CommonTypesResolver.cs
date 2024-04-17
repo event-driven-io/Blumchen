@@ -1,5 +1,5 @@
 using System.Text.Json.Serialization.Metadata;
-using PostgresOutbox.Subscriptions.Replication;
+using PostgresOutbox.Serialization;
 
 namespace Commons.Events;
 
