@@ -20,16 +20,16 @@ do
         var ct = cts.Token;
         await using var connection = new NpgsqlConnection(Settings.ConnectionString);
         await connection.OpenAsync(ct);
-        var transaction = await connection.BeginTransactionAsync(ct);
-        try
+        //use a command for each message
         {
-            //use a command for each message
+            var @events = Enumerable.Range(0, result).Select(i =>
+                int.IsEvenInteger(i)
+                    ? new UserCreated(Guid.NewGuid(), Guid.NewGuid().ToString()) as object
+                    : new UserDeleted(Guid.NewGuid(), Guid.NewGuid().ToString()));
+            foreach (var @event in @events)
             {
-                var @events = Enumerable.Range(0, result).Select(i =>
-                    int.IsEvenInteger(i)
-                        ? new UserCreated(Guid.NewGuid(), Guid.NewGuid().ToString()) as object
-                        : new UserDeleted(Guid.NewGuid(), Guid.NewGuid().ToString()));
-                foreach (var @event in @events)
+                var transaction = await connection.BeginTransactionAsync(ct);
+                try
                 {
                     switch (@event)
                     {
@@ -40,27 +40,32 @@ do
                             await EventsAppender.AppendAsync("outbox", d, resolver, connection, transaction, ct);
                             break;
                     }
+
+                    await transaction.CommitAsync(ct);
                 }
-
-                ;
+                catch (Exception e)
+                {
+                    await transaction.RollbackAsync(ct);
+                    Console.WriteLine(e);
+                    throw;
+                }
             }
-            //use a batch command
-            {
-                var @events = Enumerable.Range(0, result)
-                    .Select(i1 => new UserCreated(Guid.NewGuid(), Guid.NewGuid().ToString()));
-                await EventsAppender.AppendAsync("outbox", @events, resolver, connection, transaction, ct);
-            }
-
-            await transaction.CommitAsync(ct);
         }
-        catch (Exception e)
-        {
-            await transaction.RollbackAsync(ct);
-            Console.WriteLine(e);
-            throw;
-        }
-
-
+        //use a batch command
+        //{
+        //    var transaction = await connection.BeginTransactionAsync(ct);
+        //    try
+        //    {
+        //        var @events = Enumerable.Range(0, result)
+        //            .Select(i1 => new UserCreated(Guid.NewGuid(), Guid.NewGuid().ToString()));
+        //        await EventsAppender.AppendAsync("outbox", @events, resolver, connection, transaction, ct);
+        //    }
+        //    catch (Exception e)
+        //    {
+        //        Console.WriteLine(e);
+        //        throw;
+        //    }
+        //}
     }
 } while (true);
 

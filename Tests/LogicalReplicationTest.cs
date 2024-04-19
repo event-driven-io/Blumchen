@@ -3,7 +3,6 @@ using PostgresOutbox.Events;
 using PostgresOutbox.Serialization;
 using PostgresOutbox.Subscriptions;
 using PostgresOutbox.Subscriptions.Management;
-using PostgresOutbox.Subscriptions.Replication;
 using Testcontainers.PostgreSql;
 using Xunit.Abstractions;
 
@@ -33,11 +32,10 @@ public class LogicalReplicationTest(ITestOutputHelper testOutputHelper) : IAsync
         var connectionString = _postgreSqlContainer.GetConnectionString();
         var eventsTable = await CreateEventsTable(connectionString, ct);
 
-        var typeResolver = new TypeResolver().WhiteList(SourceGenerationContext.Default.UserCreated);
+        var typeResolver = new TypeResolver(SourceGenerationContext.Default).WhiteList<UserCreated>();
         var subscriptionOptions = new SubscriptionOptionsBuilder()
             .WithConnectionString(connectionString)
-            .WithMapper(
-                new EventDataMapper(SourceGenerationContext.Default, typeResolver))
+            .WithResolver(typeResolver)
             .WitPublicationOptions(
                 new PublicationManagement.PublicationSetupOptions(Randomise("events_pub"), eventsTable)
             )
@@ -69,11 +67,10 @@ public class LogicalReplicationTest(ITestOutputHelper testOutputHelper) : IAsync
         var connectionString = _postgreSqlContainer.GetConnectionString();
         var eventsTable = await CreateEventsTable(connectionString, ct);
             
-        var typeResolver = new TypeResolver().WhiteList(SourceGenerationContext.Default.UserCreated);
+        var typeResolver = new TypeResolver(SourceGenerationContext.Default).WhiteList<UserCreated>();
         var subscriptionOptions = new SubscriptionOptionsBuilder()
             .WithConnectionString(connectionString)
-            .WithMapper(
-                new EventDataMapper(SourceGenerationContext.Default, typeResolver))
+            .WithResolver(typeResolver)
             .WitPublicationOptions(
                 new PublicationManagement.PublicationSetupOptions(Randomise("events_pub"), eventsTable)
             )

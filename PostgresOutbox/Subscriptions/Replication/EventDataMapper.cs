@@ -1,11 +1,11 @@
-using System.Text.Json.Serialization;
 using Npgsql;
+using Npgsql.Replication.PgOutput;
 using Npgsql.Replication.PgOutput.Messages;
 using PostgresOutbox.Serialization;
 
 namespace PostgresOutbox.Subscriptions.Replication;
 
-public class EventDataMapper(JsonSerializerContext jsonSerializerContext, ITypeResolver resolver): IReplicationDataMapper
+internal sealed class EventDataMapper(ITypeResolver resolver): IReplicationDataMapper
 {
     public async Task<object> ReadFromReplication(InsertMessage insertMessage, CancellationToken ct)
     {
@@ -23,7 +23,7 @@ public class EventDataMapper(JsonSerializerContext jsonSerializerContext, ITypeR
                 {
                     var eventType = resolver.Resolve(eventTypeName);
                     ArgumentNullException.ThrowIfNull(eventType, eventTypeName);
-                    var @event = await JsonSerialization.FromJsonAsync(eventType, value.GetStream(), jsonSerializerContext, ct);
+                    var @event = await JsonSerialization.FromJsonAsync(eventType, value.GetStream(), resolver.SerializationContext, ct);
 
                     return @event!;
                 }
@@ -42,7 +42,7 @@ public class EventDataMapper(JsonSerializerContext jsonSerializerContext, ITypeR
 
         var stream = await reader.GetStreamAsync(2, ct);
         ArgumentNullException.ThrowIfNull(eventType, eventTypeName);
-        var @event = await JsonSerialization.FromJsonAsync(eventType, stream, jsonSerializerContext, ct);
+        var @event = await JsonSerialization.FromJsonAsync(eventType, stream, resolver.SerializationContext, ct);
 
         return @event!;
     }
