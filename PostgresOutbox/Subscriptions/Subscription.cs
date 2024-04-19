@@ -4,6 +4,7 @@ using Npgsql;
 using Npgsql.Replication;
 using Npgsql.Replication.PgOutput;
 using Npgsql.Replication.PgOutput.Messages;
+using PostgresOutbox.Serialization;
 using PostgresOutbox.Subscriptions.Management;
 using PostgresOutbox.Subscriptions.Replication;
 using PostgresOutbox.Subscriptions.ReplicationMessageHandlers;
@@ -26,11 +27,13 @@ public interface ISubscriptionOptions
     IReplicationDataMapper DataMapper { get; }
     PublicationSetupOptions PublicationOptions { get; }
     [UsedImplicitly] ReplicationSlotSetupOptions ReplicationOptions { get; }
+    [UsedImplicitly] ISubcriptionObjectHandler SubcriptionObjectHandler { get; }
 
     void Deconstruct(
         out string connectionString,
         out PublicationSetupOptions publicationSetupOptions,
         out ReplicationSlotSetupOptions replicationSlotSetupOptions,
+        out ISubcriptionObjectHandler subcriptionObjectHandler,
         out IReplicationDataMapper dataMapper);
 }
 
@@ -38,16 +41,15 @@ internal record SubscriptionOptions(
     string ConnectionString,
     PublicationSetupOptions PublicationOptions,
     ReplicationSlotSetupOptions ReplicationOptions,
-    IReplicationDataMapper DataMapper
-    ): ISubscriptionOptions;
-
-
+    ISubcriptionObjectHandler SubcriptionObjectHandler,
+    IReplicationDataMapper DataMapper): ISubscriptionOptions;
 public class SubscriptionOptionsBuilder
 {
     private static string? _connectionString;
     private static PublicationSetupOptions? _publicationSetupOptions;
     private static ReplicationSlotSetupOptions? _slotOptions;
     private static IReplicationDataMapper? _dataMapper;
+    private ISubcriptionObjectHandler? _subcriptionObjectHandler;
 
 
     static SubscriptionOptionsBuilder()
@@ -61,6 +63,12 @@ public class SubscriptionOptionsBuilder
     public SubscriptionOptionsBuilder WithConnectionString(string connectionString)
     {
         _connectionString = connectionString;
+        return this;
+    }
+
+    public SubscriptionOptionsBuilder WithResolver(ITypeResolver resolver)
+    {
+        _dataMapper = new EventDataMapper(resolver);
         return this;
     }
 
@@ -82,6 +90,12 @@ public class SubscriptionOptionsBuilder
         return this;
     }
 
+    public SubscriptionOptionsBuilder WithObjectHandler([NotNull]ISubcriptionObjectHandler subcriptionObjectHandler)
+    {
+        _subcriptionObjectHandler = subcriptionObjectHandler;
+        return this;
+    }
+
     public ISubscriptionOptions Build()
     {
         ArgumentNullException.ThrowIfNull(_connectionString);
@@ -90,17 +104,30 @@ public class SubscriptionOptionsBuilder
             _connectionString,
             _publicationSetupOptions ?? new PublicationSetupOptions(),
             _slotOptions ?? new ReplicationSlotSetupOptions(),
+            _subcriptionObjectHandler ?? new ConsoleTracingHandler(),
             _dataMapper);
     }
 }
 
-
+public class ConsoleTracingHandler: ISubcriptionObjectHandler
+{
+    public Task<object> Handle(object value)
+    {
+        Console.Write(value);
+        return Task.FromResult(value);
+    }
+}
 
 public enum CreateStyle
 {
     WhenNotExists,
     AlwaysRecreate,
     Never
+}
+
+public interface ISubcriptionObjectHandler
+{
+    Task<object> Handle(object value);
 }
 
 public class Subscription: ISubscription
@@ -112,7 +139,7 @@ public class Subscription: ISubscription
     )
     {
         var options = builder(Builder);
-        var (connectionString, publicationSetupOptions, slotSetupOptions, replicationDataMapper) = options;
+        var (connectionString, publicationSetupOptions, slotSetupOptions, subcriptionObjectHandler, replicationDataMapper) = options;
         var dataSource = NpgsqlDataSource.Create(connectionString);
 
         await using var conn = new LogicalReplicationConnection(connectionString);
@@ -137,7 +164,7 @@ public class Subscription: ISubscription
             );
 
             await foreach (var @event in ReadExistingRowsFromSnapshot(dataSource, created.SnapshotName, options, ct))
-                yield return @event;
+                yield return await subcriptionObjectHandler.Handle(@event);
         }
 
         await foreach (var message in
@@ -145,7 +172,7 @@ public class Subscription: ISubscription
                            new PgOutputReplicationOptions(publicationSetupOptions.PublicationName, 1), ct))
         {
             if (message is InsertMessage insertMessage)
-                yield return await InsertMessageHandler.Handle(insertMessage, replicationDataMapper, ct);
+                yield return await subcriptionObjectHandler.Handle(await InsertMessageHandler.Handle(insertMessage, replicationDataMapper, ct));
 
             // Always call SetReplicationStatus() or assign LastAppliedLsn and LastFlushedLsn individually
             // so that Npgsql can inform the server which WAL files can be removed/recycled.
