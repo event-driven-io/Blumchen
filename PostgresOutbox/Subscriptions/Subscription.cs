@@ -145,6 +145,8 @@ public class Subscription: ISubscription
         await using var conn = new LogicalReplicationConnection(connectionString);
         await conn.Open(ct);
 
+        await OutboxTable.Ensure(dataSource, publicationSetupOptions.TableName, ct);
+
         await dataSource.SetupPublication(publicationSetupOptions, ct);
         var result = await dataSource.SetupReplicationSlot(conn, slotSetupOptions, ct);
 
