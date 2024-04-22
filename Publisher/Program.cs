@@ -1,7 +1,8 @@
 using Commons;
 using Commons.Events;
 using Npgsql;
-using PostgresOutbox.Events;
+using PostgresOutbox.Table;
+
 #pragma warning disable CS8509 // The switch expression does not handle all possible values of its input type (it is not exhaustive).
 
 Console.Title = typeof(Program).Assembly.GetName().Name!;

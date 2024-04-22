@@ -1,7 +1,8 @@
 using Npgsql;
-using Npgsql.Replication.PgOutput;
 using Npgsql.Replication.PgOutput.Messages;
 using PostgresOutbox.Serialization;
+using PostgresOutbox.Subscriptions.ReplicationMessageHandlers;
+using System.Text.Json;
 
 namespace PostgresOutbox.Subscriptions.Replication;
 
@@ -23,27 +24,28 @@ internal sealed class EventDataMapper(ITypeResolver resolver): IReplicationDataM
                 {
                     var eventType = resolver.Resolve(eventTypeName);
                     ArgumentNullException.ThrowIfNull(eventType, eventTypeName);
-                    var @event = await JsonSerialization.FromJsonAsync(eventType, value.GetStream(), resolver.SerializationContext, ct);
-
-                    return @event!;
+                    return await JsonSerialization.FromJsonAsync(eventType, value.GetStream(), resolver.SerializationContext, ct);
                 }
             }
-
             columnNumber++;
         }
-
         throw new InvalidOperationException("You should not get here");
     }
 
-    public async Task<object> ReadFromSnapshot(NpgsqlDataReader reader, CancellationToken ct)
+    public async Task<IEnvelope> ReadFromSnapshot(NpgsqlDataReader reader, CancellationToken ct)
     {
-        var eventTypeName = reader.GetString(1);
-        var eventType = resolver.Resolve(eventTypeName);
+        try
+        {
+            var eventTypeName = reader.GetString(1);
+            var eventType = resolver.Resolve(eventTypeName);
 
-        var stream = await reader.GetStreamAsync(2, ct);
-        ArgumentNullException.ThrowIfNull(eventType, eventTypeName);
-        var @event = await JsonSerialization.FromJsonAsync(eventType, stream, resolver.SerializationContext, ct);
-
-        return @event!;
+            var stream = await reader.GetStreamAsync(2, ct);
+            ArgumentNullException.ThrowIfNull(eventType, eventTypeName);
+            return new OkEnvelope(await JsonSerialization.FromJsonAsync(eventType, stream, resolver.SerializationContext, ct));
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or InvalidOperationException or JsonException)
+        {
+            return new KoEnvelope(ex);
+        }
     }
 }

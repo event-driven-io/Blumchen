@@ -2,7 +2,7 @@ using System.Collections;
 using Npgsql;
 using PostgresOutbox.Serialization;
 
-namespace PostgresOutbox.Events;
+namespace PostgresOutbox.Table;
 
 public static class EventsAppender
 {

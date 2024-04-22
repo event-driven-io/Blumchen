@@ -1,14 +1,13 @@
+using System.Reflection;
 using System.Runtime.CompilerServices;
-using JetBrains.Annotations;
 using Npgsql;
 using Npgsql.Replication;
 using Npgsql.Replication.PgOutput;
 using Npgsql.Replication.PgOutput.Messages;
-using PostgresOutbox.Serialization;
 using PostgresOutbox.Subscriptions.Management;
-using PostgresOutbox.Subscriptions.Replication;
 using PostgresOutbox.Subscriptions.ReplicationMessageHandlers;
 using PostgresOutbox.Subscriptions.SnapshotReader;
+using PostgresOutbox.Table;
 
 namespace PostgresOutbox.Subscriptions;
 
@@ -18,104 +17,7 @@ using static ReplicationSlotManagement.CreateReplicationSlotResult;
 
 public interface ISubscription
 {
-    IAsyncEnumerable<object> Subscribe(Func<SubscriptionOptionsBuilder, ISubscriptionOptions> builder, CancellationToken ct);
-}
-
-public interface ISubscriptionOptions
-{
-    [UsedImplicitly] string ConnectionString { get; }
-    IReplicationDataMapper DataMapper { get; }
-    PublicationSetupOptions PublicationOptions { get; }
-    [UsedImplicitly] ReplicationSlotSetupOptions ReplicationOptions { get; }
-    [UsedImplicitly] ISubcriptionObjectHandler SubcriptionObjectHandler { get; }
-
-    void Deconstruct(
-        out string connectionString,
-        out PublicationSetupOptions publicationSetupOptions,
-        out ReplicationSlotSetupOptions replicationSlotSetupOptions,
-        out ISubcriptionObjectHandler subcriptionObjectHandler,
-        out IReplicationDataMapper dataMapper);
-}
-
-internal record SubscriptionOptions(
-    string ConnectionString,
-    PublicationSetupOptions PublicationOptions,
-    ReplicationSlotSetupOptions ReplicationOptions,
-    ISubcriptionObjectHandler SubcriptionObjectHandler,
-    IReplicationDataMapper DataMapper): ISubscriptionOptions;
-public class SubscriptionOptionsBuilder
-{
-    private static string? _connectionString;
-    private static PublicationSetupOptions? _publicationSetupOptions;
-    private static ReplicationSlotSetupOptions? _slotOptions;
-    private static IReplicationDataMapper? _dataMapper;
-    private ISubcriptionObjectHandler? _subcriptionObjectHandler;
-
-
-    static SubscriptionOptionsBuilder()
-    {
-        _connectionString = null;
-        _publicationSetupOptions = default;
-        _slotOptions = default;
-        _dataMapper = default;
-    }
-
-    public SubscriptionOptionsBuilder WithConnectionString(string connectionString)
-    {
-        _connectionString = connectionString;
-        return this;
-    }
-
-    public SubscriptionOptionsBuilder WithResolver(ITypeResolver resolver)
-    {
-        _dataMapper = new EventDataMapper(resolver);
-        return this;
-    }
-
-    public SubscriptionOptionsBuilder WithMapper(IReplicationDataMapper dataMapper)
-    {
-        _dataMapper = dataMapper;
-        return this;
-    }
-
-    public SubscriptionOptionsBuilder WitPublicationOptions(PublicationSetupOptions publicationSetupOptions)
-    {
-        _publicationSetupOptions = publicationSetupOptions;
-        return this;
-    }
-
-    public SubscriptionOptionsBuilder WithReplicationOptions(ReplicationSlotSetupOptions replicationSlotOptions)
-    {
-        _slotOptions = replicationSlotOptions;
-        return this;
-    }
-
-    public SubscriptionOptionsBuilder WithObjectHandler([NotNull]ISubcriptionObjectHandler subcriptionObjectHandler)
-    {
-        _subcriptionObjectHandler = subcriptionObjectHandler;
-        return this;
-    }
-
-    public ISubscriptionOptions Build()
-    {
-        ArgumentNullException.ThrowIfNull(_connectionString);
-        ArgumentNullException.ThrowIfNull(_dataMapper);
-        return new SubscriptionOptions(
-            _connectionString,
-            _publicationSetupOptions ?? new PublicationSetupOptions(),
-            _slotOptions ?? new ReplicationSlotSetupOptions(),
-            _subcriptionObjectHandler ?? new ConsoleTracingHandler(),
-            _dataMapper);
-    }
-}
-
-public class ConsoleTracingHandler: ISubcriptionObjectHandler
-{
-    public Task<object> Handle(object value)
-    {
-        Console.Write(value);
-        return Task.FromResult(value);
-    }
+    IAsyncEnumerable<Task> Subscribe(Func<SubscriptionOptionsBuilder, ISubscriptionOptions> builder, CancellationToken ct);
 }
 
 public enum CreateStyle
@@ -125,30 +27,26 @@ public enum CreateStyle
     Never
 }
 
-public interface ISubcriptionObjectHandler
+public sealed class Subscription: ISubscription, IAsyncDisposable
 {
-    Task<object> Handle(object value);
-}
-
-public class Subscription: ISubscription
-{
+    private static LogicalReplicationConnection? _connection;
     private static readonly SubscriptionOptionsBuilder Builder = new();
-    public async IAsyncEnumerable<object> Subscribe(
+    public async IAsyncEnumerable<Task> Subscribe(
         Func<SubscriptionOptionsBuilder, ISubscriptionOptions> builder,
         [EnumeratorCancellation] CancellationToken ct = default
     )
     {
-        var options = builder(Builder);
-        var (connectionString, publicationSetupOptions, slotSetupOptions, subcriptionObjectHandler, replicationDataMapper) = options;
+        _options = builder(Builder);
+        var (connectionString, publicationSetupOptions, slotSetupOptions, errorProcessor, replicationDataMapper, registry) = _options;
         var dataSource = NpgsqlDataSource.Create(connectionString);
 
-        await using var conn = new LogicalReplicationConnection(connectionString);
-        await conn.Open(ct);
+        _connection = new LogicalReplicationConnection(connectionString);
+        await _connection.Open(ct);
 
-        await OutboxTable.Ensure(dataSource, publicationSetupOptions.TableName, ct);
+        await EventTable.Ensure(dataSource, publicationSetupOptions.TableName, ct);
 
         await dataSource.SetupPublication(publicationSetupOptions, ct);
-        var result = await dataSource.SetupReplicationSlot(conn, slotSetupOptions, ct);
+        var result = await dataSource.SetupReplicationSlot(_connection, slotSetupOptions, ct);
 
         PgOutputReplicationSlot slot;
 
@@ -165,25 +63,74 @@ public class Subscription: ISubscription
                 )
             );
 
-            await foreach (var @event in ReadExistingRowsFromSnapshot(dataSource, created.SnapshotName, options, ct))
-                yield return await subcriptionObjectHandler.Handle(@event);
+            await foreach (var envelope in ReadExistingRowsFromSnapshot(dataSource, created.SnapshotName, _options, ct))
+            await foreach (var p in ProcessEnvelope(envelope, registry, errorProcessor).WithCancellation(ct))
+                yield return p;
         }
 
         await foreach (var message in
-                       conn.StartReplication(slot,
+                       _connection.StartReplication(slot,
                            new PgOutputReplicationOptions(publicationSetupOptions.PublicationName, 1), ct))
         {
             if (message is InsertMessage insertMessage)
-                yield return await subcriptionObjectHandler.Handle(await InsertMessageHandler.Handle(insertMessage, replicationDataMapper, ct));
+            {
+                var envelope = await InsertMessageHandler.Handle(insertMessage, replicationDataMapper, ct);
 
+                await foreach (var p in ProcessEnvelope(envelope, registry, errorProcessor).WithCancellation(ct)) yield return p;
+            }
             // Always call SetReplicationStatus() or assign LastAppliedLsn and LastFlushedLsn individually
             // so that Npgsql can inform the server which WAL files can be removed/recycled.
-            conn.SetReplicationStatus(message.WalEnd);
-            await conn.SendStatusUpdate(ct);
+            _connection.SetReplicationStatus(message.WalEnd);
+            await _connection.SendStatusUpdate(ct);
         }
     }
 
-    private static async IAsyncEnumerable<object> ReadExistingRowsFromSnapshot(
+    private static async IAsyncEnumerable<Task> ProcessEnvelope(
+        IEnvelope envelope,
+        Dictionary<Type, IConsume> registry,
+        IErrorProcessor errorProcessor
+    ) {
+        switch (envelope)
+        {
+            case KoEnvelope error:
+                await errorProcessor.Process(error.Error);
+                yield break;
+            case OkEnvelope okEnvelope:
+            {
+                var obj = okEnvelope.Value;
+                var objType = obj.GetType();
+                var (consumer, methodInfo) = Memoize(registry, objType, Consumer);
+                yield return (methodInfo.Invoke(consumer, [obj]) as Task)!;
+                break;
+            }
+        }
+    }
+
+    private static readonly Dictionary<Type, (IConsume consumer, MethodInfo methodInfo)> Cache = [];
+    private ISubscriptionOptions? _options;
+
+    private static (IConsume consumer, MethodInfo methodInfo) Memoize
+    (
+        Dictionary<Type, IConsume> registry,
+        Type objType,
+        Func<Dictionary<Type, IConsume>, Type, (IConsume consumer, MethodInfo methodInfo)> func
+    )
+    {
+        if (!Cache.TryGetValue(objType, out var entry))
+            entry = func(registry, objType);
+        Cache[objType] = entry;
+        return entry;
+    }
+    private static (IConsume consumer, MethodInfo methodInfo) Consumer(Dictionary<Type, IConsume> registry, Type objType)
+    {
+        var consumer = registry[objType] ?? throw new NotSupportedException($"Unregistered type for {objType.AssemblyQualifiedName}");
+        var methodInfos = consumer.GetType().GetMethods(BindingFlags.Instance|BindingFlags.Public);
+        var methodInfo = methodInfos?.SingleOrDefault(mi=>mi.GetParameters().Any(pa => pa.ParameterType == objType))
+                         ?? throw new NotSupportedException($"Unregistered type for {objType.AssemblyQualifiedName}");
+        return (consumer, methodInfo);
+    }
+
+    private static async IAsyncEnumerable<IEnvelope> ReadExistingRowsFromSnapshot(
         NpgsqlDataSource dataSource,
         string snapshotName,
         ISubscriptionOptions options,
@@ -191,7 +138,6 @@ public class Subscription: ISubscription
     )
     {
         await using var connection = await dataSource.OpenConnectionAsync(ct);
-
         await foreach (var row in connection.GetRowsFromSnapshot(
                            snapshotName,
                            options.PublicationOptions.TableName,
@@ -199,4 +145,6 @@ public class Subscription: ISubscription
                            ct))
             yield return row;
     }
+
+    public async ValueTask DisposeAsync() => await _connection!.DisposeAsync();
 }

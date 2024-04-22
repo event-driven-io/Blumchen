@@ -10,7 +10,6 @@ public static class JsonSerialization
     public static string ToJson<T>(T data, JsonTypeInfo typeInfo) where T:class=>
         JsonSerializer.Serialize(data, typeInfo);
 
-    public static ValueTask<object?> FromJsonAsync(Type type, Stream stream, JsonSerializerContext context, CancellationToken ct = default) =>
-        JsonSerializer.DeserializeAsync(stream.ToSohSkippingStream(), type, context, ct);
-
+    public static ValueTask<object> FromJsonAsync(Type type, Stream stream, JsonSerializerContext context, CancellationToken ct = default) =>
+        JsonSerializer.DeserializeAsync(stream.ToSohSkippingStream(), type, context, ct)!;
 }
