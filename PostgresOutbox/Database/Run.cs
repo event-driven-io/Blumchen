@@ -2,6 +2,7 @@ using System.Data;
 using System.Runtime.CompilerServices;
 using Npgsql;
 using PostgresOutbox.Subscriptions.Replication;
+using PostgresOutbox.Subscriptions.ReplicationMessageHandlers;
 
 namespace PostgresOutbox.Database;
 
@@ -41,7 +42,7 @@ public static class Run
         return ((await command.ExecuteScalarAsync(ct)) as bool?) == true;
     }
 
-    public static async IAsyncEnumerable<object> QueryTransactionSnapshot(
+    internal static async IAsyncEnumerable<IEnvelope> QueryTransactionSnapshot(
         this NpgsqlConnection connection,
         string snapshotName,
         string tableName,

@@ -1,9 +1,9 @@
 using Npgsql;
 using PostgresOutbox.Database;
 
-namespace PostgresOutbox.Events;
+namespace PostgresOutbox.Table;
 
-public static class OutboxTable
+public static class EventTable
 {
     public static async Task Ensure(NpgsqlDataSource dataSource, string tableName, CancellationToken ct)
     {

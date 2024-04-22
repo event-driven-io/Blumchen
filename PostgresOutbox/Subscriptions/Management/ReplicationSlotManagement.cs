@@ -55,8 +55,7 @@ public static class ReplicationSlotManagement
         this NpgsqlDataSource dataSource,
         string slotName,
         CancellationToken ct
-    ) =>
-        dataSource.Exists("pg_replication_slots", "slot_name = $1", [slotName], ct);
+    ) => dataSource.Exists("pg_replication_slots", "slot_name = $1", [slotName], ct);
 
     public record ReplicationSlotSetupOptions(
         string SlotName = $"{PublicationManagement.PublicationSetupOptions.DefaultTableName}_slot",

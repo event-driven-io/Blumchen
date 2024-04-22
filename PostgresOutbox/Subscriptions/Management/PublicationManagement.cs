@@ -111,7 +111,7 @@ public static class PublicationManagement
         public record Created: SetupPublicationResult;
     }
 
-    public record PublicationSetupOptions(
+    public sealed record PublicationSetupOptions(
         string PublicationName = "pub",
         string TableName = PublicationSetupOptions.DefaultTableName,
         CreateStyle CreateStyle = CreateStyle.WhenNotExists,

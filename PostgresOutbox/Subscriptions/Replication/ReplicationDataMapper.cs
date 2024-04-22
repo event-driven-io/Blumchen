@@ -1,11 +1,12 @@
 using Npgsql;
 using Npgsql.Replication.PgOutput.Messages;
+using PostgresOutbox.Subscriptions.ReplicationMessageHandlers;
 
 namespace PostgresOutbox.Subscriptions.Replication;
 
 public interface IReplicationDataMapper
 {
-    Task<object> ReadFromSnapshot(NpgsqlDataReader reader, CancellationToken ct);
+    Task<IEnvelope> ReadFromSnapshot(NpgsqlDataReader reader, CancellationToken ct);
 
     Task<object> ReadFromReplication(InsertMessage insertMessage, CancellationToken ct);
 }
