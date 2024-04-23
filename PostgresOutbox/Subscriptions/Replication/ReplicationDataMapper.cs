@@ -8,5 +8,5 @@ public interface IReplicationDataMapper
 {
     Task<IEnvelope> ReadFromSnapshot(NpgsqlDataReader reader, CancellationToken ct);
 
-    Task<object> ReadFromReplication(InsertMessage insertMessage, CancellationToken ct);
+    Task<IEnvelope> ReadFromReplication(InsertMessage insertMessage, CancellationToken ct);
 }

@@ -102,5 +102,5 @@ public interface IErrorProcessor
 
 public record ConsoleOutErrorProcessor: IErrorProcessor
 {
-    public Func<Exception, Task> Process => exception => Console.Out.WriteLineAsync(exception.Message);
+    public Func<Exception, Task> Process => exception => Console.Out.WriteLineAsync($"record id:{0} resulted in error:{exception.Message}");
 }
