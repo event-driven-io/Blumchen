@@ -13,11 +13,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sql", "sql", "{9F497531-24E
 		sql\init.sql = sql\init.sql
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PostgresOutbox", "PostgresOutbox\PostgresOutbox.csproj", "{E1AD98FC-42B1-4B7B-AF44-8057B7A61FDD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PostgresOutbox", "src\PostgresOutbox\PostgresOutbox.csproj", "{E1AD98FC-42B1-4B7B-AF44-8057B7A61FDD}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{D0AB0FF4-C8A1-4B4B-A682-64F353A2D248}"
 	ProjectSection(SolutionItems) = preProject
-		Directory.Build.props = Directory.Build.props
+		src\Directory.Build.props = src\Directory.Build.props
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{47B6EDAC-2EBC-4368-BAD6-2B8695E7D067}"
@@ -25,13 +25,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{47B6EDAC-2
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Subscriber", "Subscriber\Subscriber.csproj", "{06A60918-32EB-4C38-B369-7E1D76B809A0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Subscriber", "src\Subscriber\Subscriber.csproj", "{06A60918-32EB-4C38-B369-7E1D76B809A0}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Publisher", "Publisher\Publisher.csproj", "{F2878625-0919-4C26-8DC9-58CD8FA34050}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Publisher", "src\Publisher\Publisher.csproj", "{F2878625-0919-4C26-8DC9-58CD8FA34050}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Commons", "Commons\Commons.csproj", "{F81E2D5B-FC59-4396-A911-56BE65E4FE80}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Commons", "src\Commons\Commons.csproj", "{F81E2D5B-FC59-4396-A911-56BE65E4FE80}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tests", "Tests\Tests.csproj", "{2BBDA071-FB1C-4D62-A954-B22EA6B1C738}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tests", "src\Tests\Tests.csproj", "{2BBDA071-FB1C-4D62-A954-B22EA6B1C738}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
