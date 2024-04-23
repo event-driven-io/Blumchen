@@ -8,24 +8,35 @@ namespace PostgresOutbox.Subscriptions.Replication;
 
 internal sealed class EventDataMapper(ITypeResolver resolver): IReplicationDataMapper
 {
-    public async Task<object> ReadFromReplication(InsertMessage insertMessage, CancellationToken ct)
+    public async Task<IEnvelope> ReadFromReplication(InsertMessage insertMessage, CancellationToken ct)
     {
+        long id = default;
         var columnNumber = 0;
         var eventTypeName = string.Empty;
 
         await foreach (var value in insertMessage.NewRow)
         {
-            switch (columnNumber)
+            try
             {
-                case 1:
-                    eventTypeName = await value.GetTextReader().ReadToEndAsync(ct);
-                    break;
-                case 2 when value.GetDataTypeName().Equals("jsonb", StringComparison.OrdinalIgnoreCase):
+                switch (columnNumber)
                 {
-                    var eventType = resolver.Resolve(eventTypeName);
-                    ArgumentNullException.ThrowIfNull(eventType, eventTypeName);
-                    return await JsonSerialization.FromJsonAsync(eventType, value.GetStream(), resolver.SerializationContext, ct);
+                    case 0:
+                        id = await value.Get<long>(ct);
+                        break;
+                    case 1:
+                        eventTypeName = await value.GetTextReader().ReadToEndAsync(ct);
+                        break;
+                    case 2 when value.GetDataTypeName().Equals("jsonb", StringComparison.OrdinalIgnoreCase):
+                    {
+                        var eventType = resolver.Resolve(eventTypeName);
+                        ArgumentNullException.ThrowIfNull(eventType, eventTypeName);
+                        return new OkEnvelope(await JsonSerialization.FromJsonAsync(eventType, value.GetStream(), resolver.SerializationContext, ct));
+                    }
                 }
+            }
+            catch (Exception ex) when (ex is ArgumentException or NotSupportedException or InvalidOperationException or JsonException)
+            {
+                return new KoEnvelope(ex,id);
             }
             columnNumber++;
         }
@@ -34,8 +45,10 @@ internal sealed class EventDataMapper(ITypeResolver resolver): IReplicationDataM
 
     public async Task<IEnvelope> ReadFromSnapshot(NpgsqlDataReader reader, CancellationToken ct)
     {
+        long id = default;
         try
         {
+            id = reader.GetInt64(0);
             var eventTypeName = reader.GetString(1);
             var eventType = resolver.Resolve(eventTypeName);
 
@@ -45,7 +58,7 @@ internal sealed class EventDataMapper(ITypeResolver resolver): IReplicationDataM
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException or InvalidOperationException or JsonException)
         {
-            return new KoEnvelope(ex);
+            return new KoEnvelope(ex, id);
         }
     }
 }

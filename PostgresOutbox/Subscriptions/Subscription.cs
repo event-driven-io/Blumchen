@@ -17,7 +17,8 @@ using static ReplicationSlotManagement.CreateReplicationSlotResult;
 
 public interface ISubscription
 {
-    IAsyncEnumerable<Task> Subscribe(Func<SubscriptionOptionsBuilder, ISubscriptionOptions> builder, CancellationToken ct);
+    IAsyncEnumerable<Task<IEnvelope>> Subscribe(Func<SubscriptionOptionsBuilder, ISubscriptionOptions> builder,
+        CancellationToken ct);
 }
 
 public enum CreateStyle
@@ -31,7 +32,7 @@ public sealed class Subscription: ISubscription, IAsyncDisposable
 {
     private static LogicalReplicationConnection? _connection;
     private static readonly SubscriptionOptionsBuilder Builder = new();
-    public async IAsyncEnumerable<Task> Subscribe(
+    public async IAsyncEnumerable<Task<IEnvelope>> Subscribe(
         Func<SubscriptionOptionsBuilder, ISubscriptionOptions> builder,
         [EnumeratorCancellation] CancellationToken ct = default
     )
@@ -64,8 +65,8 @@ public sealed class Subscription: ISubscription, IAsyncDisposable
             );
 
             await foreach (var envelope in ReadExistingRowsFromSnapshot(dataSource, created.SnapshotName, _options, ct))
-            await foreach (var p in ProcessEnvelope(envelope, registry, errorProcessor).WithCancellation(ct))
-                yield return p;
+            await foreach (var subscribe in ProcessEnvelope<IEnvelope>(envelope, registry, errorProcessor).WithCancellation(ct))
+                yield return subscribe;
         }
 
         await foreach (var message in
@@ -74,9 +75,9 @@ public sealed class Subscription: ISubscription, IAsyncDisposable
         {
             if (message is InsertMessage insertMessage)
             {
-                var envelope = await InsertMessageHandler.Handle(insertMessage, replicationDataMapper, ct);
-
-                await foreach (var p in ProcessEnvelope(envelope, registry, errorProcessor).WithCancellation(ct)) yield return p;
+                var envelope = await replicationDataMapper.ReadFromReplication(insertMessage, ct);
+                await foreach (var subscribe in ProcessEnvelope<IEnvelope>(envelope, registry, errorProcessor).WithCancellation(ct))
+                    yield return subscribe;
             }
             // Always call SetReplicationStatus() or assign LastAppliedLsn and LastFlushedLsn individually
             // so that Npgsql can inform the server which WAL files can be removed/recycled.
@@ -85,11 +86,12 @@ public sealed class Subscription: ISubscription, IAsyncDisposable
         }
     }
 
-    private static async IAsyncEnumerable<Task> ProcessEnvelope(
+    private static async IAsyncEnumerable<Task<T>> ProcessEnvelope<T>(
         IEnvelope envelope,
         Dictionary<Type, IConsume> registry,
         IErrorProcessor errorProcessor
-    ) {
+    ) where T:class
+    {
         switch (envelope)
         {
             case KoEnvelope error:
@@ -100,7 +102,7 @@ public sealed class Subscription: ISubscription, IAsyncDisposable
                 var obj = okEnvelope.Value;
                 var objType = obj.GetType();
                 var (consumer, methodInfo) = Memoize(registry, objType, Consumer);
-                yield return (methodInfo.Invoke(consumer, [obj]) as Task)!;
+                yield return (methodInfo.Invoke(consumer, [obj]) as Task<T>)!;
                 break;
             }
         }
