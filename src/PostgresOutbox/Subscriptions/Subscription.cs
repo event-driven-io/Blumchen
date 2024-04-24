@@ -47,11 +47,11 @@ public sealed class Subscription: ISubscription, IAsyncDisposable
         dataSourceBuilder.UseLoggerFactory(loggerFactory);
 
         var dataSource = dataSourceBuilder.Build();
+        await EventTable.Ensure(dataSource, publicationSetupOptions.TableName, ct);
 
         _connection = new LogicalReplicationConnection(connectionString);
         await _connection.Open(ct);
 
-        await EventTable.Ensure(dataSource, publicationSetupOptions.TableName, ct);
 
         await dataSource.SetupPublication(publicationSetupOptions, ct);
         var result = await dataSource.SetupReplicationSlot(_connection, slotSetupOptions, ct);
