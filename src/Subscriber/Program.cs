@@ -21,8 +21,8 @@ try
 {
     await using var cursor = subscription.Subscribe(
         builder => builder
-            .WithConnectionString(Settings.ConnectionString)
-            .WithResolver(new SubscriberTypesResolver())
+            .ConnectionString(Settings.ConnectionString)
+            .TypeResolver(new SubscriberTypesResolver())
             .Consumes<UserCreatedContract, Consumer>(consumer)
             .Consumes<UserDeletedContract, Consumer>(consumer)
             .Build(), LoggerFactory.Create(builder => builder.AddConsole()), ct

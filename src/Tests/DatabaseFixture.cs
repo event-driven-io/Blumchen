@@ -60,8 +60,8 @@ public abstract class DatabaseFixture: IAsyncLifetime
         var typeResolver = new TypeResolver(SourceGenerationContext.Default).WhiteList<T>();
         var consumer = new TestConsumer<T>(log, info);
         var subscriptionOptions = new SubscriptionOptionsBuilder()
-            .WithConnectionString(connectionString)
-            .WithResolver(typeResolver)
+            .ConnectionString(connectionString)
+            .TypeResolver(typeResolver)
             .Consumes<T, TestConsumer<T>>(consumer)
             .WithPublicationOptions(
                 new PublicationManagement.PublicationSetupOptions(Randomise("events_pub"), eventsTable)
