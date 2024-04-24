@@ -10,7 +10,7 @@ internal sealed class EventDataMapper(ITypeResolver resolver): IReplicationDataM
 {
     public async Task<IEnvelope> ReadFromReplication(InsertMessage insertMessage, CancellationToken ct)
     {
-        long id = default;
+        var id = string.Empty;
         var columnNumber = 0;
         var eventTypeName = string.Empty;
 
@@ -21,7 +21,7 @@ internal sealed class EventDataMapper(ITypeResolver resolver): IReplicationDataM
                 switch (columnNumber)
                 {
                     case 0:
-                        id = await value.Get<long>(ct);
+                        id = await value.Get<string>(ct);
                         break;
                     case 1:
                         eventTypeName = await value.GetTextReader().ReadToEndAsync(ct);
@@ -58,7 +58,7 @@ internal sealed class EventDataMapper(ITypeResolver resolver): IReplicationDataM
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException or InvalidOperationException or JsonException)
         {
-            return new KoEnvelope(ex, id);
+            return new KoEnvelope(ex, id.ToString());
         }
     }
 }
