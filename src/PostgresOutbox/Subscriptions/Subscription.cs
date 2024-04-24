@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using Npgsql.Replication;
 using Npgsql.Replication.PgOutput;
@@ -17,7 +18,9 @@ using static ReplicationSlotManagement.CreateReplicationSlotResult;
 
 public interface ISubscription
 {
-    IAsyncEnumerable<Task<IEnvelope>> Subscribe(Func<SubscriptionOptionsBuilder, ISubscriptionOptions> builder,
+    IAsyncEnumerable<Task<IEnvelope>> Subscribe(
+        Func<SubscriptionOptionsBuilder,ISubscriptionOptions> builder,
+        ILoggerFactory? loggerFactory,
         CancellationToken ct);
 }
 
@@ -34,12 +37,16 @@ public sealed class Subscription: ISubscription, IAsyncDisposable
     private static readonly SubscriptionOptionsBuilder Builder = new();
     public async IAsyncEnumerable<Task<IEnvelope>> Subscribe(
         Func<SubscriptionOptionsBuilder, ISubscriptionOptions> builder,
+        ILoggerFactory? loggerFactory = null,
         [EnumeratorCancellation] CancellationToken ct = default
     )
     {
         _options = builder(Builder);
         var (connectionString, publicationSetupOptions, slotSetupOptions, errorProcessor, replicationDataMapper, registry) = _options;
-        var dataSource = NpgsqlDataSource.Create(connectionString);
+        var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+        dataSourceBuilder.UseLoggerFactory(loggerFactory);
+
+        var dataSource = dataSourceBuilder.Build();
 
         _connection = new LogicalReplicationConnection(connectionString);
         await _connection.Open(ct);

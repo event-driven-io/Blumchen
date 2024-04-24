@@ -1,4 +1,5 @@
 using Commons;
+using Microsoft.Extensions.Logging;
 using PostgresOutbox.Serialization;
 using PostgresOutbox.Subscriptions;
 using Subscriber;
@@ -24,7 +25,7 @@ try
             .WithResolver(new SubscriberTypesResolver())
             .Consumes<UserCreatedContract, Consumer>(consumer)
             .Consumes<UserDeletedContract, Consumer>(consumer)
-            .Build(), ct
+            .Build(), LoggerFactory.Create(builder => builder.AddConsole()), ct
     ).GetAsyncEnumerator(ct);
     while (await cursor.MoveNextAsync() && !ct.IsCancellationRequested);
 }
