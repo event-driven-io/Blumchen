@@ -3,6 +3,7 @@ using Npgsql.Replication.PgOutput.Messages;
 using PostgresOutbox.Serialization;
 using PostgresOutbox.Subscriptions.ReplicationMessageHandlers;
 using System.Text.Json;
+using Npgsql.Replication.PgOutput;
 
 namespace PostgresOutbox.Subscriptions.Replication;
 
@@ -13,7 +14,6 @@ internal sealed class EventDataMapper(ITypeResolver resolver): IReplicationDataM
         var id = string.Empty;
         var columnNumber = 0;
         var eventTypeName = string.Empty;
-
         await foreach (var column in insertMessage.NewRow)
         {
             try
@@ -21,7 +21,9 @@ internal sealed class EventDataMapper(ITypeResolver resolver): IReplicationDataM
                 switch (columnNumber)
                 {
                     case 0:
-                        id = await column.Get<string>(ct);
+                        id = column.Kind == TupleDataKind.BinaryValue
+                            ? (await column.Get<long>(ct)).ToString()
+                            : await column.Get<string>(ct);
                         break;
                     case 1:
                         eventTypeName = await column.GetTextReader().ReadToEndAsync(ct);
