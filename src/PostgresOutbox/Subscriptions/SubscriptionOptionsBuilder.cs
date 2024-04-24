@@ -20,13 +20,13 @@ public sealed class SubscriptionOptionsBuilder
         _dataMapper = default;
     }
 
-    public SubscriptionOptionsBuilder WithConnectionString(string connectionString)
+    public SubscriptionOptionsBuilder ConnectionString(string connectionString)
     {
         _connectionString = connectionString;
         return this;
     }
 
-    public SubscriptionOptionsBuilder WithResolver(ITypeResolver resolver)
+    public SubscriptionOptionsBuilder TypeResolver(ITypeResolver resolver)
     {
         _dataMapper = new EventDataMapper(resolver);
         return this;
