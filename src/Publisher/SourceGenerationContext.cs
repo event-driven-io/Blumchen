@@ -1,10 +1,10 @@
 using System.Text.Json.Serialization;
 
-namespace Commons.Events;
+namespace Publisher;
 
 [JsonSourceGenerationOptions(WriteIndented = true)]
 [JsonSerializable(typeof(UserCreated))]
 [JsonSerializable(typeof(UserDeleted))]
-public partial class SourceGenerationContext: JsonSerializerContext
+internal partial class SourceGenerationContext: JsonSerializerContext
 {
 }

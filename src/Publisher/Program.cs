@@ -1,14 +1,14 @@
 using Commons;
-using Commons.Events;
 using Npgsql;
 using PostgresOutbox.Table;
-
-#pragma warning disable CS8509 // The switch expression does not handle all possible values of its input type (it is not exhaustive).
+using Publisher;
+using UserCreated = Publisher.UserCreated;
+using UserDeleted = Publisher.UserDeleted;
 
 Console.Title = typeof(Program).Assembly.GetName().Name!;
 Console.WriteLine("How many messages do you want to publish?(press CTRL+C to exit):");
 
-var resolver = new CommonTypesResolver();
+var resolver = new PublisherTypesResolver();
 
 do
 {

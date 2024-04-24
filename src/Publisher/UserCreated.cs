@@ -1,15 +1,15 @@
 using PostgresOutbox.Serialization;
 
-namespace Commons.Events;
+namespace Publisher;
 
 [MessageUrn("user-created:v1")]
-public record UserCreated(
+internal record UserCreated(
     Guid Id,
     string Name
 );
 
 [MessageUrn("user-deleted:v1")]
-public record UserDeleted(
+internal record UserDeleted(
     Guid Id,
     string Name
 );
