@@ -6,7 +6,7 @@ namespace Commons.Events;
 
 public class CommonTypesResolver: ITypeResolver
 {
-    private readonly TypeResolver _inner = new TypeResolver(SourceGenerationContext.Default)
+    private readonly TypeResolver _inner = new TypeResolver(SourceGenerationContext.Default, new AttributeNamingPolicy())
         .WhiteList<UserCreated>()
         .WhiteList<UserDeleted>();
 
