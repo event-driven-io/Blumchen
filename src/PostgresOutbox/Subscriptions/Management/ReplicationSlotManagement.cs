@@ -16,7 +16,7 @@ public static class ReplicationSlotManagement
         CancellationToken ct
     )
     {
-        var (slotName, createStyle) = options;
+        var (slotName, createStyle, _) = options;
 
         return (createStyle, await dataSource.ReplicationSlotExists(slotName, ct)) switch
         {
@@ -61,7 +61,8 @@ public static class ReplicationSlotManagement
 
     public record ReplicationSlotSetupOptions(
         string SlotName = $"{PublicationManagement.PublicationSetupOptions.DefaultTableName}_slot",
-        CreateStyle CreateStyle = CreateStyle.WhenNotExists
+        CreateStyle CreateStyle = CreateStyle.WhenNotExists,
+        bool Binary = false //https://www.postgresql.org/docs/current/sql-createsubscription.html#SQL-CREATESUBSCRIPTION-WITH-BINARY
     );
 
     public abstract record CreateReplicationSlotResult

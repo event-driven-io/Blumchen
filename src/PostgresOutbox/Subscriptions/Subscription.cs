@@ -71,7 +71,7 @@ public sealed class Subscription: ISubscription, IAsyncDisposable
 
         await foreach (var message in
                        _connection.StartReplication(slot,
-                           new PgOutputReplicationOptions(publicationSetupOptions.PublicationName, 1), ct))
+                           new PgOutputReplicationOptions(publicationSetupOptions.PublicationName, 1, slotSetupOptions.Binary), ct))
         {
             if (message is InsertMessage insertMessage)
             {
