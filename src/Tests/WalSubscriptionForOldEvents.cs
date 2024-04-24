@@ -1,4 +1,3 @@
-using Commons.Events;
 using Npgsql;
 using PostgresOutbox.Subscriptions;
 using PostgresOutbox.Table;

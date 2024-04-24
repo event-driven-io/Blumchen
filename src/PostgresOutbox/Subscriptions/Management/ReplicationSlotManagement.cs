@@ -8,6 +8,7 @@ using static ReplicationSlotManagement.CreateReplicationSlotResult;
 
 public static class ReplicationSlotManagement
 {
+    #pragma warning disable CA2208
     public static async Task<CreateReplicationSlotResult> SetupReplicationSlot(
         this NpgsqlDataSource dataSource,
         LogicalReplicationConnection connection,
@@ -24,6 +25,7 @@ public static class ReplicationSlotManagement
             (CreateStyle.WhenNotExists,false) => await Create(connection, slotName, ct),
             (CreateStyle.AlwaysRecreate,true) => await ReCreate(connection, slotName, ct),
             (CreateStyle.AlwaysRecreate, false) => await Create(connection, slotName, ct),
+
             _ => throw new ArgumentOutOfRangeException(nameof(options.CreateStyle))
         };
 

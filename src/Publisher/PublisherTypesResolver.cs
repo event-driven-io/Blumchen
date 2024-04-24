@@ -2,9 +2,9 @@ using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using PostgresOutbox.Serialization;
 
-namespace Commons.Events;
+namespace Publisher;
 
-public class CommonTypesResolver: ITypeResolver
+internal class PublisherTypesResolver: ITypeResolver
 {
     private readonly TypeResolver _inner = new TypeResolver(SourceGenerationContext.Default, new AttributeNamingPolicy())
         .WhiteList<UserCreated>()

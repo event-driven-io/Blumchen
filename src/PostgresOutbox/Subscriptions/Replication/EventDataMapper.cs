@@ -14,23 +14,23 @@ internal sealed class EventDataMapper(ITypeResolver resolver): IReplicationDataM
         var columnNumber = 0;
         var eventTypeName = string.Empty;
 
-        await foreach (var value in insertMessage.NewRow)
+        await foreach (var column in insertMessage.NewRow)
         {
             try
             {
                 switch (columnNumber)
                 {
                     case 0:
-                        id = await value.Get<string>(ct);
+                        id = await column.Get<string>(ct);
                         break;
                     case 1:
-                        eventTypeName = await value.GetTextReader().ReadToEndAsync(ct);
+                        eventTypeName = await column.GetTextReader().ReadToEndAsync(ct);
                         break;
-                    case 2 when value.GetDataTypeName().Equals("jsonb", StringComparison.OrdinalIgnoreCase):
+                    case 2 when column.GetDataTypeName().Equals("jsonb", StringComparison.OrdinalIgnoreCase):
                     {
                         var eventType = resolver.Resolve(eventTypeName);
                         ArgumentNullException.ThrowIfNull(eventType, eventTypeName);
-                        return new OkEnvelope(await JsonSerialization.FromJsonAsync(eventType, value.GetStream(), resolver.SerializationContext, ct));
+                        return new OkEnvelope(await JsonSerialization.FromJsonAsync(eventType, column.GetStream(), resolver.SerializationContext, ct));
                     }
                 }
             }
