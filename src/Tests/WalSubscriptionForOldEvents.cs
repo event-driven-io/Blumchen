@@ -20,7 +20,7 @@ public class WalSubscriptionForOldEvents(ITestOutputHelper testOutputHelper) : D
         await EventsAppender.AppendAsync(eventsTable, @event, typeResolver, connectionString, ct);
 
         await using var subscription = new Subscription();
-        var events = subscription.Subscribe(_ => subscriptionOptions, ct);
+        var events = subscription.Subscribe(_ => subscriptionOptions, null, ct);
 
         await foreach (var _ in events)
         {

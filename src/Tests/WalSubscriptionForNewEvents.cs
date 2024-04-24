@@ -18,7 +18,7 @@ public class WalSubscriptionForNewEvents(ITestOutputHelper testOutputHelper): Da
 
         var (typeResolver, testConsumer, subscriptionOptions) = SetupFor<UserCreated>(connectionString, eventsTable, SourceGenerationContext.Default.UserCreated, testOutputHelper.WriteLine);
         await using var subscription = new Subscription();
-        var events = subscription.Subscribe(_ => subscriptionOptions, ct);
+        var events = subscription.Subscribe(_ => subscriptionOptions, null,ct);
 
         var @event = new UserCreated(Guid.NewGuid(), Guid.NewGuid().ToString());
         await EventsAppender.AppendAsync(eventsTable, @event, typeResolver, connectionString, ct);
