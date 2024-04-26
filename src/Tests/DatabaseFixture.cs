@@ -1,9 +1,9 @@
 using System.Text.Json.Serialization.Metadata;
 using Npgsql;
+using PostgresOutbox.Database;
 using PostgresOutbox.Serialization;
 using PostgresOutbox.Subscriptions;
 using PostgresOutbox.Subscriptions.Management;
-using PostgresOutbox.Table;
 using Testcontainers.PostgreSql;
 
 namespace Tests;
@@ -12,11 +12,16 @@ public abstract class DatabaseFixture: IAsyncLifetime
 {
     protected class TestConsumer<T>(Action<string> log, JsonTypeInfo info): IConsumes<T> where T : class
     {
-        public T? Event { get; private set; }
         public async Task Handle(T value)
         {
-            Event = value;
-            log(JsonSerialization.ToJson(value, info));
+            try
+            {
+                log(JsonSerialization.ToJson(value, info));
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
             await Task.CompletedTask;
         }
     }
@@ -42,20 +47,21 @@ public abstract class DatabaseFixture: IAsyncLifetime
     {
         var tableName = Randomise("outbox");
 
-        await EventTable.Ensure(dataSource, tableName, ct);
+        await dataSource.EnsureTableExists(tableName, ct);
 
         return tableName;
     }
 
-    protected static string Randomise(string prefix) =>
+    private static string Randomise(string prefix) =>
         $"{prefix}_{Guid.NewGuid().ToString().Replace("-", "")}";
 
     protected static (TypeResolver, TestConsumer<T>, ISubscriptionOptions) SetupFor<T>(
         string connectionString,
         string eventsTable,
         JsonTypeInfo info,
-        Action<string> log
-    ) where T : class
+        Action<string> log,
+        string? publicationName = null,
+        string? slotName = null) where T : class
     {
         var typeResolver = new TypeResolver(SourceGenerationContext.Default).WhiteList<T>();
         var consumer = new TestConsumer<T>(log, info);
@@ -64,10 +70,10 @@ public abstract class DatabaseFixture: IAsyncLifetime
             .TypeResolver(typeResolver)
             .Consumes<T, TestConsumer<T>>(consumer)
             .WithPublicationOptions(
-                new PublicationManagement.PublicationSetupOptions(Randomise("events_pub"), eventsTable)
+                new PublicationManagement.PublicationSetupOptions(publicationName ?? Randomise("events_pub"), eventsTable)
             )
             .WithReplicationOptions(
-                new ReplicationSlotManagement.ReplicationSlotSetupOptions(Randomise("events_slot"))
+                new ReplicationSlotManagement.ReplicationSlotSetupOptions(slotName ?? Randomise("events_slot"))
             ).Build();
         return (typeResolver, consumer, subscriptionOptions);
     }
