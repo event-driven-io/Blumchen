@@ -5,10 +5,10 @@ using Npgsql;
 using Npgsql.Replication;
 using Npgsql.Replication.PgOutput;
 using Npgsql.Replication.PgOutput.Messages;
+using PostgresOutbox.Database;
 using PostgresOutbox.Subscriptions.Management;
 using PostgresOutbox.Subscriptions.ReplicationMessageHandlers;
 using PostgresOutbox.Subscriptions.SnapshotReader;
-using PostgresOutbox.Table;
 
 namespace PostgresOutbox.Subscriptions;
 
@@ -18,8 +18,7 @@ using static ReplicationSlotManagement.CreateReplicationSlotResult;
 
 public interface ISubscription
 {
-    IAsyncEnumerable<Task<IEnvelope>> Subscribe(
-        Func<SubscriptionOptionsBuilder,ISubscriptionOptions> builder,
+    IAsyncEnumerable<IEnvelope> Subscribe(Func<SubscriptionOptionsBuilder, ISubscriptionOptions> builder,
         ILoggerFactory? loggerFactory,
         CancellationToken ct);
 }
@@ -35,7 +34,7 @@ public sealed class Subscription: ISubscription, IAsyncDisposable
 {
     private static LogicalReplicationConnection? _connection;
     private static readonly SubscriptionOptionsBuilder Builder = new();
-    public async IAsyncEnumerable<Task<IEnvelope>> Subscribe(
+    public async IAsyncEnumerable<IEnvelope> Subscribe(
         Func<SubscriptionOptionsBuilder, ISubscriptionOptions> builder,
         ILoggerFactory? loggerFactory = null,
         [EnumeratorCancellation] CancellationToken ct = default
@@ -47,7 +46,7 @@ public sealed class Subscription: ISubscription, IAsyncDisposable
         dataSourceBuilder.UseLoggerFactory(loggerFactory);
 
         var dataSource = dataSourceBuilder.Build();
-        await EventTable.Ensure(dataSource, publicationSetupOptions.TableName, ct);
+        await dataSource.EnsureTableExists(publicationSetupOptions.TableName, ct);
 
         _connection = new LogicalReplicationConnection(connectionString);
         await _connection.Open(ct);
@@ -93,7 +92,7 @@ public sealed class Subscription: ISubscription, IAsyncDisposable
         }
     }
 
-    private static async IAsyncEnumerable<Task<T>> ProcessEnvelope<T>(
+    private static async IAsyncEnumerable<T> ProcessEnvelope<T>(
         IEnvelope envelope,
         Dictionary<Type, IConsume> registry,
         IErrorProcessor errorProcessor
@@ -109,8 +108,9 @@ public sealed class Subscription: ISubscription, IAsyncDisposable
                 var obj = okEnvelope.Value;
                 var objType = obj.GetType();
                 var (consumer, methodInfo) = Memoize(registry, objType, Consumer);
-                yield return (methodInfo.Invoke(consumer, [obj]) as Task<T>)!;
-                break;
+                await ((Task)methodInfo.Invoke(consumer, [obj])!).ConfigureAwait(false);
+                yield return (T)envelope;
+                yield break;
             }
         }
     }

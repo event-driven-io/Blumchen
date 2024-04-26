@@ -2,6 +2,6 @@ namespace PostgresOutbox.Subscriptions.ReplicationMessageHandlers;
 
 public interface IEnvelope;
 
-internal sealed record OkEnvelope(object Value): IEnvelope;
+public sealed record OkEnvelope(object Value): IEnvelope;
 
-internal sealed record KoEnvelope(Exception Error, string id): IEnvelope;
+public sealed record KoEnvelope(Exception Error, string Id): IEnvelope;
