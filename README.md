@@ -20,7 +20,11 @@ Read more details in:
 ```shell
 docker-compose up
 ```
-2. Run tests
+2. Run(order doesn't matter) Publisher and Subscriber apps from vs-studio and follow Publisher instructions.
+
+## Testing (against default docker instance)
+
+Run tests
 ```shell
 dotnet test
 ```
