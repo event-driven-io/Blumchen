@@ -1,8 +1,27 @@
-using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
 using PostgresOutbox.Serialization;
+using System.Text.Json.Serialization.Metadata;
+using System.Text.Json.Serialization;
 
 namespace Publisher;
+
+[MessageUrn("user-created:v1")]
+internal record UserCreated(
+    Guid Id,
+    string Name
+);
+
+[MessageUrn("user-deleted:v1")]
+internal record UserDeleted(
+    Guid Id,
+    string Name
+);
+
+[JsonSourceGenerationOptions(WriteIndented = true)]
+[JsonSerializable(typeof(UserCreated))]
+[JsonSerializable(typeof(UserDeleted))]
+internal partial class SourceGenerationContext: JsonSerializerContext
+{
+}
 
 internal class PublisherTypesResolver: ITypeResolver
 {
