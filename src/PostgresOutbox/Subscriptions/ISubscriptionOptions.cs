@@ -5,7 +5,7 @@ using static PostgresOutbox.Subscriptions.Management.ReplicationSlotManagement;
 
 namespace PostgresOutbox.Subscriptions;
 
-public interface ISubscriptionOptions
+internal interface ISubscriptionOptions
 {
     [UsedImplicitly] string ConnectionString { get; }
     IReplicationDataMapper DataMapper { get; }
