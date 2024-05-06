@@ -24,8 +24,7 @@ try
             .ConnectionString(Settings.ConnectionString)
             .TypeResolver(new SubscriberTypesResolver())
             .Consumes<UserCreatedContract, Consumer>(consumer)
-            .Consumes<UserDeletedContract, Consumer>(consumer)
-            .Build(), LoggerFactory.Create(builder => builder.AddConsole()), ct
+            .Consumes<UserDeletedContract, Consumer>(consumer), LoggerFactory.Create(builder => builder.AddConsole()), ct
     ).GetAsyncEnumerator(ct);
     while (await cursor.MoveNextAsync() && !ct.IsCancellationRequested);
 }

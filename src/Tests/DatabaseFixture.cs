@@ -55,7 +55,7 @@ public abstract class DatabaseFixture: IAsyncLifetime
     private static string Randomise(string prefix) =>
         $"{prefix}_{Guid.NewGuid().ToString().Replace("-", "")}";
 
-    protected static (TypeResolver, TestConsumer<T>, ISubscriptionOptions) SetupFor<T>(
+    protected static (TypeResolver typeResolver, TestConsumer<T> consumer, SubscriptionOptionsBuilder subscriptionOptionsBuilder) SetupFor<T>(
         string connectionString,
         string eventsTable,
         JsonTypeInfo info,
@@ -65,7 +65,7 @@ public abstract class DatabaseFixture: IAsyncLifetime
     {
         var typeResolver = new TypeResolver(SourceGenerationContext.Default).WhiteList<T>();
         var consumer = new TestConsumer<T>(log, info);
-        var subscriptionOptions = new SubscriptionOptionsBuilder()
+        var subscriptionOptionsBuilder = new SubscriptionOptionsBuilder()
             .ConnectionString(connectionString)
             .TypeResolver(typeResolver)
             .Consumes<T, TestConsumer<T>>(consumer)
@@ -74,8 +74,8 @@ public abstract class DatabaseFixture: IAsyncLifetime
             )
             .WithReplicationOptions(
                 new ReplicationSlotManagement.ReplicationSlotSetupOptions(slotName ?? Randomise("events_slot"))
-            ).Build();
-        return (typeResolver, consumer, subscriptionOptions);
+            );
+        return (typeResolver, consumer, subscriptionOptionsBuilder);
     }
 
 }

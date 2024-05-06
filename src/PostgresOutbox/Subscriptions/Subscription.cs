@@ -18,7 +18,7 @@ using static ReplicationSlotManagement.CreateReplicationSlotResult;
 
 public interface ISubscription
 {
-    IAsyncEnumerable<IEnvelope> Subscribe(Func<SubscriptionOptionsBuilder, ISubscriptionOptions> builder,
+    IAsyncEnumerable<IEnvelope> Subscribe(Func<SubscriptionOptionsBuilder, SubscriptionOptionsBuilder> builder,
         ILoggerFactory? loggerFactory,
         CancellationToken ct);
 }
@@ -34,13 +34,14 @@ public sealed class Subscription: ISubscription, IAsyncDisposable
 {
     private static LogicalReplicationConnection? _connection;
     private static readonly SubscriptionOptionsBuilder Builder = new();
+    private ISubscriptionOptions? _options;
     public async IAsyncEnumerable<IEnvelope> Subscribe(
-        Func<SubscriptionOptionsBuilder, ISubscriptionOptions> builder,
+        Func<SubscriptionOptionsBuilder, SubscriptionOptionsBuilder> builder,
         ILoggerFactory? loggerFactory = null,
         [EnumeratorCancellation] CancellationToken ct = default
     )
     {
-        _options = builder(Builder);
+        _options = builder(Builder).Build();
         var (connectionString, publicationSetupOptions, slotSetupOptions, errorProcessor, replicationDataMapper, registry) = _options;
         var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
         dataSourceBuilder.UseLoggerFactory(loggerFactory);
@@ -116,7 +117,7 @@ public sealed class Subscription: ISubscription, IAsyncDisposable
     }
 
     private static readonly Dictionary<Type, (IConsume consumer, MethodInfo methodInfo)> Cache = [];
-    private ISubscriptionOptions? _options;
+    
 
     private static (IConsume consumer, MethodInfo methodInfo) Memoize
     (

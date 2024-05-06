@@ -69,7 +69,7 @@ public sealed class SubscriptionOptionsBuilder
         return this;
     }
 
-    public ISubscriptionOptions Build()
+    internal ISubscriptionOptions Build()
     {
         ArgumentNullException.ThrowIfNull(_connectionString);
         ArgumentNullException.ThrowIfNull(_dataMapper);
