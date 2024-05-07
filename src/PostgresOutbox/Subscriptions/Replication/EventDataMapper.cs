@@ -26,8 +26,11 @@ internal sealed class EventDataMapper(ITypeResolver resolver): IReplicationDataM
                             : await column.Get<string>(ct);
                         break;
                     case 1:
-                        eventTypeName = await column.GetTextReader().ReadToEndAsync(ct);
-                        break;
+                        using (var textReader = column.GetTextReader())
+                        {
+                            eventTypeName = await textReader.ReadToEndAsync(ct);
+                            break;
+                        }
                     case 2 when column.GetDataTypeName().Equals("jsonb", StringComparison.OrdinalIgnoreCase):
                     {
                         var eventType = resolver.Resolve(eventTypeName);
@@ -53,9 +56,8 @@ internal sealed class EventDataMapper(ITypeResolver resolver): IReplicationDataM
             id = reader.GetInt64(0);
             var eventTypeName = reader.GetString(1);
             var eventType = resolver.Resolve(eventTypeName);
-
-            var stream = await reader.GetStreamAsync(2, ct);
             ArgumentNullException.ThrowIfNull(eventType, eventTypeName);
+            await using var stream = await reader.GetStreamAsync(2, ct);
             return new OkEnvelope(await JsonSerialization.FromJsonAsync(eventType, stream, resolver.SerializationContext, ct));
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException or InvalidOperationException or JsonException)
