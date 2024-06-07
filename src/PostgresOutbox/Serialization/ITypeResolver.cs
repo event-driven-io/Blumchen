@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
@@ -13,15 +14,15 @@ public interface ITypeResolver
 public class TypeResolver(JsonSerializerContext serializationContext, INamingPolicy? namingPolicy=default): ITypeResolver
 {
     public JsonSerializerContext SerializationContext { get; } = serializationContext;
-    private static readonly Dictionary<string, Type> TypeDictionary = [];
-    private static readonly Dictionary<Type, JsonTypeInfo> TypeInfoDictionary = [];
+    private static readonly ConcurrentDictionary<string, Type> TypeDictionary = [];
+    private static readonly ConcurrentDictionary<Type, JsonTypeInfo> TypeInfoDictionary = [];
 
     public  TypeResolver WhiteList<T>() where T:class
     {
         var type = typeof(T);
         var typeInfo = SerializationContext.GetTypeInfo(type) ?? throw new NotSupportedException(type.FullName);
-        TypeDictionary.TryAdd((namingPolicy ?? new FQNNamingPolicy()).Bind(typeInfo.Type), typeInfo.Type);
-        TypeInfoDictionary.TryAdd(typeInfo.Type, typeInfo);
+        TypeDictionary.AddOrUpdate((namingPolicy ?? new FQNNamingPolicy()).Bind(typeInfo.Type), _ => typeInfo.Type, (s,t) =>typeInfo.Type);
+        TypeInfoDictionary.AddOrUpdate(typeInfo.Type, _ => typeInfo, (_,__)=> typeInfo);
         return this;
     }
 
