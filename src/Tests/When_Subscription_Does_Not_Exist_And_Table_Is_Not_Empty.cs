@@ -16,13 +16,13 @@ public class When_Subscription_Does_Not_Exist_And_Table_Is_Not_Empty(ITestOutput
         var cancellationTokenSource = new CancellationTokenSource();
         var ct = cancellationTokenSource.Token;
         var connectionString = Container.GetConnectionString();
-        var eventsTable = await CreateEventsTable(NpgsqlDataSource.Create(connectionString), ct);
+        var eventsTable = await CreateOutboxTable(NpgsqlDataSource.Create(connectionString), ct);
 
 
         var @event = new UserDeleted(Guid.NewGuid(), Guid.NewGuid().ToString());
         var typeResolver = new TypeResolver(SourceGenerationContext.Default).WhiteList<UserDeleted>();
 
-        await EventsAppender.AppendAsync(eventsTable, @event, typeResolver, connectionString, ct);
+        await MessageAppender.AppendAsync(eventsTable, @event, typeResolver, connectionString, ct);
 
 
         var (_, testConsumer, subscriptionOptions) =

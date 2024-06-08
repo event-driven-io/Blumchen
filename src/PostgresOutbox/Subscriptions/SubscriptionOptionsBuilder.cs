@@ -28,7 +28,7 @@ public sealed class SubscriptionOptionsBuilder
 
     public SubscriptionOptionsBuilder TypeResolver(ITypeResolver resolver)
     {
-        _dataMapper = new EventDataMapper(resolver);
+        _dataMapper = new ReplicationDataMapper(resolver);
         return this;
     }
 
