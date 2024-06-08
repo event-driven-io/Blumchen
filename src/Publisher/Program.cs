@@ -35,10 +35,10 @@ do
                     switch (@event)
                     {
                         case UserCreated c:
-                            await EventsAppender.AppendAsync("outbox", c, resolver, connection, transaction, ct);
+                            await MessageAppender.AppendAsync("outbox", c, resolver, connection, transaction, ct);
                             break;
                         case UserDeleted d:
-                            await EventsAppender.AppendAsync("outbox", d, resolver, connection, transaction, ct);
+                            await MessageAppender.AppendAsync("outbox", d, resolver, connection, transaction, ct);
                             break;
                     }
 

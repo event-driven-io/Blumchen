@@ -40,7 +40,7 @@ public abstract class DatabaseFixture: IAsyncLifetime
         await Container.DisposeAsync();
     }
 
-    protected static async Task<string> CreateEventsTable(
+    protected static async Task<string> CreateOutboxTable(
         NpgsqlDataSource dataSource,
         CancellationToken ct
     )

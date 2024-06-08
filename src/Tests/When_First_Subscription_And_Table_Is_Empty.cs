@@ -16,14 +16,14 @@ public class When_First_Subscription_And_Table_Is_Empty(ITestOutputHelper testOu
         var ct = cancellationTokenSource.Token;
 
         var connectionString = Container.GetConnectionString();
-        var eventsTable = await CreateEventsTable(NpgsqlDataSource.Create(connectionString), ct);
+        var eventsTable = await CreateOutboxTable(NpgsqlDataSource.Create(connectionString), ct);
 
         var (typeResolver, testConsumer, subscriptionOptions) = SetupFor<UserCreated>(connectionString, eventsTable,
             SourceGenerationContext.Default.UserCreated, testOutputHelper.WriteLine);
         await using var subscription = new Subscription();
 
         var @event = new UserCreated(Guid.NewGuid(), Guid.NewGuid().ToString());
-        await EventsAppender.AppendAsync(eventsTable, @event, typeResolver, connectionString, ct);
+        await MessageAppender.AppendAsync(eventsTable, @event, typeResolver, connectionString, ct);
         await foreach (var envelope in subscription.Subscribe(_ => subscriptionOptions, null, ct))
         {
             Assert.Equal(@event, ((OkEnvelope)envelope).Value);
