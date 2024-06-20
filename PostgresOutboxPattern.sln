@@ -7,16 +7,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docker", "docker", "{CD59A1
 		docker-compose.yml = docker-compose.yml
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sql", "sql", "{9F497531-24EF-4744-B06C-B766562A9852}"
-	ProjectSection(SolutionItems) = preProject
-		sql\init.sql = sql\init.sql
-	EndProjectSection
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PostgresOutbox", "src\PostgresOutbox\PostgresOutbox.csproj", "{E1AD98FC-42B1-4B7B-AF44-8057B7A61FDD}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{D0AB0FF4-C8A1-4B4B-A682-64F353A2D248}"
 	ProjectSection(SolutionItems) = preProject
 		src\Directory.Build.props = src\Directory.Build.props
+		.github\workflows\build.dotnet.yml = .github\workflows\build.dotnet.yml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{47B6EDAC-2EBC-4368-BAD6-2B8695E7D067}"
@@ -31,6 +27,17 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Commons", "src\Commons\Commons.csproj", "{F81E2D5B-FC59-4396-A911-56BE65E4FE80}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tests", "src\Tests\Tests.csproj", "{2BBDA071-FB1C-4D62-A954-B22EA6B1C738}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "pgAdmin", "pgAdmin", "{C050E9E8-3FB6-4581-953F-31826E385FB4}"
+	ProjectSection(SolutionItems) = preProject
+		docker\pgAdmin\servers.json = docker\pgAdmin\servers.json
+		docker\pgAdmin\pgpass = docker\pgAdmin\pgpass
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "postgres", "postgres", "{8AAAA344-B5FD-48D9-B2BA-379E374448D4}"
+	ProjectSection(SolutionItems) = preProject
+		docker\postgres\init.sql = docker\postgres\init.sql
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -64,5 +71,9 @@ Global
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {9A868C51-0460-4700-AF33-E1A921192614}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{C050E9E8-3FB6-4581-953F-31826E385FB4} = {CD59A1A0-F40D-4047-87A3-66C0F1519FA5}
+		{8AAAA344-B5FD-48D9-B2BA-379E374448D4} = {CD59A1A0-F40D-4047-87A3-66C0F1519FA5}
 	EndGlobalSection
 EndGlobal
