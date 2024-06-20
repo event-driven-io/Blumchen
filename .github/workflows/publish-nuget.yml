@@ -28,10 +28,7 @@ jobs:
               run: dotnet build --configuration Release --no-restore
 
             - name: Run tests
-              run: dotnet test --configuration Release --no-build --filter Category!=SkipCI
-
-            - name: Run tests
-              run: dotnet pack --configuration -o ./artifacts --configuration Release --no-build
+              run: dotnet pack -o ./artifacts --configuration Release --no-build
 
             - name: Publish to NuGet
               run: |
