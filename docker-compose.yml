@@ -1,54 +1,39 @@
-services:
-  postgres:
-    image: postgres:15.1-alpine
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_DB=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_USER=postgres
-    command:
-      - "postgres"
-      - "-c"
-      - "wal_level=logical"
-      - "-c"
-      - "wal_compression=on"
-    volumes:
-      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
-  
-  pgadmin: #http://localhost:5050
-    container_name: pgadmin_container
-    image: dpage/pgadmin4
-    environment:
-      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
-      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD:-postgres}
-      - PGADMIN_CONFIG_SERVER_MODE=False
-      - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False
-    ports:
-      - "${PGADMIN_PORT:-5050}:80"
-    entrypoint: /bin/sh -c "chmod 600 /pgpass; /entrypoint.sh;"
-    user: root
-    configs:
-      - source: servers.json
-        target: /pgadmin4/servers.json
-      - source: pgpass
-        target: /pgpass
-    depends_on:
-      - postgres
-    restart: unless-stopped
+version: '3.8'  # Specify Docker Compose version
 
-configs:
-  pgpass:
-    content: postgres:5432:*:postgres:postgres
-  servers.json:
-    content: |
-      {"Servers": {"1": {
-        "Group": "Servers",
-        "Name": "docker_postgres",
-        "Host": "postgres",
-        "Port": 5432,
-        "MaintenanceDB": "postgres",
-        "Username": "postgres",
-        "PassFile": "/pgpass",
-        "SSLMode": "prefer"
-      }}}
+services:
+    postgres:
+        image: postgres:15.1-alpine
+        ports:
+            - "5432:5432"
+        environment:
+            - POSTGRES_DB=postgres
+            - POSTGRES_PASSWORD=postgres
+            - POSTGRES_USER=postgres
+        command:
+            - "postgres"
+            - "-c"
+            - "wal_level=logical"
+            - "-c"
+            - "wal_compression=on"
+        volumes:
+            - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+    pgadmin:
+        container_name: pgadmin_container
+        image: dpage/pgadmin4
+        environment:
+            - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
+            - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD:-postgres}
+            - PGADMIN_CONFIG_SERVER_MODE=False
+            - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False
+        ports:
+            - "${PGADMIN_PORT:-5050}:80"
+        entrypoint: /bin/sh -c "chmod 600 /pgpass; /entrypoint.sh;"
+        user: root
+        volumes:
+            - ./docker/pgAdmin/pgpass:/pgpass
+            - ./docker/pgAdmin/servers.json:/pgadmin4/servers.json
+        depends_on:
+            - postgres
+        restart: unless-stopped
+
