@@ -1,9 +1,9 @@
+using Blumchen.Subscriptions.Replication;
 using JetBrains.Annotations;
-using PostgresOutbox.Subscriptions.Replication;
-using static PostgresOutbox.Subscriptions.Management.PublicationManagement;
-using static PostgresOutbox.Subscriptions.Management.ReplicationSlotManagement;
+using static Blumchen.Subscriptions.Management.PublicationManagement;
+using static Blumchen.Subscriptions.Management.ReplicationSlotManagement;
 
-namespace PostgresOutbox.Subscriptions;
+namespace Blumchen.Subscriptions;
 
 internal interface ISubscriptionOptions
 {

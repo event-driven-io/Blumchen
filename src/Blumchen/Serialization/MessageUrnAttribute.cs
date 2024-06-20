@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 
-namespace PostgresOutbox.Serialization;
+namespace Blumchen.Serialization;
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface)]
 public class MessageUrnAttribute:
@@ -38,7 +39,7 @@ public static class MessageUrn
     public const string Prefix = "urn:message:";
 
     private static readonly ConcurrentDictionary<Type, ICached> Cache = new();
-    
+
 
     public static string ForTypeString(Type type) =>
         Cache.GetOrAdd(type,t =>

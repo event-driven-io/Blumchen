@@ -1,8 +1,9 @@
+using Blumchen.Subscriptions.ReplicationMessageHandlers;
 using Npgsql;
 using Npgsql.Replication.PgOutput.Messages;
-using PostgresOutbox.Subscriptions.ReplicationMessageHandlers;
 
-namespace PostgresOutbox.Subscriptions.Replication;
+namespace Blumchen.Subscriptions.Replication;
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 public interface IReplicationDataMapper
 {

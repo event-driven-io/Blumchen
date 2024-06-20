@@ -1,4 +1,4 @@
-namespace PostgresOutbox.Streams
+namespace Blumchen.Streams
 {
     internal static class StreamExtensions
     {

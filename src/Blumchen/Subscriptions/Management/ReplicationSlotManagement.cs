@@ -1,10 +1,11 @@
+using Blumchen.Database;
 using Npgsql;
 using Npgsql.Replication;
 using NpgsqlTypes;
-using PostgresOutbox.Database;
 
-namespace PostgresOutbox.Subscriptions.Management;
+namespace Blumchen.Subscriptions.Management;
 using static ReplicationSlotManagement.CreateReplicationSlotResult;
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 public static class ReplicationSlotManagement
 {

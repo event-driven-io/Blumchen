@@ -14,7 +14,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Commons\Commons.csproj" />
-      <ProjectReference Include="..\PostgresOutbox\PostgresOutbox.csproj" />
+      <ProjectReference Include="..\Blumchen\Blumchen.csproj" />
     </ItemGroup>
 
 </Project>

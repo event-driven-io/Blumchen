@@ -1,4 +1,4 @@
-namespace PostgresOutbox.Serialization;
+namespace Blumchen.Serialization;
 
 internal class SOHSkippingStream(Stream inner): Stream
 {

@@ -1,16 +1,17 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Blumchen.Database;
+using Blumchen.Subscriptions.Management;
+using Blumchen.Subscriptions.ReplicationMessageHandlers;
+using Blumchen.Subscriptions.SnapshotReader;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using Npgsql.Replication;
 using Npgsql.Replication.PgOutput;
 using Npgsql.Replication.PgOutput.Messages;
-using PostgresOutbox.Database;
-using PostgresOutbox.Subscriptions.Management;
-using PostgresOutbox.Subscriptions.ReplicationMessageHandlers;
-using PostgresOutbox.Subscriptions.SnapshotReader;
 
-namespace PostgresOutbox.Subscriptions;
+namespace Blumchen.Subscriptions;
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 using static PublicationManagement;
 using static ReplicationSlotManagement;
@@ -117,7 +118,7 @@ public sealed class Subscription: ISubscription, IAsyncDisposable
     }
 
     private static readonly Dictionary<Type, (IConsume consumer, MethodInfo methodInfo)> Cache = [];
-    
+
 
     private static (IConsume consumer, MethodInfo methodInfo) Memoize
     (

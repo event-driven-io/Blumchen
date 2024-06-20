@@ -1,5 +1,5 @@
 using System.Text.Json.Serialization;
-using PostgresOutbox.Serialization;
+using Blumchen.Serialization;
 
 namespace Tests;
 

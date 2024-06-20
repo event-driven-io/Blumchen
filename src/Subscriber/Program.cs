@@ -1,7 +1,7 @@
+using Blumchen.Serialization;
+using Blumchen.Subscriptions;
 using Commons;
 using Microsoft.Extensions.Logging;
-using PostgresOutbox.Serialization;
-using PostgresOutbox.Subscriptions;
 using Subscriber;
 
 #pragma warning disable CS8601 // Possible null reference assignment.
@@ -35,10 +35,13 @@ catch (Exception e)
 
 Console.ReadKey();
 
-internal class Consumer:
-    IConsumes<UserCreatedContract>,
-    IConsumes<UserDeletedContract>
+namespace Subscriber
 {
-    public Task Handle(UserCreatedContract value) => Console.Out.WriteLineAsync(JsonSerialization.ToJson(value, SourceGenerationContext.Default.UserCreatedContract));
-    public Task Handle(UserDeletedContract value) => Console.Out.WriteLineAsync(JsonSerialization.ToJson(value, SourceGenerationContext.Default.UserDeletedContract));
+    internal class Consumer:
+        IConsumes<UserCreatedContract>,
+        IConsumes<UserDeletedContract>
+    {
+        public Task Handle(UserCreatedContract value) => Console.Out.WriteLineAsync(JsonSerialization.ToJson(value, SourceGenerationContext.Default.UserCreatedContract));
+        public Task Handle(UserDeletedContract value) => Console.Out.WriteLineAsync(JsonSerialization.ToJson(value, SourceGenerationContext.Default.UserDeletedContract));
+    }
 }
