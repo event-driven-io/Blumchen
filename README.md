@@ -1,20 +1,18 @@
-# Postgres Outbox Pattern with CDC and .NET
-PoC of doing Outbox Pattern with CDC and .NET
+# Blumchen - Push-based Outbox for PostgreSQL
+Outbox Pattern with CDC and .NET based on [Postgres logical replication](https://www.postgresql.org/docs/current/logical-replication.html) with [Npgsql integration](https://www.npgsql.org/doc/replication.html).
+
+Read more details in:
+- [Push-based Outbox Pattern with Postgres Logical Replication](https://event-driven.io/en/push_based_outbox_pattern_with_postgres_logical_replication/?utm_source=github_outbox_cdc).
+- [How to get all messages through Postgres logical replication](https://event-driven.io/en/how_to_get_all_messages_through_postgres_logical_replication/?utm_source=github_outbox_cdc).
 
 ## Features:
 
 - Publication filter [is enabled](https://www.postgresql.org/docs/current/sql-createpublication.html#SQL-CREATEPUBLICATION-WITH) to trigger only INSERTed rows;
 - AOT compliant compilation enforced by design
 
-Uses [Postgres logical replication](https://www.postgresql.org/docs/current/logical-replication.html) with [Npgsql integration](https://www.npgsql.org/doc/replication.html).
+Main logic is placed in [EventsSubscription](./src/Blumchen/Subscriptions/Subscription.cs).
 
-Main logic is placed in [EventsSubscription](./PostgresOutbox/Subscriptions/Subscription.cs). Check [LogicalReplicationTest](./PostgresOutboxPatternWithCDC.NET.Tests/LogicalReplicationTest.cs) for sample usage.
-
-Read more details in:
-- [Push-based Outbox Pattern with Postgres Logical Replication](https://event-driven.io/en/push_based_outbox_pattern_with_postgres_logical_replication/?utm_source=github_outbox_cdc).
-- [How to get all messages through Postgres logical replication](https://event-driven.io/en/how_to_get_all_messages_through_postgres_logical_replication/?utm_source=github_outbox_cdc).
-
-## Running
+## Running source code locally
 
 1. Start Postgres with WAL enabled from Docker image.
 ```shell
