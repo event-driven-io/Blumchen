@@ -1,8 +1,10 @@
+using Blumchen.Database;
 using Npgsql;
-using PostgresOutbox.Database;
-#pragma warning disable CA2208
 
-namespace PostgresOutbox.Subscriptions.Management;
+#pragma warning disable CA2208
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+
+namespace Blumchen.Subscriptions.Management;
 
 using static PublicationManagement.SetupPublicationResult;
 

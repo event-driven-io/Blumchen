@@ -1,0 +1,40 @@
+name: NuGet Manual Publish
+
+on: [workflow_dispatch]
+
+env:
+    config: Release
+    DOTNET_CLI_TELEMETRY_OPTOUT: 1
+    DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+    dotnet_core_version: 8.0.x
+
+jobs:
+    publish_job:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v3
+              with:
+                  dotnet-version: "8.0.x"
+
+            - name: Restore NuGet packages
+              run: dotnet restore
+
+            - name: Build
+              run: dotnet build --configuration Release --no-restore
+
+            - name: Run tests
+              run: dotnet test --configuration Release --no-build --filter Category!=SkipCI
+
+            - name: Run tests
+              run: dotnet pack --configuration -o ./artifacts --configuration Release --no-build
+
+            - name: Publish to NuGet
+              run: |
+                  find . -name '*.nupkg' -exec dotnet nuget push "{}" -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_DEPLOY_KEY }} --skip-duplicate \;
+                  # find . -name '*.snupkg' -exec dotnet nuget push "{}" -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_DEPLOY_KEY }} \;
+              shell: bash

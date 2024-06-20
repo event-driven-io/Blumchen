@@ -1,7 +1,7 @@
+using Blumchen.Subscriptions;
+using Blumchen.Subscriptions.ReplicationMessageHandlers;
+using Blumchen.Table;
 using Npgsql;
-using PostgresOutbox.Subscriptions;
-using PostgresOutbox.Subscriptions.ReplicationMessageHandlers;
-using PostgresOutbox.Table;
 using Xunit.Abstractions;
 
 namespace Tests;

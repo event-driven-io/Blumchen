@@ -1,9 +1,9 @@
 using System.Text.Json.Serialization.Metadata;
+using Blumchen.Database;
+using Blumchen.Serialization;
+using Blumchen.Subscriptions;
+using Blumchen.Subscriptions.Management;
 using Npgsql;
-using PostgresOutbox.Database;
-using PostgresOutbox.Serialization;
-using PostgresOutbox.Subscriptions;
-using PostgresOutbox.Subscriptions.Management;
 using Testcontainers.PostgreSql;
 
 namespace Tests;

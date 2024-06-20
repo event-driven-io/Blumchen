@@ -2,7 +2,8 @@ using System.Collections.Concurrent;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
-namespace PostgresOutbox.Serialization;
+namespace Blumchen.Serialization;
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 public interface ITypeResolver
 {
@@ -28,6 +29,6 @@ public class TypeResolver(JsonSerializerContext serializationContext, INamingPol
 
     public (string, JsonTypeInfo) Resolve(Type type) =>
         (TypeDictionary.Single(kv => kv.Value == type).Key, TypeInfoDictionary[type]);
-    
+
     public Type Resolve(string type) => TypeDictionary[type];
 }

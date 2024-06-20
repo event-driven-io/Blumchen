@@ -1,9 +1,10 @@
+using Blumchen.Serialization;
+using Blumchen.Subscriptions.Management;
+using Blumchen.Subscriptions.Replication;
 using JetBrains.Annotations;
-using PostgresOutbox.Serialization;
-using PostgresOutbox.Subscriptions.Management;
-using PostgresOutbox.Subscriptions.Replication;
 
-namespace PostgresOutbox.Subscriptions;
+namespace Blumchen.Subscriptions;
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 public sealed class SubscriptionOptionsBuilder
 {

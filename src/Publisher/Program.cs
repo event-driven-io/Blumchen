@@ -1,6 +1,6 @@
+using Blumchen.Table;
 using Commons;
 using Npgsql;
-using PostgresOutbox.Table;
 using Publisher;
 using UserCreated = Publisher.UserCreated;
 using UserDeleted = Publisher.UserDeleted;

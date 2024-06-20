@@ -1,10 +1,12 @@
 using System.Data;
 using System.Runtime.CompilerServices;
+using Blumchen.Subscriptions.Replication;
+using Blumchen.Subscriptions.ReplicationMessageHandlers;
 using Npgsql;
-using PostgresOutbox.Subscriptions.Replication;
-using PostgresOutbox.Subscriptions.ReplicationMessageHandlers;
 
-namespace PostgresOutbox.Database;
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+
+namespace Blumchen.Database;
 
 public static class Run
 {

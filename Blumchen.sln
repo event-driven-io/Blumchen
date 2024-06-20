@@ -7,12 +7,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docker", "docker", "{CD59A1
 		docker-compose.yml = docker-compose.yml
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PostgresOutbox", "src\PostgresOutbox\PostgresOutbox.csproj", "{E1AD98FC-42B1-4B7B-AF44-8057B7A61FDD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Blumchen", "src\Blumchen\Blumchen.csproj", "{E1AD98FC-42B1-4B7B-AF44-8057B7A61FDD}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{D0AB0FF4-C8A1-4B4B-A682-64F353A2D248}"
 	ProjectSection(SolutionItems) = preProject
 		src\Directory.Build.props = src\Directory.Build.props
 		.github\workflows\build.dotnet.yml = .github\workflows\build.dotnet.yml
+		.github\workflows\publish-nuget.yml = .github\workflows\publish-nuget.yml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{47B6EDAC-2EBC-4368-BAD6-2B8695E7D067}"

@@ -1,11 +1,11 @@
-using Npgsql;
-using Npgsql.Replication.PgOutput.Messages;
-using PostgresOutbox.Serialization;
-using PostgresOutbox.Subscriptions.ReplicationMessageHandlers;
 using System.Text.Json;
+using Blumchen.Serialization;
+using Blumchen.Subscriptions.ReplicationMessageHandlers;
+using Npgsql;
 using Npgsql.Replication.PgOutput;
+using Npgsql.Replication.PgOutput.Messages;
 
-namespace PostgresOutbox.Subscriptions.Replication;
+namespace Blumchen.Subscriptions.Replication;
 
 internal sealed class ReplicationDataMapper(ITypeResolver resolver): IReplicationDataMapper
 {

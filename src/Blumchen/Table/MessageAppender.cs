@@ -1,8 +1,9 @@
 using System.Collections;
+using Blumchen.Serialization;
 using Npgsql;
-using PostgresOutbox.Serialization;
 
-namespace PostgresOutbox.Table;
+namespace Blumchen.Table;
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 public static class MessageAppender
 {
@@ -51,7 +52,7 @@ public static class MessageAppender
                 var batchCommand = batch.CreateBatchCommand();
                 var data = JsonSerialization.ToJson(input, jsonTypeInfo);
 
-            
+
                 batchCommand.CommandText =
                     $"INSERT INTO {tableName}(message_type, data) values ('{typeName}', '{data}')";
                 batch.BatchCommands.Add(batchCommand);

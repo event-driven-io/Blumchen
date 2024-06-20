@@ -1,6 +1,6 @@
-using PostgresOutbox.Serialization;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
+using Blumchen.Serialization;
 
 namespace Subscriber
 {

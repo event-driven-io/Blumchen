@@ -1,10 +1,11 @@
 using System.Runtime.CompilerServices;
+using Blumchen.Database;
+using Blumchen.Subscriptions.Replication;
+using Blumchen.Subscriptions.ReplicationMessageHandlers;
 using Npgsql;
-using PostgresOutbox.Database;
-using PostgresOutbox.Subscriptions.Replication;
-using PostgresOutbox.Subscriptions.ReplicationMessageHandlers;
 
-namespace PostgresOutbox.Subscriptions.SnapshotReader;
+namespace Blumchen.Subscriptions.SnapshotReader;
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 public static class SnapshotReader
 {
