@@ -27,9 +27,10 @@ public class When_Subscription_Does_Not_Exist_And_Table_Is_Not_Empty(ITestOutput
 
         var (_, testConsumer, subscriptionOptions) =
             SetupFor<UserDeleted>(connectionString, eventsTable, SourceGenerationContext.Default.UserDeleted, testOutputHelper.WriteLine);
-        await using var subscription = new Subscription();
+        var subscription = new Subscription();
+        await using var subscription1 = subscription.ConfigureAwait(false);
 
-        await foreach (var envelope in subscription.Subscribe(_ => subscriptionOptions, null, ct))
+        await foreach (var envelope in subscription.Subscribe(_ => subscriptionOptions, null, ct).ConfigureAwait(false))
         {
             Assert.Equal(@event, ((OkEnvelope)envelope).Value);
             return;

@@ -7,6 +7,7 @@ namespace Blumchen.Serialization;
 
 public interface ITypeResolver
 {
+    ISet<string> RegisteredTypes { get; }
     Type Resolve(string value);
     (string, JsonTypeInfo) Resolve(Type type);
     JsonSerializerContext SerializationContext { get; }
@@ -17,6 +18,7 @@ public class TypeResolver(JsonSerializerContext serializationContext, INamingPol
     public JsonSerializerContext SerializationContext { get; } = serializationContext;
     private static readonly ConcurrentDictionary<string, Type> TypeDictionary = [];
     private static readonly ConcurrentDictionary<Type, JsonTypeInfo> TypeInfoDictionary = [];
+    public ISet<string> RegisteredTypes { get; } = TypeDictionary.Keys.ToHashSet();
 
     public  TypeResolver WhiteList<T>() where T:class
     {

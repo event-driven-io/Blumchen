@@ -9,27 +9,30 @@ namespace Blumchen.Subscriptions;
 public sealed class SubscriptionOptionsBuilder
 {
     private static string? _connectionString;
-    private static PublicationManagement.PublicationSetupOptions? _publicationSetupOptions;
+    private static PublicationManagement.PublicationSetupOptions _publicationSetupOptions;
     private static ReplicationSlotManagement.ReplicationSlotSetupOptions? _slotOptions;
     private static IReplicationDataMapper? _dataMapper;
 
     static SubscriptionOptionsBuilder()
     {
         _connectionString = null;
-        _publicationSetupOptions = default;
+        _publicationSetupOptions = new();
         _slotOptions = default;
         _dataMapper = default;
     }
 
+    [UsedImplicitly]
     public SubscriptionOptionsBuilder ConnectionString(string connectionString)
     {
         _connectionString = connectionString;
         return this;
     }
 
+    [UsedImplicitly]
     public SubscriptionOptionsBuilder TypeResolver(ITypeResolver resolver)
     {
         _dataMapper = new ReplicationDataMapper(resolver);
+        _publicationSetupOptions = _publicationSetupOptions with{ TypeResolver = resolver };
         return this;
     }
 
@@ -41,9 +44,10 @@ public sealed class SubscriptionOptionsBuilder
     }
 
     [UsedImplicitly]
-    public SubscriptionOptionsBuilder WithPublicationOptions(PublicationManagement.PublicationSetupOptions publicationSetupOptions)
+    public SubscriptionOptionsBuilder WithPublicationOptions(PublicationManagement.PublicationSetupOptions publicationOptions)
     {
-        _publicationSetupOptions = publicationSetupOptions;
+        _publicationSetupOptions =
+            publicationOptions with { TypeResolver = _publicationSetupOptions.TypeResolver };
         return this;
     }
 
@@ -57,6 +61,7 @@ public sealed class SubscriptionOptionsBuilder
     private readonly Dictionary<Type, IConsume> _registry = [];
     private IErrorProcessor? _errorProcessor;
 
+    [UsedImplicitly]
     public SubscriptionOptionsBuilder Consumes<T, TU>(TU consumer) where T : class
         where TU : class, IConsumes<T>
     {
@@ -64,6 +69,7 @@ public sealed class SubscriptionOptionsBuilder
         return this;
     }
 
+    [UsedImplicitly]
     public SubscriptionOptionsBuilder WithErrorProcessor(IErrorProcessor? errorProcessor)
     {
         _errorProcessor = errorProcessor;
@@ -78,7 +84,7 @@ public sealed class SubscriptionOptionsBuilder
 
         return new SubscriptionOptions(
             _connectionString,
-            _publicationSetupOptions ?? new PublicationManagement.PublicationSetupOptions(),
+            _publicationSetupOptions,
             _slotOptions ?? new ReplicationSlotManagement.ReplicationSlotSetupOptions(),
             _errorProcessor ?? new ConsoleOutErrorProcessor(),
             _dataMapper,

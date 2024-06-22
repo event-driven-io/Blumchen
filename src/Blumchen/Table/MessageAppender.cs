@@ -14,11 +14,12 @@ public static class MessageAppender
         var (typeName, jsonTypeInfo) = resolver.Resolve(type);
         var data = JsonSerialization.ToJson(@event, jsonTypeInfo);
 
-        await using var connection = new NpgsqlConnection(connectionString);
-        await connection.OpenAsync(ct);
+        var connection = new NpgsqlConnection(connectionString);
+        await using var connection1 = connection.ConfigureAwait(false);
+        await connection.OpenAsync(ct).ConfigureAwait(false);
         var command = connection.CreateCommand();
         command.CommandText = $"INSERT INTO {tableName}(message_type, data) values ('{typeName}', '{data}')";
-        await command.ExecuteNonQueryAsync(ct);
+        await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
     public static async Task AppendAsync<T>(string tableName, T @input, ITypeResolver resolver, NpgsqlConnection connection, NpgsqlTransaction transaction, CancellationToken ct)
@@ -29,10 +30,10 @@ public static class MessageAppender
             case null:
                 throw new ArgumentNullException(nameof(@input));
             case IEnumerable inputs:
-                await AppendBatchAsyncOfT(tableName, inputs, resolver, connection, transaction, ct);
+                await AppendBatchAsyncOfT(tableName, inputs, resolver, connection, transaction, ct).ConfigureAwait(false);
                 break;
             default:
-                await AppendAsyncOfT(tableName, input, resolver, connection, transaction, ct);
+                await AppendAsyncOfT(tableName, input, resolver, connection, transaction, ct).ConfigureAwait(false);
                 break;
         }
     }
@@ -57,7 +58,7 @@ public static class MessageAppender
                     $"INSERT INTO {tableName}(message_type, data) values ('{typeName}', '{data}')";
                 batch.BatchCommands.Add(batchCommand);
             }
-            await batch.ExecuteNonQueryAsync(ct);
+            await batch.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
     private static async Task AppendAsyncOfT<T>(
@@ -76,6 +77,6 @@ public static class MessageAppender
             connection,
             transaction
             );
-        await command.ExecuteNonQueryAsync(ct);
+        await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 }

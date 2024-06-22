@@ -20,11 +20,12 @@ public class When_First_Subscription_And_Table_Is_Empty(ITestOutputHelper testOu
 
         var (typeResolver, testConsumer, subscriptionOptions) = SetupFor<UserCreated>(connectionString, eventsTable,
             SourceGenerationContext.Default.UserCreated, testOutputHelper.WriteLine);
-        await using var subscription = new Subscription();
+        var subscription = new Subscription();
+        await using var subscription1 = subscription.ConfigureAwait(false);
 
         var @event = new UserCreated(Guid.NewGuid(), Guid.NewGuid().ToString());
         await MessageAppender.AppendAsync(eventsTable, @event, typeResolver, connectionString, ct);
-        await foreach (var envelope in subscription.Subscribe(_ => subscriptionOptions, null, ct))
+        await foreach (var envelope in subscription.Subscribe(_ => subscriptionOptions, null, ct).ConfigureAwait(false))
         {
             Assert.Equal(@event, ((OkEnvelope)envelope).Value);
             return;

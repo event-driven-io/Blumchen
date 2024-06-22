@@ -1,4 +1,5 @@
 using Blumchen.Database;
+using Blumchen.Serialization;
 using Npgsql;
 
 #pragma warning disable CA2208
@@ -12,36 +13,41 @@ public static class PublicationManagement
 {
     public static async Task<SetupPublicationResult> SetupPublication(
         this NpgsqlDataSource dataSource,
-        PublicationSetupOptions options,
+        PublicationSetupOptions setupOptions,
         CancellationToken ct
     )
     {
-        var (publicationName, tableName, createStyle, shouldReAddTablesIfWereRecreated) = options;
+        var (publicationName, tableName, createStyle, shouldReAddTablesIfWereRecreated, typeResolver) = setupOptions;
 
         return createStyle switch
         {
             CreateStyle.Never => new None(),
-            CreateStyle.AlwaysRecreate => await ReCreate(dataSource, publicationName, tableName, ct),
-            CreateStyle.WhenNotExists when await dataSource.PublicationExists(publicationName, ct) => await Refresh(dataSource, publicationName, tableName, shouldReAddTablesIfWereRecreated, ct),
-            CreateStyle.WhenNotExists => await Create(dataSource, publicationName, tableName, ct),
-            _ => throw new ArgumentOutOfRangeException(nameof(options.CreateStyle))
+            CreateStyle.AlwaysRecreate => await ReCreate(dataSource, publicationName, tableName, typeResolver, ct).ConfigureAwait(false),
+            CreateStyle.WhenNotExists when await dataSource.PublicationExists(publicationName, ct).ConfigureAwait(false) => await Refresh(dataSource, publicationName, tableName, shouldReAddTablesIfWereRecreated, ct).ConfigureAwait(false),
+            CreateStyle.WhenNotExists => await Create(dataSource, publicationName, tableName, typeResolver, ct).ConfigureAwait(false),
+            _ => throw new ArgumentOutOfRangeException(nameof(setupOptions.CreateStyle))
         };
 
         static async Task<SetupPublicationResult> ReCreate(
             NpgsqlDataSource dataSource,
             string publicationName,
-            string tableName, CancellationToken ct)
-        {
-            await dataSource.DropPublication(publicationName, ct);
-            return await Create(dataSource, publicationName, tableName, ct);
+            string tableName,
+            ITypeResolver? typeResolver,
+            CancellationToken ct
+        ) {
+            await dataSource.DropPublication(publicationName, ct).ConfigureAwait(false);
+            return await Create(dataSource, publicationName, tableName, typeResolver, ct).ConfigureAwait(false);
         }
 
-        static async Task<SetupPublicationResult> Create(
-            NpgsqlDataSource dataSource,
+        static async Task<SetupPublicationResult> Create(NpgsqlDataSource dataSource,
             string publicationName,
-            string tableName, CancellationToken ct)
-        {
-            await dataSource.CreatePublication(publicationName, tableName, ct);
+            string tableName,
+            ITypeResolver? typeResolver,
+            CancellationToken ct
+        ) {
+            await dataSource.CreatePublication(publicationName, tableName,
+                typeResolver?.RegisteredTypes ?? Enumerable.Empty<string>().ToHashSet(), ct).ConfigureAwait(false);
+               
             return new Created();
         }
 
@@ -49,10 +55,10 @@ public static class PublicationManagement
             string publicationName,
             string tableName,
             bool shouldReAddTablesIfWereRecreated,
-            CancellationToken ct)
-        {
+            CancellationToken ct
+        ) {
             if(shouldReAddTablesIfWereRecreated)
-                await dataSource.RefreshPublicationTables(publicationName, tableName, ct);
+                await dataSource.RefreshPublicationTables(publicationName, tableName, ct).ConfigureAwait(false);
             return new AlreadyExists();
         }
     }
@@ -61,9 +67,31 @@ public static class PublicationManagement
         this NpgsqlDataSource dataSource,
         string publicationName,
         string tableName,
+        ISet<string> eventTypes,
         CancellationToken ct
-    ) =>
-        dataSource.Execute($"CREATE PUBLICATION {publicationName} FOR TABLE {tableName} WITH (publish = 'insert');", ct);
+    ) {
+        return eventTypes.Count switch
+        {
+            0 => Execute(dataSource, $"CREATE PUBLICATION {publicationName} FOR TABLE {tableName} WITH (publish = 'insert');",
+                ct
+            ),
+            _ => Execute(dataSource, $"CREATE PUBLICATION {publicationName} FOR TABLE {tableName} WHERE ({PublicationFilter(eventTypes)}) WITH (publish = 'insert');",
+                ct
+            )
+        };
+        static string PublicationFilter(ICollection<string> input) => string.Join(" OR ", input.Select(s => $"message_type = '{s}'"));
+    }
+
+    private static async Task Execute(
+        this NpgsqlDataSource dataSource,
+        string sql,
+        CancellationToken ct
+    )
+    {
+        var command = dataSource.CreateCommand(sql);
+        await using (command.ConfigureAwait(false))
+            await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+    }
 
     private static Task DropPublication(
         this NpgsqlDataSource dataSource,
@@ -114,12 +142,28 @@ public static class PublicationManagement
     }
 
     public sealed record PublicationSetupOptions(
-        string PublicationName = "pub",
+        string PublicationName = PublicationSetupOptions.DefaultPublicationName,
         string TableName = PublicationSetupOptions.DefaultTableName,
         CreateStyle CreateStyle = CreateStyle.WhenNotExists,
         bool ShouldReAddTablesIfWereRecreated = false
     )
     {
         internal const string DefaultTableName = "outbox";
+        internal const string DefaultPublicationName = "pub";
+        public ITypeResolver? TypeResolver { get; internal init; } = default;
+
+        public void Deconstruct(
+            out string publicationName,
+            out string tableName,
+            out CreateStyle createStyle,
+            out bool reAddTablesIfWereRecreated,
+            out ITypeResolver? typeResolver)
+        {
+            publicationName = PublicationName;
+            tableName = TableName;
+            createStyle = CreateStyle.WhenNotExists;
+            reAddTablesIfWereRecreated = ShouldReAddTablesIfWereRecreated;
+            typeResolver = TypeResolver;
+        }
     }
 }

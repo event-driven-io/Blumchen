@@ -25,12 +25,13 @@ namespace Subscriber
 
     internal class SubscriberTypesResolver: ITypeResolver
     {
-        private readonly TypeResolver _inner = new TypeResolver(SourceGenerationContext.Default, new AttributeNamingPolicy())
+        private static readonly TypeResolver Inner = new TypeResolver(SourceGenerationContext.Default, new AttributeNamingPolicy())
             .WhiteList<UserCreatedContract>()
             .WhiteList<UserDeletedContract>();
 
-        public Type Resolve(string value) => _inner.Resolve(value);
-        public (string, JsonTypeInfo) Resolve(Type type) => _inner.Resolve(type);
-        public JsonSerializerContext SerializationContext => _inner.SerializationContext;
+        public ISet<string> RegisteredTypes { get; } = Inner.RegisteredTypes;
+        public Type Resolve(string value) => Inner.Resolve(value);
+        public (string, JsonTypeInfo) Resolve(Type type) => Inner.Resolve(type);
+        public JsonSerializerContext SerializationContext => Inner.SerializationContext;
     }
 }
