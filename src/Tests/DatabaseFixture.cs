@@ -22,7 +22,7 @@ public abstract class DatabaseFixture: IAsyncLifetime
             {
                 Console.WriteLine(e);
             }
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
         }
     }
 
@@ -37,7 +37,7 @@ public abstract class DatabaseFixture: IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        await Container.DisposeAsync();
+        await Container.DisposeAsync().ConfigureAwait(false);
     }
 
     protected static async Task<string> CreateOutboxTable(
@@ -47,7 +47,7 @@ public abstract class DatabaseFixture: IAsyncLifetime
     {
         var tableName = Randomise("outbox");
 
-        await dataSource.EnsureTableExists(tableName, ct);
+        await dataSource.EnsureTableExists(tableName, ct).ConfigureAwait(false);
 
         return tableName;
     }
@@ -70,7 +70,7 @@ public abstract class DatabaseFixture: IAsyncLifetime
             .TypeResolver(typeResolver)
             .Consumes<T, TestConsumer<T>>(consumer)
             .WithPublicationOptions(
-                new PublicationManagement.PublicationSetupOptions(publicationName ?? Randomise("events_pub"), eventsTable)
+                new PublicationManagement.PublicationSetupOptions(PublicationName: publicationName ?? Randomise("events_pub"), TableName: eventsTable)
             )
             .WithReplicationOptions(
                 new ReplicationSlotManagement.ReplicationSlotSetupOptions(slotName ?? Randomise("events_slot"))

@@ -15,18 +15,20 @@ TaskScheduler.UnobservedTaskException += (_,e) => Console.Out.WriteLine(e.Except
 
 var ct = cancellationTokenSource.Token;
 var consumer = new Consumer();
-await using var subscription = new Subscription();
+var subscription = new Subscription();
+await using var subscription1 = subscription.ConfigureAwait(false);
 
 try
 {
-    await using var cursor = subscription.Subscribe(
+    var cursor = subscription.Subscribe(
         builder => builder
             .ConnectionString(Settings.ConnectionString)
             .TypeResolver(new SubscriberTypesResolver())
             .Consumes<UserCreatedContract, Consumer>(consumer)
             .Consumes<UserDeletedContract, Consumer>(consumer), LoggerFactory.Create(builder => builder.AddConsole()), ct
     ).GetAsyncEnumerator(ct);
-    while (await cursor.MoveNextAsync() && !ct.IsCancellationRequested);
+    await using var cursor1 = cursor.ConfigureAwait(false);
+    while (await cursor.MoveNextAsync().ConfigureAwait(false) && !ct.IsCancellationRequested);
 }
 catch (Exception e)
 {

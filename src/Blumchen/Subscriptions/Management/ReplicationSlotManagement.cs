@@ -19,13 +19,13 @@ public static class ReplicationSlotManagement
     {
         var (slotName, createStyle, _) = options;
 
-        return (createStyle, await dataSource.ReplicationSlotExists(slotName, ct)) switch
+        return (createStyle, await dataSource.ReplicationSlotExists(slotName, ct).ConfigureAwait(false)) switch
         {
             (CreateStyle.Never,_) => new None(),
             (CreateStyle.WhenNotExists,true) => new AlreadyExists(),
-            (CreateStyle.WhenNotExists,false) => await Create(connection, slotName, ct),
-            (CreateStyle.AlwaysRecreate,true) => await ReCreate(connection, slotName, ct),
-            (CreateStyle.AlwaysRecreate, false) => await Create(connection, slotName, ct),
+            (CreateStyle.WhenNotExists,false) => await Create(connection, slotName, ct).ConfigureAwait(false),
+            (CreateStyle.AlwaysRecreate,true) => await ReCreate(connection, slotName, ct).ConfigureAwait(false),
+            (CreateStyle.AlwaysRecreate, false) => await Create(connection, slotName, ct).ConfigureAwait(false),
 
             _ => throw new ArgumentOutOfRangeException(nameof(options.CreateStyle))
         };
@@ -35,8 +35,8 @@ public static class ReplicationSlotManagement
             string slotName,
             CancellationToken ct)
         {
-            await connection.DropReplicationSlot(slotName, true, ct);
-            return await Create(connection, slotName, ct);
+            await connection.DropReplicationSlot(slotName, true, ct).ConfigureAwait(false);
+            return await Create(connection, slotName, ct).ConfigureAwait(false);
         }
 
         static async Task<CreateReplicationSlotResult> Create(
@@ -48,7 +48,7 @@ public static class ReplicationSlotManagement
                 slotName,
                 slotSnapshotInitMode: LogicalSlotSnapshotInitMode.Export,
                 cancellationToken: ct
-            );
+            ).ConfigureAwait(false);
 
             return new Created(result.SnapshotName!, result.ConsistentPoint);
         }

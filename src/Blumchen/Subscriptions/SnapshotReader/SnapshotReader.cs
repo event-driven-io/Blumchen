@@ -17,7 +17,7 @@ public static class SnapshotReader
         [EnumeratorCancellation] CancellationToken ct = default
     )
     {
-        await foreach (var @event in connection.QueryTransactionSnapshot(snapshotName, tableName, dataMapper, ct))
+        await foreach (var @event in connection.QueryTransactionSnapshot(snapshotName, tableName, dataMapper, ct).ConfigureAwait(false))
             yield return @event;
     }
 }
