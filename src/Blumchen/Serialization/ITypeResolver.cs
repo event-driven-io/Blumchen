@@ -18,9 +18,9 @@ public class TypeResolver(JsonSerializerContext serializationContext, INamingPol
     public JsonSerializerContext SerializationContext { get; } = serializationContext;
     private static readonly ConcurrentDictionary<string, Type> TypeDictionary = [];
     private static readonly ConcurrentDictionary<Type, JsonTypeInfo> TypeInfoDictionary = [];
-    public ISet<string> RegisteredTypes { get; } = TypeDictionary.Keys.ToHashSet();
+    
 
-    public  TypeResolver WhiteList<T>() where T:class
+    public TypeResolver WhiteList<T>() where T:class
     {
         var type = typeof(T);
         var typeInfo = SerializationContext.GetTypeInfo(type) ?? throw new NotSupportedException(type.FullName);
@@ -32,5 +32,6 @@ public class TypeResolver(JsonSerializerContext serializationContext, INamingPol
     public (string, JsonTypeInfo) Resolve(Type type) =>
         (TypeDictionary.Single(kv => kv.Value == type).Key, TypeInfoDictionary[type]);
 
+    public ISet<string> RegisteredTypes { get => TypeDictionary.Keys.ToHashSet(); }
     public Type Resolve(string type) => TypeDictionary[type];
 }
