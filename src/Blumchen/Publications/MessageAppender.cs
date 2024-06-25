@@ -2,12 +2,13 @@ using System.Collections;
 using Blumchen.Serialization;
 using Npgsql;
 
-namespace Blumchen.Table;
+namespace Blumchen.Publications;   
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 public static class MessageAppender
 {
-    public static async Task AppendAsync<T>(string tableName, T @event, ITypeResolver resolver, string connectionString, CancellationToken ct)
+    
+    public static async Task AppendAsync<T>(string tableName, T @event, IJsonTypeResolver resolver, string connectionString, CancellationToken ct)
         where T: class
     {
         var type = typeof(T);
@@ -22,7 +23,7 @@ public static class MessageAppender
         await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
-    public static async Task AppendAsync<T>(string tableName, T @input, ITypeResolver resolver, NpgsqlConnection connection, NpgsqlTransaction transaction, CancellationToken ct)
+    public static async Task AppendAsync<T>(string tableName, T @input, IJsonTypeResolver resolver, NpgsqlConnection connection, NpgsqlTransaction transaction, CancellationToken ct)
         where T : class
     {
         switch (@input)
@@ -41,7 +42,7 @@ public static class MessageAppender
     private static async Task AppendBatchAsyncOfT<T>(
         string tableName
         , T inputs
-        , ITypeResolver resolver
+        , IJsonTypeResolver resolver
         , NpgsqlConnection connection
         , NpgsqlTransaction transaction
         , CancellationToken ct) where T : class, IEnumerable
@@ -64,7 +65,7 @@ public static class MessageAppender
     private static async Task AppendAsyncOfT<T>(
         string tableName
         , T @input
-        , ITypeResolver resolver
+        , IJsonTypeResolver resolver
         , NpgsqlConnection connection
         , NpgsqlTransaction transaction
         , CancellationToken ct) where T : class

@@ -1,6 +1,8 @@
+using System.Diagnostics;
+using Blumchen.Publications;
+using Blumchen.Serialization;
 using Blumchen.Subscriptions;
 using Blumchen.Subscriptions.ReplicationMessageHandlers;
-using Blumchen.Table;
 using Npgsql;
 using Xunit.Abstractions;
 
@@ -12,22 +14,30 @@ public class When_First_Subscription_And_Table_Is_Empty(ITestOutputHelper testOu
     [Fact]
     public async Task Execute()
     {
-        var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-        var ct = cancellationTokenSource.Token;
+        var ct = TimeoutTokenSource().Token;
 
         var connectionString = Container.GetConnectionString();
         var eventsTable = await CreateOutboxTable(NpgsqlDataSource.Create(connectionString), ct);
+        var sharedNamingPolicy = new AttributeNamingPolicy();
+        var resolver = new PublisherSetupOptionsBuilder()
+            .JsonContext(PublisherContext.Default)
+            .NamingPolicy(sharedNamingPolicy)
+            .Build();
+        //poison msg
+        await MessageAppender.AppendAsync(eventsTable, new PublisherUserDeleted(Guid.NewGuid(), Guid.NewGuid().ToString()), resolver, connectionString, ct);
 
-        var (typeResolver, testConsumer, subscriptionOptions) = SetupFor<UserCreated>(connectionString, eventsTable,
-            SourceGenerationContext.Default.UserCreated, testOutputHelper.WriteLine);
+        var @event = new PublisherUserCreated(Guid.NewGuid(), Guid.NewGuid().ToString());
+        var @expected = new SubscriberUserCreated(@event.Id, @event.Name);
+
+        await MessageAppender.AppendAsync(eventsTable, @event, resolver, connectionString, ct);
+
+        var ( _, subscriptionOptions) = SetupFor<SubscriberUserCreated>(connectionString, eventsTable,
+            SubscriberContext.Default, sharedNamingPolicy, testOutputHelper.WriteLine);
         var subscription = new Subscription();
         await using var subscription1 = subscription.ConfigureAwait(false);
-
-        var @event = new UserCreated(Guid.NewGuid(), Guid.NewGuid().ToString());
-        await MessageAppender.AppendAsync(eventsTable, @event, typeResolver, connectionString, ct);
         await foreach (var envelope in subscription.Subscribe(_ => subscriptionOptions, null, ct).ConfigureAwait(false))
         {
-            Assert.Equal(@event, ((OkEnvelope)envelope).Value);
+            Assert.Equal(@expected, ((OkEnvelope)envelope).Value);
             return;
         }
     }

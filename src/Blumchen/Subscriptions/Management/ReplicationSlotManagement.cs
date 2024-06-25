@@ -21,11 +21,11 @@ public static class ReplicationSlotManagement
 
         return (createStyle, await dataSource.ReplicationSlotExists(slotName, ct).ConfigureAwait(false)) switch
         {
-            (CreateStyle.Never,_) => new None(),
-            (CreateStyle.WhenNotExists,true) => new AlreadyExists(),
-            (CreateStyle.WhenNotExists,false) => await Create(connection, slotName, ct).ConfigureAwait(false),
-            (CreateStyle.AlwaysRecreate,true) => await ReCreate(connection, slotName, ct).ConfigureAwait(false),
-            (CreateStyle.AlwaysRecreate, false) => await Create(connection, slotName, ct).ConfigureAwait(false),
+            (Subscription.CreateStyle.Never,_) => new None(),
+            (Subscription.CreateStyle.WhenNotExists,true) => new AlreadyExists(),
+            (Subscription.CreateStyle.WhenNotExists,false) => await Create(connection, slotName, ct).ConfigureAwait(false),
+            (Subscription.CreateStyle.AlwaysRecreate,true) => await ReCreate(connection, slotName, ct).ConfigureAwait(false),
+            (Subscription.CreateStyle.AlwaysRecreate, false) => await Create(connection, slotName, ct).ConfigureAwait(false),
 
             _ => throw new ArgumentOutOfRangeException(nameof(options.CreateStyle))
         };
@@ -62,7 +62,7 @@ public static class ReplicationSlotManagement
 
     public record ReplicationSlotSetupOptions(
         string SlotName = $"{PublicationManagement.PublicationSetupOptions.DefaultTableName}_slot",
-        CreateStyle CreateStyle = CreateStyle.WhenNotExists,
+        Subscription.CreateStyle CreateStyle = Subscription.CreateStyle.WhenNotExists,
         bool Binary = false //https://www.postgresql.org/docs/current/sql-createsubscription.html#SQL-CREATESUBSCRIPTION-WITH-BINARY
     );
 

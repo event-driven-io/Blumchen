@@ -9,15 +9,19 @@ namespace Blumchen.Subscriptions.SnapshotReader;
 
 public static class SnapshotReader
 {
-    internal static async IAsyncEnumerable<IEnvelope> GetRowsFromSnapshot(
-        this NpgsqlConnection connection,
+    internal static async IAsyncEnumerable<IEnvelope> GetRowsFromSnapshot(this NpgsqlConnection connection,
         string snapshotName,
         string tableName,
         IReplicationDataMapper dataMapper,
-        [EnumeratorCancellation] CancellationToken ct = default
-    )
+        ISet<string> registeredTypes,
+        [EnumeratorCancellation] CancellationToken ct = default)
     {
-        await foreach (var @event in connection.QueryTransactionSnapshot(snapshotName, tableName, dataMapper, ct).ConfigureAwait(false))
+        await foreach (var @event in connection.QueryTransactionSnapshot(
+                           snapshotName,
+                           tableName,
+                           registeredTypes,
+                           dataMapper,
+                           ct).ConfigureAwait(false))
             yield return @event;
     }
 }

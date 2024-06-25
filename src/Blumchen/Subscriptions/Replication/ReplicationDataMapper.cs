@@ -7,7 +7,7 @@ using Npgsql.Replication.PgOutput.Messages;
 
 namespace Blumchen.Subscriptions.Replication;
 
-internal sealed class ReplicationDataMapper(ITypeResolver resolver): IReplicationDataMapper
+internal sealed class ReplicationDataMapper(JsonTypeResolver resolver): IReplicationDataMapper
 {
     public async Task<IEnvelope> ReadFromReplication(InsertMessage insertMessage, CancellationToken ct)
     {

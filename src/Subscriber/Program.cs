@@ -23,7 +23,8 @@ try
     var cursor = subscription.Subscribe(
         builder => builder
             .ConnectionString(Settings.ConnectionString)
-            .TypeResolver(new SubscriberTypesResolver())
+            .NamingPolicy(new AttributeNamingPolicy())
+            .JsonContext(SourceGenerationContext.Default)
             .Consumes<UserCreatedContract, Consumer>(consumer)
             .Consumes<UserDeletedContract, Consumer>(consumer), LoggerFactory.Create(builder => builder.AddConsole()), ct
     ).GetAsyncEnumerator(ct);

@@ -44,13 +44,13 @@ public static class Run
         await using var command1 = command.ConfigureAwait(false);
         foreach (var parameter in parameters) command.Parameters.AddWithValue(parameter);
 
-        return ((await command.ExecuteScalarAsync(ct).ConfigureAwait(false)) as bool?) == true;
+        return await command.ExecuteScalarAsync(ct).ConfigureAwait(false) as bool? == true;
     }
 
-    internal static async IAsyncEnumerable<IEnvelope> QueryTransactionSnapshot(
-        this NpgsqlConnection connection,
+    internal static async IAsyncEnumerable<IEnvelope> QueryTransactionSnapshot(this NpgsqlConnection connection,
         string snapshotName,
         string tableName,
+        ISet<string> registeredTypesKeys,
         IReplicationDataMapper dataMapper,
         [EnumeratorCancellation] CancellationToken ct)
     {
@@ -61,13 +61,17 @@ public static class Run
             new NpgsqlCommand($"SET TRANSACTION SNAPSHOT '{snapshotName}';", connection, transaction);
         await using var command1 = command.ConfigureAwait(false);
         await command.ExecuteScalarAsync(ct).ConfigureAwait(false);
-
-        var cmd = new NpgsqlCommand($"SELECT * FROM {tableName}", connection, transaction);
+        var whereClause = registeredTypesKeys.Count > 0
+            ? $" WHERE message_type IN({PublicationFilter(registeredTypesKeys)})"
+            : null;
+        var cmd = new NpgsqlCommand($"SELECT * FROM {tableName}{whereClause}", connection, transaction);
         await using var cmd1 = cmd.ConfigureAwait(false);
         var reader =  await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         await using var reader1 = reader.ConfigureAwait(false);
 
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
             yield return await dataMapper.ReadFromSnapshot(reader, ct).ConfigureAwait(false);
+
+        static string PublicationFilter(ICollection<string> input) => string.Join(", ", input.Select(s => $"'{s}'"));
     }
 }
