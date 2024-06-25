@@ -27,7 +27,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="JetBrains.Annotations" Version="2023.3.0" />
+        <PackageReference Include="JetBrains.Annotations" Version="2023.3.0" >
+            <PrivateAssets>all</PrivateAssets>
+            <ExcludeAssets>none</ExcludeAssets>
+            <IncludeAssets>all</IncludeAssets>
+        </PackageReference>
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
         <PackageReference Include="Npgsql" Version="8.0.3" />
     </ItemGroup>
