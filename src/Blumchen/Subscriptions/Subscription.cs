@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Blumchen.Database;
+using Blumchen.Serialization;
 using Blumchen.Subscriptions.Management;
 using Blumchen.Subscriptions.ReplicationMessageHandlers;
 using Blumchen.Subscriptions.SnapshotReader;
@@ -17,22 +18,14 @@ using static PublicationManagement;
 using static ReplicationSlotManagement;
 using static ReplicationSlotManagement.CreateReplicationSlotResult;
 
-public interface ISubscription
+public sealed class Subscription: IAsyncDisposable
 {
-    IAsyncEnumerable<IEnvelope> Subscribe(Func<SubscriptionOptionsBuilder, SubscriptionOptionsBuilder> builder,
-        ILoggerFactory? loggerFactory,
-        CancellationToken ct);
-}
-
-public enum CreateStyle
-{
-    WhenNotExists,
-    AlwaysRecreate,
-    Never
-}
-
-public sealed class Subscription: ISubscription, IAsyncDisposable
-{
+    public enum CreateStyle
+    {
+        WhenNotExists,
+        AlwaysRecreate,
+        Never
+    }
     private static LogicalReplicationConnection? _connection;
     private static readonly SubscriptionOptionsBuilder Builder = new();
     private ISubscriptionOptions? _options;
@@ -154,9 +147,14 @@ public sealed class Subscription: ISubscription, IAsyncDisposable
                            snapshotName,
                            options.PublicationOptions.TableName,
                            options.DataMapper,
+                           options.PublicationOptions.TypeResolver.Keys().ToHashSet(),
                            ct).ConfigureAwait(false))
             yield return row;
     }
 
-    public async ValueTask DisposeAsync() => await _connection!.DisposeAsync().ConfigureAwait(false);
+    public async ValueTask DisposeAsync()
+    {
+        if(_connection != null)
+            await _connection.DisposeAsync().ConfigureAwait(false);
+    }
 }

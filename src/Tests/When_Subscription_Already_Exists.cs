@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using Blumchen.Database;
+using Blumchen.Publications;
+using Blumchen.Serialization;
 using Blumchen.Subscriptions;
 using Blumchen.Subscriptions.ReplicationMessageHandlers;
-using Blumchen.Table;
 using Npgsql;
 using Npgsql.Replication;
 using Xunit.Abstractions;
@@ -14,27 +16,32 @@ public class When_Subscription_Already_Exists(ITestOutputHelper testOutputHelper
     [Fact]
     public async Task Execute()
     {
-        var cancellationTokenSource = new CancellationTokenSource();
-        var ct = cancellationTokenSource.Token;
-
+        var ct = TimeoutTokenSource().Token;
+        var sharedNamingPolicy = new AttributeNamingPolicy();
         var connectionString = Container.GetConnectionString();
         var eventsTable = await CreateOutboxTable(NpgsqlDataSource.Create(connectionString), ct);
+        var publisherResolver = new PublisherSetupOptionsBuilder()
+            .JsonContext(PublisherContext.Default)
+            .NamingPolicy(sharedNamingPolicy)
+            .Build();
         var slotName = "subscription_test";
         var publicationName = "publication_test";
         await SetupReplication(connectionString, slotName, publicationName, eventsTable, ct);
 
 
-        var (typeResolver, testConsumer, subscriptionOptions) = SetupFor<UserCreated>(connectionString, eventsTable,
-            SourceGenerationContext.Default.UserCreated, testOutputHelper.WriteLine, publicationName, slotName);
+        var ( _, subscriptionOptions) = SetupFor<SubscriberUserCreated>(connectionString, eventsTable,
+            SubscriberContext.Default, sharedNamingPolicy, testOutputHelper.WriteLine, publicationName: publicationName, slotName: slotName);
 
-        var @event = new UserCreated(Guid.NewGuid(), Guid.NewGuid().ToString());
-        await MessageAppender.AppendAsync(eventsTable, @event, typeResolver, connectionString, ct);
+        var @event = new PublisherUserCreated(Guid.NewGuid(), Guid.NewGuid().ToString());
+        await MessageAppender.AppendAsync(eventsTable, @event, publisherResolver, connectionString, ct);
+
+        var @expected = new SubscriberUserCreated(@event.Id, @event.Name);
 
         var subscription = new Subscription();
         await using var subscription1 = subscription.ConfigureAwait(false);
         await foreach (var envelope in subscription.Subscribe(_ => subscriptionOptions, null, ct).ConfigureAwait(false))
         {
-            Assert.Equal(@event, ((OkEnvelope)envelope).Value);
+            Assert.Equal(@expected, ((OkEnvelope)envelope).Value);
             return;
         }
     }

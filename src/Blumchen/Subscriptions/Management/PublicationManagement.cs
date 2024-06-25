@@ -21,10 +21,10 @@ public static class PublicationManagement
 
         return createStyle switch
         {
-            CreateStyle.Never => new None(),
-            CreateStyle.AlwaysRecreate => await ReCreate(dataSource, publicationName, tableName, typeResolver, ct).ConfigureAwait(false),
-            CreateStyle.WhenNotExists when await dataSource.PublicationExists(publicationName, ct).ConfigureAwait(false) => await Refresh(dataSource, publicationName, tableName, shouldReAddTablesIfWereRecreated, ct).ConfigureAwait(false),
-            CreateStyle.WhenNotExists => await Create(dataSource, publicationName, tableName, typeResolver, ct).ConfigureAwait(false),
+            Subscription.CreateStyle.Never => new None(),
+            Subscription.CreateStyle.AlwaysRecreate => await ReCreate(dataSource, publicationName, tableName, typeResolver, ct).ConfigureAwait(false),
+            Subscription.CreateStyle.WhenNotExists when await dataSource.PublicationExists(publicationName, ct).ConfigureAwait(false) => await Refresh(dataSource, publicationName, tableName, shouldReAddTablesIfWereRecreated, ct).ConfigureAwait(false),
+            Subscription.CreateStyle.WhenNotExists => await Create(dataSource, publicationName, tableName, typeResolver, ct).ConfigureAwait(false),
             _ => throw new ArgumentOutOfRangeException(nameof(setupOptions.CreateStyle))
         };
 
@@ -32,7 +32,7 @@ public static class PublicationManagement
             NpgsqlDataSource dataSource,
             string publicationName,
             string tableName,
-            ITypeResolver? typeResolver,
+            JsonTypeResolver? typeResolver,
             CancellationToken ct
         ) {
             await dataSource.DropPublication(publicationName, ct).ConfigureAwait(false);
@@ -42,11 +42,11 @@ public static class PublicationManagement
         static async Task<SetupPublicationResult> Create(NpgsqlDataSource dataSource,
             string publicationName,
             string tableName,
-            ITypeResolver? typeResolver,
+            JsonTypeResolver? typeResolver,
             CancellationToken ct
         ) {
             await dataSource.CreatePublication(publicationName, tableName,
-                typeResolver?.RegisteredTypes ?? Enumerable.Empty<string>().ToHashSet(), ct).ConfigureAwait(false);
+                typeResolver.Keys().ToHashSet(), ct).ConfigureAwait(false);
                
             return new Created();
         }
@@ -144,24 +144,24 @@ public static class PublicationManagement
     public sealed record PublicationSetupOptions(
         string PublicationName = PublicationSetupOptions.DefaultPublicationName,
         string TableName = PublicationSetupOptions.DefaultTableName,
-        CreateStyle CreateStyle = CreateStyle.WhenNotExists,
+        Subscription.CreateStyle CreateStyle = Subscription.CreateStyle.WhenNotExists,
         bool ShouldReAddTablesIfWereRecreated = false
     )
     {
         internal const string DefaultTableName = "outbox";
         internal const string DefaultPublicationName = "pub";
-        public ITypeResolver? TypeResolver { get; internal init; } = default;
+        internal JsonTypeResolver? TypeResolver { get; init; } = default;
 
-        public void Deconstruct(
+        internal void Deconstruct(
             out string publicationName,
             out string tableName,
-            out CreateStyle createStyle,
+            out Subscription.CreateStyle createStyle,
             out bool reAddTablesIfWereRecreated,
-            out ITypeResolver? typeResolver)
+            out JsonTypeResolver? typeResolver)
         {
             publicationName = PublicationName;
             tableName = TableName;
-            createStyle = CreateStyle.WhenNotExists;
+            createStyle = Subscription.CreateStyle.WhenNotExists;
             reAddTablesIfWereRecreated = ShouldReAddTablesIfWereRecreated;
             typeResolver = TypeResolver;
         }

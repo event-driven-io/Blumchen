@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Blumchen.Database;
 using Blumchen.Serialization;
@@ -8,8 +10,10 @@ using Testcontainers.PostgreSql;
 
 namespace Tests;
 
+
 public abstract class DatabaseFixture: IAsyncLifetime
 {
+    protected readonly Func<CancellationTokenSource> TimeoutTokenSource = () => new(Debugger.IsAttached ?  TimeSpan.FromHours(1) : TimeSpan.FromSeconds(2));
     protected class TestConsumer<T>(Action<string> log, JsonTypeInfo info): IConsumes<T> where T : class
     {
         public async Task Handle(T value)
@@ -30,15 +34,9 @@ public abstract class DatabaseFixture: IAsyncLifetime
         .WithCommand("-c", "wal_level=logical")
         .Build();
 
-    public Task InitializeAsync()
-    {
-        return Container.StartAsync();
-    }
+    public Task InitializeAsync() => Container.StartAsync();
 
-    public async Task DisposeAsync()
-    {
-        await Container.DisposeAsync().ConfigureAwait(false);
-    }
+    public async Task DisposeAsync() => await Container.DisposeAsync().ConfigureAwait(false);
 
     protected static async Task<string> CreateOutboxTable(
         NpgsqlDataSource dataSource,
@@ -55,19 +53,22 @@ public abstract class DatabaseFixture: IAsyncLifetime
     private static string Randomise(string prefix) =>
         $"{prefix}_{Guid.NewGuid().ToString().Replace("-", "")}";
 
-    protected static (TypeResolver typeResolver, TestConsumer<T> consumer, SubscriptionOptionsBuilder subscriptionOptionsBuilder) SetupFor<T>(
+    protected static (TestConsumer<T> consumer, SubscriptionOptionsBuilder subscriptionOptionsBuilder) SetupFor<T>(
         string connectionString,
         string eventsTable,
-        JsonTypeInfo info,
+        JsonSerializerContext info,
+        INamingPolicy namingPolicy,
         Action<string> log,
         string? publicationName = null,
         string? slotName = null) where T : class
     {
-        var typeResolver = new TypeResolver(SourceGenerationContext.Default).WhiteList<T>();
-        var consumer = new TestConsumer<T>(log, info);
+        var jsonTypeInfo = info.GetTypeInfo(typeof(T));
+        ArgumentNullException.ThrowIfNull(jsonTypeInfo);
+        var consumer = new TestConsumer<T>(log, jsonTypeInfo);
         var subscriptionOptionsBuilder = new SubscriptionOptionsBuilder()
             .ConnectionString(connectionString)
-            .TypeResolver(typeResolver)
+            .JsonContext(info)
+            .NamingPolicy(namingPolicy)
             .Consumes<T, TestConsumer<T>>(consumer)
             .WithPublicationOptions(
                 new PublicationManagement.PublicationSetupOptions(PublicationName: publicationName ?? Randomise("events_pub"), TableName: eventsTable)
@@ -75,7 +76,7 @@ public abstract class DatabaseFixture: IAsyncLifetime
             .WithReplicationOptions(
                 new ReplicationSlotManagement.ReplicationSlotSetupOptions(slotName ?? Randomise("events_slot"))
             );
-        return (typeResolver, consumer, subscriptionOptionsBuilder);
+        return (consumer, subscriptionOptionsBuilder);
     }
 
 }
