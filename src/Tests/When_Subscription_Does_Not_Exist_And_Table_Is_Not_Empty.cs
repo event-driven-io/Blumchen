@@ -8,10 +8,10 @@ using Xunit.Abstractions;
 namespace Tests;
 
 // ReSharper disable once InconsistentNaming
-public class When_Subscription_Does_Not_Exist_And_Table_Is_Not_Empty(ITestOutputHelper testOutputHelper): DatabaseFixture
+public class When_First_Subscription_And_Table_Is_Not_Empty(ITestOutputHelper testOutputHelper): DatabaseFixture
 {
     [Fact]
-    public async Task Execute()
+    public async Task Read_from_table_using_named_transaction_snapshot()
     {
         var ct = TimeoutTokenSource().Token;
         var sharedNamingPolicy = new AttributeNamingPolicy();

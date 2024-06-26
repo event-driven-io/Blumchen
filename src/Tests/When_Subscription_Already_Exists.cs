@@ -14,7 +14,7 @@ namespace Tests;
 public class When_Subscription_Already_Exists(ITestOutputHelper testOutputHelper): DatabaseFixture
 {
     [Fact]
-    public async Task Execute()
+    public async Task Read_from_transaction_log()
     {
         var ct = TimeoutTokenSource().Token;
         var sharedNamingPolicy = new AttributeNamingPolicy();
