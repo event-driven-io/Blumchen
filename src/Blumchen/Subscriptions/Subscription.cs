@@ -129,7 +129,7 @@ public sealed class Subscription: IAsyncDisposable
     {
         var consumer = registry[objType] ?? throw new NotSupportedException($"Unregistered type for {objType.AssemblyQualifiedName}");
         var methodInfos = consumer.GetType().GetMethods(BindingFlags.Instance|BindingFlags.Public);
-        var methodInfo = methodInfos?.SingleOrDefault(mi=>mi.GetParameters().Any(pa => pa.ParameterType == objType))
+        var methodInfo = methodInfos.SingleOrDefault(mi=>mi.GetParameters().Any(pa => pa.ParameterType == objType))
                          ?? throw new NotSupportedException($"Unregistered type for {objType.AssemblyQualifiedName}");
         return (consumer, methodInfo);
     }
