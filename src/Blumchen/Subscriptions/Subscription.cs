@@ -36,7 +36,7 @@ public sealed class Subscription: IAsyncDisposable
     )
     {
         _options = builder(Builder).Build();
-        var (connectionString, publicationSetupOptions, slotSetupOptions, errorProcessor, replicationDataMapper, registry) = _options;
+        var (connectionString, publicationSetupOptions, replicationSlotSetupOptions, errorProcessor, replicationDataMapper, registry) = _options;
         var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
         dataSourceBuilder.UseLoggerFactory(loggerFactory);
 
@@ -48,19 +48,19 @@ public sealed class Subscription: IAsyncDisposable
 
 
         await dataSource.SetupPublication(publicationSetupOptions, ct).ConfigureAwait(false);
-        var result = await dataSource.SetupReplicationSlot(_connection, slotSetupOptions, ct).ConfigureAwait(false);
+        var result = await dataSource.SetupReplicationSlot(_connection, replicationSlotSetupOptions, ct).ConfigureAwait(false);
 
         PgOutputReplicationSlot slot;
 
         if (result is not Created created)
         {
-            slot = new PgOutputReplicationSlot(slotSetupOptions.SlotName);
+            slot = new PgOutputReplicationSlot(replicationSlotSetupOptions.SlotName);
         }
         else
         {
             slot = new PgOutputReplicationSlot(
                 new ReplicationSlotOptions(
-                    slotSetupOptions.SlotName,
+                    replicationSlotSetupOptions.SlotName,
                     created.LogSequenceNumber
                 )
             );
@@ -72,7 +72,7 @@ public sealed class Subscription: IAsyncDisposable
 
         await foreach (var message in
                        _connection.StartReplication(slot,
-                           new PgOutputReplicationOptions(publicationSetupOptions.PublicationName, 1, slotSetupOptions.Binary), ct).ConfigureAwait(false))
+                           new PgOutputReplicationOptions(publicationSetupOptions.PublicationName, 1, replicationSlotSetupOptions.Binary), ct).ConfigureAwait(false))
         {
             if (message is InsertMessage insertMessage)
             {
