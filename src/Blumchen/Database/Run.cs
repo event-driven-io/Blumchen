@@ -10,7 +10,7 @@ namespace Blumchen.Database;
 
 public static class Run
 {
-    public static async Task Execute(
+    private static async Task Execute(
         this NpgsqlDataSource dataSource,
         string sql,
         CancellationToken ct)
