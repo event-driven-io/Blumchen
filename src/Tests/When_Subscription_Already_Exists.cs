@@ -31,10 +31,13 @@ public class When_Subscription_Already_Exists(ITestOutputHelper testOutputHelper
 
 
         var ( _, subscriptionOptions) = SetupFor<SubscriberUserCreated>(connectionString, eventsTable,
-            SubscriberContext.Default, sharedNamingPolicy, testOutputHelper.WriteLine, publicationName: publicationName, slotName: slotName);
+            SubscriberContext.Default, sharedNamingPolicy, Output.WriteLine, publicationName: publicationName, slotName: slotName);
 
         //subscriber ignored msg
         await MessageAppender.AppendAsync(eventsTable, new PublisherUserDeleted(Guid.NewGuid(), Guid.NewGuid().ToString()), publisherResolver, connectionString, ct);
+
+        //poison message
+        await InsertPoisoningMessage(connectionString, eventsTable, ct);
 
         var @event = new PublisherUserCreated(Guid.NewGuid(), Guid.NewGuid().ToString());
         await MessageAppender.AppendAsync(eventsTable, @event, publisherResolver, connectionString, ct);
