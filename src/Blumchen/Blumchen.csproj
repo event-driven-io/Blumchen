@@ -25,6 +25,11 @@
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
         <RootNamespace>Blumchen</RootNamespace>
     </PropertyGroup>
+    <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+        <_Parameter1>Tests</_Parameter1>
+    </AssemblyAttribute>
+    </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" Version="2023.3.0" >

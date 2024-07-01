@@ -63,7 +63,7 @@ public static class PublicationManagement
         }
     }
 
-    private static Task CreatePublication(
+    internal static Task CreatePublication(
         this NpgsqlDataSource dataSource,
         string publicationName,
         string tableName,

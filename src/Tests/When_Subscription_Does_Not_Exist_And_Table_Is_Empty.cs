@@ -23,7 +23,7 @@ public class When_Subscription_Does_Not_Exist_And_Table_Is_Empty(ITestOutputHelp
             .JsonContext(PublisherContext.Default)
             .NamingPolicy(sharedNamingPolicy)
             .Build();
-        //poison msg
+        //subscriber ignored msg
         await MessageAppender.AppendAsync(eventsTable, new PublisherUserDeleted(Guid.NewGuid(), Guid.NewGuid().ToString()), resolver, connectionString, ct);
 
         var @event = new PublisherUserCreated(Guid.NewGuid(), Guid.NewGuid().ToString());
