@@ -71,6 +71,7 @@ public static class Run
 
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
             yield return await dataMapper.ReadFromSnapshot(reader, ct).ConfigureAwait(false);
+        yield break;
 
         static string PublicationFilter(ICollection<string> input) => string.Join(", ", input.Select(s => $"'{s}'"));
     }
