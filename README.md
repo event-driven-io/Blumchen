@@ -18,7 +18,7 @@ Main logic is placed in [EventsSubscription](./src/Blumchen/Subscriptions/Subscr
 ```shell
 docker-compose up
 ```
-2. Run(order doesn't matter) Publisher and Subscriber apps from vs-studio and follow Publisher instructions.
+2. Run(order doesn't matter) Publisher and Subscriber apps, under 'demo' folder, from vs-studio, and follow Publisher instructions.
 
 ## Testing (against default docker instance)
 
