@@ -7,12 +7,15 @@ using Blumchen.Subscriptions;
 using Blumchen.Subscriptions.Management;
 using Npgsql;
 using Testcontainers.PostgreSql;
+using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace Tests;
 
 
-public abstract class DatabaseFixture: IAsyncLifetime
+public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
 {
+    protected ITestOutputHelper Output { get; } = output;
     protected readonly Func<CancellationTokenSource> TimeoutTokenSource = () => new(Debugger.IsAttached ?  TimeSpan.FromHours(1) : TimeSpan.FromSeconds(2));
     protected class TestConsumer<T>(Action<string> log, JsonTypeInfo info): IConsumes<T> where T : class
     {

@@ -9,7 +9,7 @@ using Xunit.Abstractions;
 namespace Tests;
 
 // ReSharper disable once InconsistentNaming
-public class When_Subscription_Already_Exists(ITestOutputHelper testOutputHelper): DatabaseFixture
+public class When_Subscription_Already_Exists(ITestOutputHelper testOutputHelper): DatabaseFixture(testOutputHelper)
 {
     [Fact]
     public async Task Read_from_transaction_log()
