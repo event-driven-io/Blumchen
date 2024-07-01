@@ -9,7 +9,7 @@ internal interface ISubscriptionOptions
 {
     [UsedImplicitly] string ConnectionString { get; }
     IReplicationDataMapper DataMapper { get; }
-    PublicationSetupOptions PublicationOptions { get; }
+    [UsedImplicitly] PublicationSetupOptions PublicationOptions { get; }
     [UsedImplicitly] ReplicationSlotSetupOptions ReplicationOptions { get; }
     [UsedImplicitly] IErrorProcessor ErrorProcessor { get; }
 

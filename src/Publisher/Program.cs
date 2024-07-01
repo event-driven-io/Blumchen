@@ -1,14 +1,19 @@
-using Blumchen.Table;
+using Blumchen.Publications;
+using Blumchen.Serialization;
 using Commons;
 using Npgsql;
 using Publisher;
 using UserCreated = Publisher.UserCreated;
 using UserDeleted = Publisher.UserDeleted;
+using UserModified = Publisher.UserModified;
 
 Console.Title = typeof(Program).Assembly.GetName().Name!;
 Console.WriteLine("How many messages do you want to publish?(press CTRL+C to exit):");
 
-var resolver = new PublisherTypesResolver();
+var resolver = new PublisherSetupOptionsBuilder()
+    .JsonContext(SourceGenerationContext.Default)
+    .NamingPolicy(new AttributeNamingPolicy())
+    .Build();
 
 do
 {
@@ -19,34 +24,41 @@ do
         var cts = new CancellationTokenSource();
 
         var ct = cts.Token;
-        await using var connection = new NpgsqlConnection(Settings.ConnectionString);
-        await connection.OpenAsync(ct);
+        var connection = new NpgsqlConnection(Settings.ConnectionString);
+        await using var connection1 = connection.ConfigureAwait(false);
+        await connection.OpenAsync(ct).ConfigureAwait(false);
         //use a command for each message
         {
             var @events = Enumerable.Range(0, result).Select(i =>
-                int.IsEvenInteger(i)
-                    ? new UserCreated(Guid.NewGuid(), Guid.NewGuid().ToString()) as object
-                    : new UserDeleted(Guid.NewGuid(), Guid.NewGuid().ToString()));
+                (i % 3) switch
+                {
+                    0 => new UserCreated(Guid.NewGuid()) as object,
+                    1 => new UserDeleted(Guid.NewGuid()),
+                    _ => new UserModified(Guid.NewGuid())
+                });
             foreach (var @event in @events)
             {
-                var transaction = await connection.BeginTransactionAsync(ct);
+                var transaction = await connection.BeginTransactionAsync(ct).ConfigureAwait(false);
                 try
                 {
                     switch (@event)
                     {
-                        case UserCreated c:
-                            await MessageAppender.AppendAsync("outbox", c, resolver, connection, transaction, ct);
+                        case UserCreated m:
+                            await MessageAppender.AppendAsync("outbox", m, resolver, connection, transaction, ct).ConfigureAwait(false);
                             break;
-                        case UserDeleted d:
-                            await MessageAppender.AppendAsync("outbox", d, resolver, connection, transaction, ct);
+                        case UserDeleted m:
+                            await MessageAppender.AppendAsync("outbox", m, resolver, connection, transaction, ct).ConfigureAwait(false);
+                            break;
+                        case UserModified m:
+                            await MessageAppender.AppendAsync("outbox", m, resolver, connection, transaction, ct).ConfigureAwait(false);
                             break;
                     }
 
-                    await transaction.CommitAsync(ct);
+                    await transaction.CommitAsync(ct).ConfigureAwait(false);
                 }
                 catch (Exception e)
                 {
-                    await transaction.RollbackAsync(ct);
+                    await transaction.RollbackAsync(ct).ConfigureAwait(false);
                     Console.WriteLine(e);
                     throw;
                 }
@@ -69,6 +81,3 @@ do
         //}
     }
 } while (true);
-
-
-

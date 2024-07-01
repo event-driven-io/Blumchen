@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <VersionPrefix>0.0.1</VersionPrefix>
+        <VersionPrefix>0.1.0</VersionPrefix>
         <TargetFramework>net8.0</TargetFramework>
         <GenerateAssemblyTitleAttribute>true</GenerateAssemblyTitleAttribute>
         <GenerateAssemblyDescriptionAttribute>true</GenerateAssemblyDescriptionAttribute>
@@ -25,9 +25,18 @@
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
         <RootNamespace>Blumchen</RootNamespace>
     </PropertyGroup>
+    <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+        <_Parameter1>Tests</_Parameter1>
+    </AssemblyAttribute>
+    </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="JetBrains.Annotations" Version="2023.3.0" />
+        <PackageReference Include="JetBrains.Annotations" Version="2023.3.0" >
+            <PrivateAssets>all</PrivateAssets>
+            <ExcludeAssets>none</ExcludeAssets>
+            <IncludeAssets>all</IncludeAssets>
+        </PackageReference>
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
         <PackageReference Include="Npgsql" Version="8.0.3" />
     </ItemGroup>

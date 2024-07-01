@@ -4,18 +4,18 @@ using Blumchen.Serialization;
 namespace Tests;
 
 [MessageUrn("user-created:v1")]
-internal record UserCreated(
+internal record PublisherUserCreated(
     Guid Id,
     string Name
 );
 
 [MessageUrn("user-deleted:v1")]
-internal record UserDeleted(
+internal record PublisherUserDeleted(
     Guid Id,
     string Name
 );
 
 [JsonSourceGenerationOptions(WriteIndented = true)]
-[JsonSerializable(typeof(UserCreated))]
-[JsonSerializable(typeof(UserDeleted))]
-internal partial class SourceGenerationContext: JsonSerializerContext{}
+[JsonSerializable(typeof(PublisherUserCreated))]
+[JsonSerializable(typeof(PublisherUserDeleted))]
+internal partial class PublisherContext: JsonSerializerContext;

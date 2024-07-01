@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Blumchen.Database;
+using Blumchen.Serialization;
 using Blumchen.Subscriptions.Management;
 using Blumchen.Subscriptions.ReplicationMessageHandlers;
 using Blumchen.Subscriptions.SnapshotReader;
@@ -17,22 +18,14 @@ using static PublicationManagement;
 using static ReplicationSlotManagement;
 using static ReplicationSlotManagement.CreateReplicationSlotResult;
 
-public interface ISubscription
+public sealed class Subscription: IAsyncDisposable
 {
-    IAsyncEnumerable<IEnvelope> Subscribe(Func<SubscriptionOptionsBuilder, SubscriptionOptionsBuilder> builder,
-        ILoggerFactory? loggerFactory,
-        CancellationToken ct);
-}
-
-public enum CreateStyle
-{
-    WhenNotExists,
-    AlwaysRecreate,
-    Never
-}
-
-public sealed class Subscription: ISubscription, IAsyncDisposable
-{
+    public enum CreateStyle
+    {
+        WhenNotExists,
+        AlwaysRecreate,
+        Never
+    }
     private static LogicalReplicationConnection? _connection;
     private static readonly SubscriptionOptionsBuilder Builder = new();
     private ISubscriptionOptions? _options;
@@ -43,54 +36,54 @@ public sealed class Subscription: ISubscription, IAsyncDisposable
     )
     {
         _options = builder(Builder).Build();
-        var (connectionString, publicationSetupOptions, slotSetupOptions, errorProcessor, replicationDataMapper, registry) = _options;
+        var (connectionString, publicationSetupOptions, replicationSlotSetupOptions, errorProcessor, replicationDataMapper, registry) = _options;
         var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
         dataSourceBuilder.UseLoggerFactory(loggerFactory);
 
         var dataSource = dataSourceBuilder.Build();
-        await dataSource.EnsureTableExists(publicationSetupOptions.TableName, ct);
+        await dataSource.EnsureTableExists(publicationSetupOptions.TableName, ct).ConfigureAwait(false);
 
         _connection = new LogicalReplicationConnection(connectionString);
-        await _connection.Open(ct);
+        await _connection.Open(ct).ConfigureAwait(false);
 
 
-        await dataSource.SetupPublication(publicationSetupOptions, ct);
-        var result = await dataSource.SetupReplicationSlot(_connection, slotSetupOptions, ct);
+        await dataSource.SetupPublication(publicationSetupOptions, ct).ConfigureAwait(false);
+        var result = await dataSource.SetupReplicationSlot(_connection, replicationSlotSetupOptions, ct).ConfigureAwait(false);
 
         PgOutputReplicationSlot slot;
 
         if (result is not Created created)
         {
-            slot = new PgOutputReplicationSlot(slotSetupOptions.SlotName);
+            slot = new PgOutputReplicationSlot(replicationSlotSetupOptions.SlotName);
         }
         else
         {
             slot = new PgOutputReplicationSlot(
                 new ReplicationSlotOptions(
-                    slotSetupOptions.SlotName,
+                    replicationSlotSetupOptions.SlotName,
                     created.LogSequenceNumber
                 )
             );
 
-            await foreach (var envelope in ReadExistingRowsFromSnapshot(dataSource, created.SnapshotName, _options, ct))
-            await foreach (var subscribe in ProcessEnvelope<IEnvelope>(envelope, registry, errorProcessor).WithCancellation(ct))
+            await foreach (var envelope in ReadExistingRowsFromSnapshot(dataSource, created.SnapshotName, _options, ct).ConfigureAwait(false))
+            await foreach (var subscribe in ProcessEnvelope<IEnvelope>(envelope, registry, errorProcessor).WithCancellation(ct).ConfigureAwait(false))
                 yield return subscribe;
         }
 
         await foreach (var message in
                        _connection.StartReplication(slot,
-                           new PgOutputReplicationOptions(publicationSetupOptions.PublicationName, 1, slotSetupOptions.Binary), ct))
+                           new PgOutputReplicationOptions(publicationSetupOptions.PublicationName, 1, replicationSlotSetupOptions.Binary), ct).ConfigureAwait(false))
         {
             if (message is InsertMessage insertMessage)
             {
-                var envelope = await replicationDataMapper.ReadFromReplication(insertMessage, ct);
-                await foreach (var subscribe in ProcessEnvelope<IEnvelope>(envelope, registry, errorProcessor).WithCancellation(ct))
+                var envelope = await replicationDataMapper.ReadFromReplication(insertMessage, ct).ConfigureAwait(false);
+                await foreach (var subscribe in ProcessEnvelope<IEnvelope>(envelope, registry, errorProcessor).WithCancellation(ct).ConfigureAwait(false))
                     yield return subscribe;
             }
             // Always call SetReplicationStatus() or assign LastAppliedLsn and LastFlushedLsn individually
             // so that Npgsql can inform the server which WAL files can be removed/recycled.
             _connection.SetReplicationStatus(message.WalEnd);
-            await _connection.SendStatusUpdate(ct);
+            await _connection.SendStatusUpdate(ct).ConfigureAwait(false);
         }
     }
 
@@ -103,7 +96,7 @@ public sealed class Subscription: ISubscription, IAsyncDisposable
         switch (envelope)
         {
             case KoEnvelope error:
-                await errorProcessor.Process(error.Error);
+                await errorProcessor.Process(error.Error).ConfigureAwait(false);
                 yield break;
             case OkEnvelope okEnvelope:
             {
@@ -136,7 +129,7 @@ public sealed class Subscription: ISubscription, IAsyncDisposable
     {
         var consumer = registry[objType] ?? throw new NotSupportedException($"Unregistered type for {objType.AssemblyQualifiedName}");
         var methodInfos = consumer.GetType().GetMethods(BindingFlags.Instance|BindingFlags.Public);
-        var methodInfo = methodInfos?.SingleOrDefault(mi=>mi.GetParameters().Any(pa => pa.ParameterType == objType))
+        var methodInfo = methodInfos.SingleOrDefault(mi=>mi.GetParameters().Any(pa => pa.ParameterType == objType))
                          ?? throw new NotSupportedException($"Unregistered type for {objType.AssemblyQualifiedName}");
         return (consumer, methodInfo);
     }
@@ -148,14 +141,20 @@ public sealed class Subscription: ISubscription, IAsyncDisposable
         [EnumeratorCancellation] CancellationToken ct = default
     )
     {
-        await using var connection = await dataSource.OpenConnectionAsync(ct);
+        var connection = await dataSource.OpenConnectionAsync(ct).ConfigureAwait(false);
+        await using var connection1 = connection.ConfigureAwait(false);
         await foreach (var row in connection.GetRowsFromSnapshot(
                            snapshotName,
                            options.PublicationOptions.TableName,
                            options.DataMapper,
-                           ct))
+                           options.PublicationOptions.TypeResolver.Keys().ToHashSet(),
+                           ct).ConfigureAwait(false))
             yield return row;
     }
 
-    public async ValueTask DisposeAsync() => await _connection!.DisposeAsync();
+    public async ValueTask DisposeAsync()
+    {
+        if(_connection != null)
+            await _connection.DisposeAsync().ConfigureAwait(false);
+    }
 }

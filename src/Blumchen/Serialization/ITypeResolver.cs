@@ -5,30 +5,34 @@ using System.Text.Json.Serialization.Metadata;
 namespace Blumchen.Serialization;
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
-public interface ITypeResolver
+public interface ITypeResolver<T>
 {
-    Type Resolve(string value);
-    (string, JsonTypeInfo) Resolve(Type type);
-    JsonSerializerContext SerializationContext { get; }
+    (string, T) Resolve(Type type);
 }
 
-public class TypeResolver(JsonSerializerContext serializationContext, INamingPolicy? namingPolicy=default): ITypeResolver
+public interface IJsonTypeResolver: ITypeResolver<JsonTypeInfo>;
+
+internal sealed class JsonTypeResolver(
+    JsonSerializerContext serializationContext,
+    INamingPolicy? namingPolicy = default)
+    : IJsonTypeResolver
 {
     public JsonSerializerContext SerializationContext { get; } = serializationContext;
-    private static readonly ConcurrentDictionary<string, Type> TypeDictionary = [];
-    private static readonly ConcurrentDictionary<Type, JsonTypeInfo> TypeInfoDictionary = [];
+    private readonly ConcurrentDictionary<string, Type> _typeDictionary = [];
+    private readonly ConcurrentDictionary<Type, JsonTypeInfo> _typeInfoDictionary = [];
+    private readonly INamingPolicy _namingPolicy = namingPolicy ?? new FQNNamingPolicy();
 
-    public  TypeResolver WhiteList<T>() where T:class
+    internal void WhiteList(Type type)
     {
-        var type = typeof(T);
         var typeInfo = SerializationContext.GetTypeInfo(type) ?? throw new NotSupportedException(type.FullName);
-        TypeDictionary.AddOrUpdate((namingPolicy ?? new FQNNamingPolicy()).Bind(typeInfo.Type), _ => typeInfo.Type, (s,t) =>typeInfo.Type);
-        TypeInfoDictionary.AddOrUpdate(typeInfo.Type, _ => typeInfo, (_,__)=> typeInfo);
-        return this;
+        _typeDictionary.AddOrUpdate(_namingPolicy.Bind(typeInfo.Type), _ => typeInfo.Type, (s,t) =>typeInfo.Type);
+        _typeInfoDictionary.AddOrUpdate(typeInfo.Type, _ => typeInfo, (_,__)=> typeInfo);
     }
 
     public (string, JsonTypeInfo) Resolve(Type type) =>
-        (TypeDictionary.Single(kv => kv.Value == type).Key, TypeInfoDictionary[type]);
+        (_typeDictionary.Single(kv => kv.Value == type).Key, _typeInfoDictionary[type]);
 
-    public Type Resolve(string type) => TypeDictionary[type];
+    internal IDictionary<string,Type> RegisteredTypes { get => _typeDictionary; }
+    internal Type Resolve(string type) => _typeDictionary[type];
 }
+

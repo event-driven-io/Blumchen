@@ -1,5 +1,4 @@
 using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
 using Blumchen.Serialization;
 
 namespace Subscriber
@@ -19,18 +18,5 @@ namespace Subscriber
     [JsonSourceGenerationOptions(WriteIndented = true)]
     [JsonSerializable(typeof(UserCreatedContract))]
     [JsonSerializable(typeof(UserDeletedContract))]
-    internal partial class SourceGenerationContext: JsonSerializerContext
-    {
-    }
-
-    internal class SubscriberTypesResolver: ITypeResolver
-    {
-        private readonly TypeResolver _inner = new TypeResolver(SourceGenerationContext.Default, new AttributeNamingPolicy())
-            .WhiteList<UserCreatedContract>()
-            .WhiteList<UserDeletedContract>();
-
-        public Type Resolve(string value) => _inner.Resolve(value);
-        public (string, JsonTypeInfo) Resolve(Type type) => _inner.Resolve(type);
-        public JsonSerializerContext SerializationContext => _inner.SerializationContext;
-    }
+    internal partial class SourceGenerationContext: JsonSerializerContext;
 }

@@ -1,4 +1,5 @@
-﻿Microsoft Visual Studio Solution File, Format Version 12.00
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.9.34622.214
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -11,8 +12,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Blumchen", "src\Blumchen\Bl
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{D0AB0FF4-C8A1-4B4B-A682-64F353A2D248}"
 	ProjectSection(SolutionItems) = preProject
-		src\Directory.Build.props = src\Directory.Build.props
 		.github\workflows\build.dotnet.yml = .github\workflows\build.dotnet.yml
+		src\Directory.Build.props = src\Directory.Build.props
 		.github\workflows\publish-nuget.yml = .github\workflows\publish-nuget.yml
 	EndProjectSection
 EndProject
@@ -31,14 +32,16 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tests", "src\Tests\Tests.cs
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "pgAdmin", "pgAdmin", "{C050E9E8-3FB6-4581-953F-31826E385FB4}"
 	ProjectSection(SolutionItems) = preProject
-		docker\pgAdmin\servers.json = docker\pgAdmin\servers.json
 		docker\pgAdmin\pgpass = docker\pgAdmin\pgpass
+		docker\pgAdmin\servers.json = docker\pgAdmin\servers.json
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "postgres", "postgres", "{8AAAA344-B5FD-48D9-B2BA-379E374448D4}"
 	ProjectSection(SolutionItems) = preProject
 		docker\postgres\init.sql = docker\postgres\init.sql
 	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "demo", "demo", "{A4044484-FE08-4399-8239-14AABFA30AD7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -70,11 +73,14 @@ Global
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {9A868C51-0460-4700-AF33-E1A921192614}
-	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{06A60918-32EB-4C38-B369-7E1D76B809A0} = {A4044484-FE08-4399-8239-14AABFA30AD7}
+		{F2878625-0919-4C26-8DC9-58CD8FA34050} = {A4044484-FE08-4399-8239-14AABFA30AD7}
+		{F81E2D5B-FC59-4396-A911-56BE65E4FE80} = {A4044484-FE08-4399-8239-14AABFA30AD7}
 		{C050E9E8-3FB6-4581-953F-31826E385FB4} = {CD59A1A0-F40D-4047-87A3-66C0F1519FA5}
 		{8AAAA344-B5FD-48D9-B2BA-379E374448D4} = {CD59A1A0-F40D-4047-87A3-66C0F1519FA5}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9A868C51-0460-4700-AF33-E1A921192614}
 	EndGlobalSection
 EndGlobal
