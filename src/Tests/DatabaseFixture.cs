@@ -56,7 +56,17 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
     private static string Randomise(string prefix) =>
         $"{prefix}_{Guid.NewGuid().ToString().Replace("-", "")}";
 
-    protected static (TestConsumer<T> consumer, SubscriptionOptionsBuilder subscriptionOptionsBuilder) SetupFor<T>(
+    protected static async Task InsertPoisoningMessage(string connectionString, string eventsTable, CancellationToken ct)
+    {
+        var connection = new NpgsqlConnection(connectionString);
+        await using var connection1 = connection.ConfigureAwait(false);
+        await connection.OpenAsync(ct);
+        var command = connection.CreateCommand();
+        command.CommandText = $"INSERT INTO {eventsTable}(message_type, data) values ('urn:message:user-created:v1', '{{\"prop\":\"some faking text\"}}')";
+        await command.ExecuteNonQueryAsync(ct);
+    }
+
+    protected (TestConsumer<T> consumer, SubscriptionOptionsBuilder subscriptionOptionsBuilder) SetupFor<T>(
         string connectionString,
         string eventsTable,
         JsonSerializerContext info,
@@ -69,6 +79,7 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
         ArgumentNullException.ThrowIfNull(jsonTypeInfo);
         var consumer = new TestConsumer<T>(log, jsonTypeInfo);
         var subscriptionOptionsBuilder = new SubscriptionOptionsBuilder()
+            .WithErrorProcessor(new TestOutErrorProcessor(Output))
             .ConnectionString(connectionString)
             .JsonContext(info)
             .NamingPolicy(namingPolicy)
@@ -82,4 +93,12 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
         return (consumer, subscriptionOptionsBuilder);
     }
 
+    private sealed record TestOutErrorProcessor(ITestOutputHelper Output): IErrorProcessor
+    {
+        public Func<Exception, Task> Process => exception =>
+        {
+            Output.WriteLine($"record id:{0} resulted in error:{exception.Message}");
+            return Task.CompletedTask;
+        };
+    }
 }
