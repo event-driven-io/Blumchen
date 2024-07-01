@@ -26,13 +26,16 @@ public class When_Subscription_Does_Not_Exist_And_Table_Is_Empty(ITestOutputHelp
         //subscriber ignored msg
         await MessageAppender.AppendAsync(eventsTable, new PublisherUserDeleted(Guid.NewGuid(), Guid.NewGuid().ToString()), resolver, connectionString, ct);
 
+        //poison message
+        await InsertPoisoningMessage(connectionString, eventsTable, ct);
+
         var @event = new PublisherUserCreated(Guid.NewGuid(), Guid.NewGuid().ToString());
         var @expected = new SubscriberUserCreated(@event.Id, @event.Name);
 
         await MessageAppender.AppendAsync(eventsTable, @event, resolver, connectionString, ct);
 
         var ( _, subscriptionOptions) = SetupFor<SubscriberUserCreated>(connectionString, eventsTable,
-            SubscriberContext.Default, sharedNamingPolicy, testOutputHelper.WriteLine);
+            SubscriberContext.Default, sharedNamingPolicy, Output.WriteLine);
         var subscription = new Subscription();
         await using var subscription1 = subscription.ConfigureAwait(false);
         await foreach (var envelope in subscription.Subscribe(_ => subscriptionOptions, null, ct).ConfigureAwait(false))
