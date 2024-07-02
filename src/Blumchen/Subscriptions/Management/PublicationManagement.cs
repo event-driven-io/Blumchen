@@ -17,14 +17,14 @@ public static class PublicationManagement
         CancellationToken ct
     )
     {
-        var (publicationName, tableName, createStyle, shouldReAddTablesIfWereRecreated, typeResolver) = setupOptions;
+        var (publicationName, createStyle, shouldReAddTablesIfWereRecreated, typeResolver, tableDescription) = setupOptions;
 
         return createStyle switch
         {
             Subscription.CreateStyle.Never => new None(),
-            Subscription.CreateStyle.AlwaysRecreate => await ReCreate(dataSource, publicationName, tableName, typeResolver, ct).ConfigureAwait(false),
-            Subscription.CreateStyle.WhenNotExists when await dataSource.PublicationExists(publicationName, ct).ConfigureAwait(false) => await Refresh(dataSource, publicationName, tableName, shouldReAddTablesIfWereRecreated, ct).ConfigureAwait(false),
-            Subscription.CreateStyle.WhenNotExists => await Create(dataSource, publicationName, tableName, typeResolver, ct).ConfigureAwait(false),
+            Subscription.CreateStyle.AlwaysRecreate => await ReCreate(dataSource, publicationName, tableDescription.Name, typeResolver, ct).ConfigureAwait(false),
+            Subscription.CreateStyle.WhenNotExists when await dataSource.PublicationExists(publicationName, ct).ConfigureAwait(false) => await Refresh(dataSource, publicationName, tableDescription.Name, shouldReAddTablesIfWereRecreated, ct).ConfigureAwait(false),
+            Subscription.CreateStyle.WhenNotExists => await Create(dataSource, publicationName, tableDescription.Name, typeResolver, ct).ConfigureAwait(false),
             _ => throw new ArgumentOutOfRangeException(nameof(setupOptions.CreateStyle))
         };
 
@@ -143,27 +143,28 @@ public static class PublicationManagement
 
     public sealed record PublicationSetupOptions(
         string PublicationName = PublicationSetupOptions.DefaultPublicationName,
-        string TableName = PublicationSetupOptions.DefaultTableName,
         Subscription.CreateStyle CreateStyle = Subscription.CreateStyle.WhenNotExists,
         bool ShouldReAddTablesIfWereRecreated = false
     )
     {
-        internal const string DefaultTableName = "outbox";
         internal const string DefaultPublicationName = "pub";
         internal JsonTypeResolver? TypeResolver { get; init; } = default;
 
+        internal TableDescriptorBuilder.MessageTable TableDescriptor { get; init; } = new TableDescriptorBuilder().Build();
+
         internal void Deconstruct(
             out string publicationName,
-            out string tableName,
             out Subscription.CreateStyle createStyle,
             out bool reAddTablesIfWereRecreated,
-            out JsonTypeResolver? typeResolver)
+            out JsonTypeResolver? typeResolver,
+            out TableDescriptorBuilder.MessageTable tableDescription)
         {
             publicationName = PublicationName;
-            tableName = TableName;
             createStyle = Subscription.CreateStyle.WhenNotExists;
             reAddTablesIfWereRecreated = ShouldReAddTablesIfWereRecreated;
             typeResolver = TypeResolver;
+            tableDescription = TableDescriptor;
         }
+
     }
 }

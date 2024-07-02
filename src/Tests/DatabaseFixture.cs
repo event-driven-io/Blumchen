@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
+using Blumchen;
 using Blumchen.Database;
 using Blumchen.Serialization;
 using Blumchen.Subscriptions;
@@ -8,7 +9,6 @@ using Blumchen.Subscriptions.Management;
 using Npgsql;
 using Testcontainers.PostgreSql;
 using Xunit.Abstractions;
-using Xunit.Sdk;
 
 namespace Tests;
 
@@ -48,7 +48,8 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
     {
         var tableName = Randomise("outbox");
 
-        await dataSource.EnsureTableExists(tableName, ct).ConfigureAwait(false);
+        var tableDesc = new TableDescriptorBuilder().Name(tableName).Build();
+        await dataSource.EnsureTableExists(tableDesc, ct).ConfigureAwait(false);
 
         return tableName;
     }
@@ -84,8 +85,9 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
             .JsonContext(info)
             .NamingPolicy(namingPolicy)
             .Consumes<T, TestConsumer<T>>(consumer)
+            .WithTable(o => o.Name(eventsTable))
             .WithPublicationOptions(
-                new PublicationManagement.PublicationSetupOptions(PublicationName: publicationName ?? Randomise("events_pub"), TableName: eventsTable)
+                new PublicationManagement.PublicationSetupOptions(PublicationName: publicationName ?? Randomise("events_pub"))
             )
             .WithReplicationOptions(
                 new ReplicationSlotManagement.ReplicationSlotSetupOptions(slotName ?? Randomise("events_slot"))
