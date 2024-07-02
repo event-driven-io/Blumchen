@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using Blumchen;
 using Blumchen.Publications;
 using Blumchen.Serialization;
 using Blumchen.Subscriptions;
@@ -22,9 +22,10 @@ public class When_Subscription_Does_Not_Exist_And_Table_Is_Empty(ITestOutputHelp
         var resolver = new PublisherSetupOptionsBuilder()
             .JsonContext(PublisherContext.Default)
             .NamingPolicy(sharedNamingPolicy)
+            .WithTable(o => o.Name(eventsTable))
             .Build();
         //subscriber ignored msg
-        await MessageAppender.AppendAsync(eventsTable, new PublisherUserDeleted(Guid.NewGuid(), Guid.NewGuid().ToString()), resolver, connectionString, ct);
+        await MessageAppender.AppendAsync(new PublisherUserDeleted(Guid.NewGuid(), Guid.NewGuid().ToString()), resolver, connectionString, ct);
 
         //poison message
         await InsertPoisoningMessage(connectionString, eventsTable, ct);
@@ -32,7 +33,7 @@ public class When_Subscription_Does_Not_Exist_And_Table_Is_Empty(ITestOutputHelp
         var @event = new PublisherUserCreated(Guid.NewGuid(), Guid.NewGuid().ToString());
         var @expected = new SubscriberUserCreated(@event.Id, @event.Name);
 
-        await MessageAppender.AppendAsync(eventsTable, @event, resolver, connectionString, ct);
+        await MessageAppender.AppendAsync(@event, resolver, connectionString, ct);
 
         var ( _, subscriptionOptions) = SetupFor<SubscriberUserCreated>(connectionString, eventsTable,
             SubscriberContext.Default, sharedNamingPolicy, Output.WriteLine);

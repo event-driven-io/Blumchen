@@ -19,28 +19,28 @@ public class When_Subscription_Already_Exists(ITestOutputHelper testOutputHelper
         var connectionString = Container.GetConnectionString();
         var dataSource = NpgsqlDataSource.Create(connectionString);
         var eventsTable = await CreateOutboxTable(dataSource, ct);
-        var publisherResolver = new PublisherSetupOptionsBuilder()
+        var opts = new PublisherSetupOptionsBuilder()
             .JsonContext(PublisherContext.Default)
             .NamingPolicy(sharedNamingPolicy)
+            .WithTable(o => o.Name(eventsTable))
             .Build();
         var slotName = "subscription_test";
         var publicationName = "publication_test";
-
-
+        
         await dataSource.CreatePublication(publicationName, eventsTable, new HashSet<string>{"urn:message:user-created:v1"}, ct);
-
-
-        var ( _, subscriptionOptions) = SetupFor<SubscriberUserCreated>(connectionString, eventsTable,
+        
+        var (_, subscriptionOptions) = SetupFor<SubscriberUserCreated>(connectionString, eventsTable,
             SubscriberContext.Default, sharedNamingPolicy, Output.WriteLine, publicationName: publicationName, slotName: slotName);
 
         //subscriber ignored msg
-        await MessageAppender.AppendAsync(eventsTable, new PublisherUserDeleted(Guid.NewGuid(), Guid.NewGuid().ToString()), publisherResolver, connectionString, ct);
+        await MessageAppender.AppendAsync(
+            new PublisherUserDeleted(Guid.NewGuid(), Guid.NewGuid().ToString()), opts, connectionString, ct);
 
         //poison message
         await InsertPoisoningMessage(connectionString, eventsTable, ct);
 
         var @event = new PublisherUserCreated(Guid.NewGuid(), Guid.NewGuid().ToString());
-        await MessageAppender.AppendAsync(eventsTable, @event, publisherResolver, connectionString, ct);
+        await MessageAppender.AppendAsync(@event, opts, connectionString, ct);
 
         var @expected = new SubscriberUserCreated(@event.Id, @event.Name);
 

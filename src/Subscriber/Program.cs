@@ -23,6 +23,11 @@ try
     var cursor = subscription.Subscribe(
         builder => builder
             .ConnectionString(Settings.ConnectionString)
+            .WithTable(options => options
+                .Id("id")
+                .MessageType("message_type")
+                .MessageData("data", new MimeType.Json())
+            )
             .NamingPolicy(new AttributeNamingPolicy())
             .JsonContext(SourceGenerationContext.Default)
             .Consumes<UserCreatedContract, Consumer>(consumer)

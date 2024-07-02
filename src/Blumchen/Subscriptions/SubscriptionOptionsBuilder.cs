@@ -6,7 +6,6 @@ using System.Text.Json.Serialization;
 
 namespace Blumchen.Subscriptions;
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
 public sealed class SubscriptionOptionsBuilder
 {
     private static string? _connectionString;
@@ -17,6 +16,8 @@ public sealed class SubscriptionOptionsBuilder
     private IErrorProcessor? _errorProcessor;
     private INamingPolicy? _namingPolicy;
     private JsonSerializerContext? _jsonSerializerContext;
+    private static readonly TableDescriptorBuilder TableDescriptorBuilder = new();
+    private TableDescriptorBuilder.MessageTable? _messageTable;
 
 
     static SubscriptionOptionsBuilder()
@@ -25,6 +26,15 @@ public sealed class SubscriptionOptionsBuilder
         _publicationSetupOptions = new();
         _replicationSlotSetupOptions = default;
         _dataMapper = default;
+    }
+
+    
+    [UsedImplicitly]
+    public SubscriptionOptionsBuilder WithTable(
+        Func<TableDescriptorBuilder, TableDescriptorBuilder> builder)
+    {
+        _messageTable = builder(TableDescriptorBuilder).Build();
+        return this;
     }
 
     [UsedImplicitly]
@@ -52,7 +62,7 @@ public sealed class SubscriptionOptionsBuilder
     public SubscriptionOptionsBuilder WithPublicationOptions(PublicationManagement.PublicationSetupOptions publicationOptions)
     {
         _publicationSetupOptions =
-            publicationOptions with { TypeResolver = _publicationSetupOptions.TypeResolver };
+            publicationOptions with { TypeResolver = _publicationSetupOptions.TypeResolver};
         return this;
     }
 
@@ -82,11 +92,12 @@ public sealed class SubscriptionOptionsBuilder
     {
         ArgumentNullException.ThrowIfNull(_connectionString);
         ArgumentNullException.ThrowIfNull(_jsonSerializerContext);
+        ArgumentNullException.ThrowIfNull(_messageTable);
 
         var typeResolver = new JsonTypeResolver(_jsonSerializerContext, _namingPolicy);
         foreach (var type in _registry.Keys) typeResolver.WhiteList(type);
         _dataMapper = new ReplicationDataMapper(typeResolver);
-        _publicationSetupOptions = _publicationSetupOptions with { TypeResolver = typeResolver };
+        _publicationSetupOptions = _publicationSetupOptions with { TypeResolver = typeResolver, TableDescriptor = _messageTable};
 
         Ensure(() =>_registry.Keys.Except(_publicationSetupOptions.TypeResolver.Values()), "Unregistered types:{0}");
         Ensure(() => _publicationSetupOptions.TypeResolver.Values().Except(_registry.Keys), "Unregistered consumer for type:{0}");

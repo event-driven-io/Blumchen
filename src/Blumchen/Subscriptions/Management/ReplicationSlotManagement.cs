@@ -61,7 +61,7 @@ public static class ReplicationSlotManagement
     ) => dataSource.Exists("pg_replication_slots", "slot_name = $1", [slotName], ct);
 
     public record ReplicationSlotSetupOptions(
-        string SlotName = $"{PublicationManagement.PublicationSetupOptions.DefaultTableName}_slot",
+        string SlotName = $"{TableDescriptorBuilder.MessageTable.DefaultName}_slot",
         Subscription.CreateStyle CreateStyle = Subscription.CreateStyle.WhenNotExists,
         bool Binary = false //https://www.postgresql.org/docs/current/sql-createsubscription.html#SQL-CREATESUBSCRIPTION-WITH-BINARY
     );

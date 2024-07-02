@@ -41,7 +41,7 @@ public sealed class Subscription: IAsyncDisposable
         dataSourceBuilder.UseLoggerFactory(loggerFactory);
 
         var dataSource = dataSourceBuilder.Build();
-        await dataSource.EnsureTableExists(publicationSetupOptions.TableName, ct).ConfigureAwait(false);
+        await dataSource.EnsureTableExists(publicationSetupOptions.TableDescriptor, ct).ConfigureAwait(false);
 
         _connection = new LogicalReplicationConnection(connectionString);
         await _connection.Open(ct).ConfigureAwait(false);
@@ -145,7 +145,7 @@ public sealed class Subscription: IAsyncDisposable
         await using var connection1 = connection.ConfigureAwait(false);
         await foreach (var row in connection.GetRowsFromSnapshot(
                            snapshotName,
-                           options.PublicationOptions.TableName,
+                           options.PublicationOptions.TableDescriptor,
                            options.DataMapper,
                            options.PublicationOptions.TypeResolver.Keys().ToHashSet(),
                            ct).ConfigureAwait(false))

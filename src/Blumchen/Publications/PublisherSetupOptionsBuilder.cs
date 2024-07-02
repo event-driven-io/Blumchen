@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Blumchen.Serialization;
 using JetBrains.Annotations;
+using static Blumchen.TableDescriptorBuilder;
 
 namespace Blumchen.Publications;
 
@@ -9,6 +10,8 @@ public class PublisherSetupOptionsBuilder
 {
     private INamingPolicy? _namingPolicy;
     private JsonSerializerContext? _jsonSerializerContext;
+    private static readonly TableDescriptorBuilder TableDescriptorBuilder = new();
+    private MessageTable? _tableDescriptor;
 
     [UsedImplicitly]
     public PublisherSetupOptionsBuilder NamingPolicy(INamingPolicy namingPolicy)
@@ -24,11 +27,19 @@ public class PublisherSetupOptionsBuilder
         return this;
     }
 
-    public IJsonTypeResolver Build()
+    [UsedImplicitly]
+    public PublisherSetupOptionsBuilder WithTable(Func<TableDescriptorBuilder, TableDescriptorBuilder> builder)
+    {
+        _tableDescriptor = builder(TableDescriptorBuilder).Build();
+        return this;
+    }
+
+    public (MessageTable tableDescriptor, IJsonTypeResolver jsonTypeResolver) Build()
     {
         ArgumentNullException.ThrowIfNull(_jsonSerializerContext);
         ArgumentNullException.ThrowIfNull(_namingPolicy);
 
+        _tableDescriptor ??= TableDescriptorBuilder.Build();
         var jsonTypeResolver = new JsonTypeResolver(_jsonSerializerContext, _namingPolicy);
         using var typeEnum = _jsonSerializerContext.GetType()
             .GetCustomAttributesData()
@@ -38,6 +49,6 @@ public class PublisherSetupOptionsBuilder
         while (typeEnum.MoveNext())
             jsonTypeResolver.WhiteList(typeEnum.Current);
         
-        return jsonTypeResolver;
+        return (_tableDescriptor,jsonTypeResolver);
     }
 }

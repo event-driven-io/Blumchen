@@ -44,13 +44,13 @@ do
                     switch (@event)
                     {
                         case UserCreated m:
-                            await MessageAppender.AppendAsync("outbox", m, resolver, connection, transaction, ct).ConfigureAwait(false);
+                            await MessageAppender.AppendAsync(m, resolver, connection, transaction, ct).ConfigureAwait(false);
                             break;
                         case UserDeleted m:
-                            await MessageAppender.AppendAsync("outbox", m, resolver, connection, transaction, ct).ConfigureAwait(false);
+                            await MessageAppender.AppendAsync( m, resolver, connection, transaction, ct).ConfigureAwait(false);
                             break;
                         case UserModified m:
-                            await MessageAppender.AppendAsync("outbox", m, resolver, connection, transaction, ct).ConfigureAwait(false);
+                            await MessageAppender.AppendAsync(m, resolver, connection, transaction, ct).ConfigureAwait(false);
                             break;
                     }
 
@@ -71,7 +71,7 @@ do
         //    {
         //        var @events = Enumerable.Range(0, result)
         //            .Select(i1 => new UserCreated(Guid.NewGuid(), Guid.NewGuid().ToString()));
-        //        await EventsAppender.AppendAsync("outbox", @events, resolver, connection, transaction, ct);
+        //        await MessageAppender.AppendAsync(@events, resolver, connection, transaction, ct);
         //    }
         //    catch (Exception e)
         //    {

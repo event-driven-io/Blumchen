@@ -21,16 +21,17 @@ public class When_Subscription_Does_Not_Exist_And_Table_Is_Not_Empty(ITestOutput
         var resolver = new PublisherSetupOptionsBuilder()
             .JsonContext(PublisherContext.Default)
             .NamingPolicy(sharedNamingPolicy)
+            .WithTable(o => o.Name(eventsTable))
             .Build();
 
         //subscriber ignored msg
-        await MessageAppender.AppendAsync(eventsTable, new PublisherUserDeleted(Guid.NewGuid(), Guid.NewGuid().ToString()), resolver, connectionString, ct);
+        await MessageAppender.AppendAsync( new PublisherUserDeleted(Guid.NewGuid(), Guid.NewGuid().ToString()), resolver, connectionString, ct);
 
         //poison message
         await InsertPoisoningMessage(connectionString, eventsTable, ct);
 
         var @event = new PublisherUserCreated(Guid.NewGuid(), Guid.NewGuid().ToString());
-        await MessageAppender.AppendAsync(eventsTable, @event, resolver, connectionString, ct);
+        await MessageAppender.AppendAsync(@event, resolver, connectionString, ct);
 
         var @expected = new SubscriberUserCreated(@event.Id, @event.Name);
 
