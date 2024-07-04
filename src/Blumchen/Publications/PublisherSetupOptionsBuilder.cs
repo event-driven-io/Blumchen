@@ -5,7 +5,6 @@ using static Blumchen.TableDescriptorBuilder;
 
 namespace Blumchen.Publications;
 
-#pragma warning disable CS1591
 public class PublisherSetupOptionsBuilder
 {
     private INamingPolicy? _namingPolicy;

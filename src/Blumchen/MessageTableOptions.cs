@@ -3,7 +3,6 @@ using NpgsqlTypes;
 
 namespace Blumchen;
 
-#pragma warning disable CS1591
 public record TableDescriptorBuilder
 {
     private MessageTable TableDescriptor { get; set; } = new();

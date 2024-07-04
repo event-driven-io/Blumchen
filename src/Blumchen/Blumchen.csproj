@@ -25,6 +25,16 @@
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
         <RootNamespace>Blumchen</RootNamespace>
     </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+      <NoWarn>1591</NoWarn>
+      <WarningsNotAsErrors></WarningsNotAsErrors>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+      <NoWarn>1591</NoWarn>
+      <WarningsNotAsErrors></WarningsNotAsErrors>
+    </PropertyGroup>
     <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
         <_Parameter1>Tests</_Parameter1>

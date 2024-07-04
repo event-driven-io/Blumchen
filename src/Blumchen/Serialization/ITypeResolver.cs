@@ -3,7 +3,6 @@ using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
 namespace Blumchen.Serialization;
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 public interface ITypeResolver<T>
 {

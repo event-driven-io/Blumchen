@@ -5,7 +5,7 @@ using JetBrains.Annotations;
 using System.Text.Json.Serialization;
 
 namespace Blumchen.Subscriptions;
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+
 public sealed class SubscriptionOptionsBuilder
 {
     private static string? _connectionString;

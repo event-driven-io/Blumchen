@@ -3,7 +3,6 @@ using Blumchen.Serialization;
 using Npgsql;
 
 #pragma warning disable CA2208
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 namespace Blumchen.Subscriptions.Management;
 

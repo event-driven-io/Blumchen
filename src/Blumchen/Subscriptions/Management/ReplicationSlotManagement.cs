@@ -5,7 +5,6 @@ using NpgsqlTypes;
 
 namespace Blumchen.Subscriptions.Management;
 using static ReplicationSlotManagement.CreateReplicationSlotResult;
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 public static class ReplicationSlotManagement
 {

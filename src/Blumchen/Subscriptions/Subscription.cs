@@ -12,7 +12,6 @@ using Npgsql.Replication.PgOutput;
 using Npgsql.Replication.PgOutput.Messages;
 
 namespace Blumchen.Subscriptions;
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 using static PublicationManagement;
 using static ReplicationSlotManagement;
