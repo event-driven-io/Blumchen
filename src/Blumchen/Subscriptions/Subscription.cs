@@ -25,7 +25,7 @@ public sealed class Subscription: IAsyncDisposable
         AlwaysRecreate,
         Never
     }
-    private static LogicalReplicationConnection? _connection;
+    private LogicalReplicationConnection? _connection;
     private static readonly SubscriptionOptionsBuilder Builder = new();
     private ISubscriptionOptions? _options;
     public async IAsyncEnumerable<IEnvelope> Subscribe(
