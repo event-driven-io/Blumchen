@@ -69,14 +69,11 @@ public static class PublicationManagement
         ISet<string> eventTypes,
         CancellationToken ct
     ) {
+        var sql = $"CREATE PUBLICATION \"{publicationName}\" FOR TABLE {tableName} {{0}} WITH (publish = 'insert');";
         return eventTypes.Count switch
         {
-            0 => Execute(dataSource, $"CREATE PUBLICATION {publicationName} FOR TABLE {tableName} WITH (publish = 'insert');",
-                ct
-            ),
-            _ => Execute(dataSource, $"CREATE PUBLICATION {publicationName} FOR TABLE {tableName} WHERE ({PublicationFilter(eventTypes)}) WITH (publish = 'insert');",
-                ct
-            )
+            0 => Execute(dataSource, string.Format(sql,string.Empty), ct),
+            _ => Execute(dataSource, string.Format(sql, $"WHERE ({PublicationFilter(eventTypes)})"), ct)
         };
         static string PublicationFilter(ICollection<string> input) => string.Join(" OR ", input.Select(s => $"message_type = '{s}'"));
     }
@@ -128,8 +125,7 @@ public static class PublicationManagement
         this NpgsqlDataSource dataSource,
         string publicationName,
         CancellationToken ct
-    ) =>
-        dataSource.Exists("pg_publication", "pubname = $1", [publicationName], ct);
+    ) => dataSource.Exists("pg_publication", "pubname = $1", [publicationName], ct);
 
     public abstract record SetupPublicationResult
     {
