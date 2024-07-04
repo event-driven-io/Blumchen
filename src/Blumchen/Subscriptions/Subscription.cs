@@ -25,8 +25,8 @@ public sealed class Subscription: IAsyncDisposable
         AlwaysRecreate,
         Never
     }
-    private static LogicalReplicationConnection? _connection;
-    private static readonly SubscriptionOptionsBuilder Builder = new();
+    private LogicalReplicationConnection? _connection;
+    private readonly SubscriptionOptionsBuilder _builder = new();
     private ISubscriptionOptions? _options;
     public async IAsyncEnumerable<IEnvelope> Subscribe(
         Func<SubscriptionOptionsBuilder, SubscriptionOptionsBuilder> builder,
@@ -34,7 +34,7 @@ public sealed class Subscription: IAsyncDisposable
         [EnumeratorCancellation] CancellationToken ct = default
     )
     {
-        _options = builder(Builder).Build();
+        _options = builder(_builder).Build();
         var (connectionString, publicationSetupOptions, replicationSlotSetupOptions, errorProcessor, replicationDataMapper, registry) = _options;
         var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
         dataSourceBuilder.UseLoggerFactory(loggerFactory);
