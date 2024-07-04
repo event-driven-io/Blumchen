@@ -19,7 +19,7 @@ internal interface ISubscriptionOptions
         out ReplicationSlotSetupOptions replicationSlotSetupOptions,
         out IErrorProcessor errorProcessor,
         out IReplicationDataMapper dataMapper,
-        out Dictionary<Type, IConsume> registry);
+        out Dictionary<Type, IHandler> registry);
 }
 
 internal record SubscriptionOptions(
@@ -28,4 +28,4 @@ internal record SubscriptionOptions(
     ReplicationSlotSetupOptions ReplicationOptions,
     IErrorProcessor ErrorProcessor,
     IReplicationDataMapper DataMapper,
-    Dictionary<Type, IConsume> Registry): ISubscriptionOptions;
+    Dictionary<Type, IHandler> Registry): ISubscriptionOptions;

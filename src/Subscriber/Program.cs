@@ -30,8 +30,8 @@ try
             )
             .NamingPolicy(new AttributeNamingPolicy())
             .JsonContext(SourceGenerationContext.Default)
-            .Consumes<UserCreatedContract, Consumer>(consumer)
-            .Consumes<UserDeletedContract, Consumer>(consumer), LoggerFactory.Create(builder => builder.AddConsole()), ct
+            .Handles<UserCreatedContract, Consumer>(consumer)
+            .Handles<UserDeletedContract, Consumer>(consumer), LoggerFactory.Create(builder => builder.AddConsole()), ct
     ).GetAsyncEnumerator(ct);
     await using var cursor1 = cursor.ConfigureAwait(false);
     while (await cursor.MoveNextAsync().ConfigureAwait(false) && !ct.IsCancellationRequested);
@@ -46,8 +46,8 @@ Console.ReadKey();
 namespace Subscriber
 {
     internal class Consumer:
-        IConsumes<UserCreatedContract>,
-        IConsumes<UserDeletedContract>
+        IHandler<UserCreatedContract>,
+        IHandler<UserDeletedContract>
     {
         public Task Handle(UserCreatedContract value) => Console.Out.WriteLineAsync(JsonSerialization.ToJson(value, SourceGenerationContext.Default.UserCreatedContract));
         public Task Handle(UserDeletedContract value) => Console.Out.WriteLineAsync(JsonSerialization.ToJson(value, SourceGenerationContext.Default.UserDeletedContract));

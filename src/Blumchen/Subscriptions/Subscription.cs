@@ -88,7 +88,7 @@ public sealed class Subscription: IAsyncDisposable
 
     private static async IAsyncEnumerable<T> ProcessEnvelope<T>(
         IEnvelope envelope,
-        Dictionary<Type, IConsume> registry,
+        Dictionary<Type, IHandler> registry,
         IErrorProcessor errorProcessor
     ) where T:class
     {
@@ -109,14 +109,14 @@ public sealed class Subscription: IAsyncDisposable
         }
     }
 
-    private static readonly Dictionary<Type, (IConsume consumer, MethodInfo methodInfo)> Cache = [];
+    private static readonly Dictionary<Type, (IHandler consumer, MethodInfo methodInfo)> Cache = [];
 
 
-    private static (IConsume consumer, MethodInfo methodInfo) Memoize
+    private static (IHandler consumer, MethodInfo methodInfo) Memoize
     (
-        Dictionary<Type, IConsume> registry,
+        Dictionary<Type, IHandler> registry,
         Type objType,
-        Func<Dictionary<Type, IConsume>, Type, (IConsume consumer, MethodInfo methodInfo)> func
+        Func<Dictionary<Type, IHandler>, Type, (IHandler consumer, MethodInfo methodInfo)> func
     )
     {
         if (!Cache.TryGetValue(objType, out var entry))
@@ -124,7 +124,7 @@ public sealed class Subscription: IAsyncDisposable
         Cache[objType] = entry;
         return entry;
     }
-    private static (IConsume consumer, MethodInfo methodInfo) Consumer(Dictionary<Type, IConsume> registry, Type objType)
+    private static (IHandler consumer, MethodInfo methodInfo) Consumer(Dictionary<Type, IHandler> registry, Type objType)
     {
         var consumer = registry[objType] ?? throw new NotSupportedException($"Unregistered type for {objType.AssemblyQualifiedName}");
         var methodInfos = consumer.GetType().GetMethods(BindingFlags.Instance|BindingFlags.Public);

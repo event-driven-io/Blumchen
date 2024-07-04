@@ -12,7 +12,7 @@ public sealed class SubscriptionOptionsBuilder
     private static PublicationManagement.PublicationSetupOptions _publicationSetupOptions;
     private static ReplicationSlotManagement.ReplicationSlotSetupOptions? _replicationSlotSetupOptions;
     private static IReplicationDataMapper? _dataMapper;
-    private readonly Dictionary<Type, IConsume> _registry = [];
+    private readonly Dictionary<Type, IHandler> _registry = [];
     private IErrorProcessor? _errorProcessor;
     private INamingPolicy? _namingPolicy;
     private JsonSerializerContext? _jsonSerializerContext;
@@ -74,10 +74,10 @@ public sealed class SubscriptionOptionsBuilder
     }
 
     [UsedImplicitly]
-    public SubscriptionOptionsBuilder Consumes<T, TU>(TU consumer) where T : class
-        where TU : class, IConsumes<T>
+    public SubscriptionOptionsBuilder Handles<T, TU>(TU handler) where T : class
+        where TU : class, IHandler<T>
     {
-        _registry.TryAdd(typeof(T), consumer);
+        _registry.TryAdd(typeof(T), handler);
         return this;
     }
 
@@ -119,7 +119,7 @@ public sealed class SubscriptionOptionsBuilder
     }
 }
 
-public class ObjectTracingConsumer: IConsumes<object>
+public class ObjectTracingConsumer: IHandler<object>
 {
     private static ulong _counter = 0;
     public Task Handle(object value)
