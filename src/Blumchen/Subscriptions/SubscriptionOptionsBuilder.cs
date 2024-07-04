@@ -90,9 +90,9 @@ public sealed class SubscriptionOptionsBuilder
     
     internal ISubscriptionOptions Build()
     {
+        _messageTable ??= TableDescriptorBuilder.Build();
         ArgumentNullException.ThrowIfNull(_connectionString);
         ArgumentNullException.ThrowIfNull(_jsonSerializerContext);
-        ArgumentNullException.ThrowIfNull(_messageTable);
 
         var typeResolver = new JsonTypeResolver(_jsonSerializerContext, _namingPolicy);
         foreach (var type in _registry.Keys) typeResolver.WhiteList(type);
