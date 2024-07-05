@@ -25,7 +25,7 @@ public abstract class Worker<T>(
 {
     private readonly ILogger<Worker<T>> _logger = loggerFactory.CreateLogger<Worker<T>>();
     private string WorkerName { get; } = $"{nameof(Worker<T>)}<{typeof(T).Name}>";
-    private static readonly ConcurrentDictionary<string, Action<ILogger, string, object[]>> _actions = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly ConcurrentDictionary<string, Action<ILogger, string, object[]>> LoggingActions = new(StringComparer.OrdinalIgnoreCase);
     private static void Notify(ILogger logger, LogLevel level, string template, params object[] parameters)
     {
         static Action<ILogger, string, object[]> LoggerAction(LogLevel ll, bool enabled) =>
@@ -35,7 +35,7 @@ public abstract class Worker<T>(
                 (LogLevel.Debug, true) => (logger, template, parameters) => logger.LogDebug(template, parameters),
                 (_, _) => (_, __, ___) => { }
             };
-        _actions.GetOrAdd(template,s => LoggerAction(level, logger.IsEnabled(level)))(logger, template, parameters);
+        LoggingActions.GetOrAdd(template,s => LoggerAction(level, logger.IsEnabled(level)))(logger, template, parameters);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
