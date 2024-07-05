@@ -22,7 +22,7 @@ do
     if (line != null && int.TryParse(line, out var result))
     {
         var cts = new CancellationTokenSource();
-
+        var messages = result / 3;
         var ct = cts.Token;
         var connection = new NpgsqlConnection(Settings.ConnectionString);
         await using var connection1 = connection.ConfigureAwait(false);
@@ -36,6 +36,9 @@ do
                     1 => new UserDeleted(Guid.NewGuid()),
                     _ => new UserModified(Guid.NewGuid())
                 });
+            await Console.Out.WriteLineAsync($"Publishing {messages + ((result % 3 > 0) ? 1 : 0)} {nameof(UserCreated)}");
+            await Console.Out.WriteLineAsync($"Publishing {messages + ((result % 3 > 1) ? 1 : 0)} {nameof(UserDeleted)}");
+            await Console.Out.WriteLineAsync($"Publishing {messages} {nameof(UserModified)}");
             foreach (var @event in @events)
             {
                 var transaction = await connection.BeginTransactionAsync(ct).ConfigureAwait(false);
@@ -63,6 +66,7 @@ do
                     throw;
                 }
             }
+            await Console.Out.WriteLineAsync($"Published {result} messages!");
         }
         //use a batch command
         //{
