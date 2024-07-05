@@ -33,6 +33,8 @@ public record TableDescriptorBuilder
         return this;
     }
 
+    public TableDescriptorBuilder UseDefaults() => this;
+    
     public record MessageTable(string Name = MessageTable.DefaultName)
     {
         internal const string DefaultName = "outbox";

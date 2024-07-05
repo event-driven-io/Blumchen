@@ -25,4 +25,5 @@ public class SubscriberWorker<T>(
     , namingPolicy
     , new PublicationManagement.PublicationSetupOptions($"{typeof(T).Name}_pub")
     , new ReplicationSlotManagement.ReplicationSlotSetupOptions($"{typeof(T).Name}_slot")
+    , tableDescriptorBuilder => tableDescriptorBuilder.UseDefaults()
     , loggerFactory) where T : class;

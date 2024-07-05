@@ -20,6 +20,7 @@ public abstract class Worker<T>(
     INamingPolicy namingPolicy,
     PublicationManagement.PublicationSetupOptions publicationSetupOptions,
     ReplicationSlotManagement.ReplicationSlotSetupOptions replicationSlotSetupOptions,
+    Func<TableDescriptorBuilder,TableDescriptorBuilder> tableDescriptorBuilder,
     ILoggerFactory loggerFactory): BackgroundService where T : class
 {
     private readonly ILogger<Worker<T>> _logger = loggerFactory.CreateLogger<Worker<T>>();
@@ -45,6 +46,7 @@ public abstract class Worker<T>(
             await using var cursor = subscription.Subscribe(builder =>
                     builder
                         .ConnectionString(databaseOptions.ConnectionString)
+                        .WithTable(tableDescriptorBuilder)
                         .WithErrorProcessor(errorProcessor)
                         .Handles<T, IHandler<T>>(handler)
                         .NamingPolicy(namingPolicy)
