@@ -12,12 +12,11 @@ using Xunit.Abstractions;
 
 namespace Tests;
 
-
 public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
 {
     protected ITestOutputHelper Output { get; } = output;
     protected readonly Func<CancellationTokenSource> TimeoutTokenSource = () => new(Debugger.IsAttached ?  TimeSpan.FromHours(1) : TimeSpan.FromSeconds(2));
-    protected class TestHandler<T>(Action<string> log, JsonTypeInfo info): IHandler<T> where T : class
+    protected class TestMessageHandler<T>(Action<string> log, JsonTypeInfo info): IMessageHandler<T> where T : class
     {
         public async Task Handle(T value)
         {
@@ -67,7 +66,7 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
         await command.ExecuteNonQueryAsync(ct);
     }
 
-    protected (TestHandler<T> handler, SubscriptionOptionsBuilder subscriptionOptionsBuilder) SetupFor<T>(
+    protected (TestMessageHandler<T> handler, SubscriptionOptionsBuilder subscriptionOptionsBuilder) SetupFor<T>(
         string connectionString,
         string eventsTable,
         JsonSerializerContext info,
@@ -78,7 +77,7 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
     {
         var jsonTypeInfo = info.GetTypeInfo(typeof(T));
         ArgumentNullException.ThrowIfNull(jsonTypeInfo);
-        var consumer = new TestHandler<T>(log, jsonTypeInfo);
+        var consumer = new TestMessageHandler<T>(log, jsonTypeInfo);
         var subscriptionOptionsBuilder = new SubscriptionOptionsBuilder()
             .WithErrorProcessor(new TestOutErrorProcessor(Output))
             .DataSource(new NpgsqlDataSourceBuilder(connectionString).Build())

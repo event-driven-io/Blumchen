@@ -22,7 +22,7 @@ public interface ISubscriptionOptions
         out ReplicationSlotSetupOptions replicationSlotSetupOptions,
         out IErrorProcessor errorProcessor,
         out IReplicationDataMapper dataMapper,
-        out Dictionary<Type, IHandler> registry);
+        out Dictionary<Type, IMessageHandler> registry);
 }
 
 internal record SubscriptionOptions(
@@ -32,4 +32,4 @@ internal record SubscriptionOptions(
     ReplicationSlotSetupOptions ReplicationOptions,
     IErrorProcessor ErrorProcessor,
     IReplicationDataMapper DataMapper,
-    Dictionary<Type, IHandler> Registry): ISubscriptionOptions;
+    Dictionary<Type, IMessageHandler> Registry): ISubscriptionOptions;

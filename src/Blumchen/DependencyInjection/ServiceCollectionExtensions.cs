@@ -12,12 +12,12 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddBlumchen<T>(
         this IServiceCollection service,
         Func<IServiceProvider, IWorkerOptionsBuilder, IWorkerOptionsBuilder> workerOptions)
-        where T : class, IHandler =>
+        where T : class, IMessageHandler =>
         service
             .AddKeyedSingleton(typeof(T), (provider, _) => workerOptions(provider, new WorkerOptionsBuilder()).Build())
             .AddHostedService(provider =>
                 new Worker<T>(workerOptions(provider, new WorkerOptionsBuilder()).Build(),
-                    ServiceProviderServiceExtensions.GetRequiredService<ILogger<Worker<T>>>(provider)));
+                    provider.GetRequiredService<ILogger<Worker<T>>>()));
 
 
 }

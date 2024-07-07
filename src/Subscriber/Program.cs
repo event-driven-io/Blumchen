@@ -50,8 +50,8 @@ Console.ReadKey();
 namespace Subscriber
 {
     internal class Consumer:
-        IHandler<UserCreatedContract>,
-        IHandler<UserDeletedContract>
+        IMessageHandler<UserCreatedContract>,
+        IMessageHandler<UserDeletedContract>
     {
         public Task Handle(UserCreatedContract value) => Console.Out.WriteLineAsync(JsonSerialization.ToJson(value, SourceGenerationContext.Default.UserCreatedContract));
         public Task Handle(UserDeletedContract value) => Console.Out.WriteLineAsync(JsonSerialization.ToJson(value, SourceGenerationContext.Default.UserDeletedContract));

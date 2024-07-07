@@ -91,7 +91,7 @@ public sealed class Subscription: IAsyncDisposable
 
     private static async IAsyncEnumerable<T> ProcessEnvelope<T>(
         IEnvelope envelope,
-        Dictionary<Type, IHandler> registry,
+        Dictionary<Type, IMessageHandler> registry,
         IErrorProcessor errorProcessor
     ) where T:class
     {
@@ -104,22 +104,22 @@ public sealed class Subscription: IAsyncDisposable
             {
                 var obj = okEnvelope.Value;
                 var objType = obj.GetType();
-                var (consumer, methodInfo) = Memoize(registry, objType, Consumer);
-                await ((Task)methodInfo.Invoke(consumer, [obj])!).ConfigureAwait(false);
+                var (messageHandler, methodInfo) = Memoize(registry, objType, MessageHandler);
+                await ((Task)methodInfo.Invoke(messageHandler, [obj])!).ConfigureAwait(false);
                 yield return (T)envelope;
                 yield break;
             }
         }
     }
 
-    private static readonly Dictionary<Type, (IHandler consumer, MethodInfo methodInfo)> Cache = [];
+    private static readonly Dictionary<Type, (IMessageHandler messageHandler, MethodInfo methodInfo)> Cache = [];
 
 
-    private static (IHandler consumer, MethodInfo methodInfo) Memoize
+    private static (IMessageHandler messageHandler, MethodInfo methodInfo) Memoize
     (
-        Dictionary<Type, IHandler> registry,
+        Dictionary<Type, IMessageHandler> registry,
         Type objType,
-        Func<Dictionary<Type, IHandler>, Type, (IHandler consumer, MethodInfo methodInfo)> func
+        Func<Dictionary<Type, IMessageHandler>, Type, (IMessageHandler messageHandler, MethodInfo methodInfo)> func
     )
     {
         if (!Cache.TryGetValue(objType, out var entry))
@@ -127,13 +127,13 @@ public sealed class Subscription: IAsyncDisposable
         Cache[objType] = entry;
         return entry;
     }
-    private static (IHandler consumer, MethodInfo methodInfo) Consumer(Dictionary<Type, IHandler> registry, Type objType)
+    private static (IMessageHandler messageHandler, MethodInfo methodInfo) MessageHandler(Dictionary<Type, IMessageHandler> registry, Type objType)
     {
-        var consumer = registry[objType] ?? throw new NotSupportedException($"Unregistered type for {objType.AssemblyQualifiedName}");
-        var methodInfos = consumer.GetType().GetMethods(BindingFlags.Instance|BindingFlags.Public);
+        var messageHandler = registry[objType] ?? throw new NotSupportedException($"Unregistered type for {objType.AssemblyQualifiedName}");
+        var methodInfos = messageHandler.GetType().GetMethods(BindingFlags.Instance|BindingFlags.Public);
         var methodInfo = methodInfos.SingleOrDefault(mi=>mi.GetParameters().Any(pa => pa.ParameterType == objType))
                          ?? throw new NotSupportedException($"Unregistered type for {objType.AssemblyQualifiedName}");
-        return (consumer, methodInfo);
+        return (messageHandler, methodInfo);
     }
 
     private static async IAsyncEnumerable<IEnvelope> ReadExistingRowsFromSnapshot(

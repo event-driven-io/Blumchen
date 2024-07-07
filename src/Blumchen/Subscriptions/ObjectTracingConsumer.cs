@@ -1,6 +1,6 @@
 namespace Blumchen.Subscriptions;
 
-internal class ObjectTracingConsumer: IHandler<object>
+internal class ObjectTracingConsumer: IMessageHandler<object>
 {
     private static ulong _counter = 0;
     public Task Handle(object value)

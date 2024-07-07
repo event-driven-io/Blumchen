@@ -9,12 +9,14 @@ namespace Blumchen.Subscriptions;
 
 public sealed class SubscriptionOptionsBuilder
 {
+
     private NpgsqlConnectionStringBuilder? _connectionStringBuilder;
     private NpgsqlDataSource? _dataSource;
     private PublicationManagement.PublicationSetupOptions _publicationSetupOptions = new();
     private ReplicationSlotManagement.ReplicationSlotSetupOptions? _replicationSlotSetupOptions;
     private IReplicationDataMapper? _dataMapper;
-    private readonly Dictionary<Type, IHandler> _registry = [];
+    private readonly Dictionary<Type, IMessageHandler> _registry = [];
+
     private IErrorProcessor? _errorProcessor;
     private INamingPolicy? _namingPolicy;
     private JsonSerializerContext? _jsonSerializerContext;
@@ -73,7 +75,7 @@ public sealed class SubscriptionOptionsBuilder
     }
 
     [UsedImplicitly]
-    public SubscriptionOptionsBuilder Consumes<T>(IHandler<T> handler) where T : class
+    public SubscriptionOptionsBuilder Consumes<T>(IMessageHandler<T> handler) where T : class
     {
         _registry.TryAdd(typeof(T), handler);
         return this;

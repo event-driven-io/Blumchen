@@ -6,6 +6,9 @@ namespace SubscriberWorker;
 
 public class HandlerBase(ILogger<HandlerBase> logger)
 {
+    private int _counter;
+    private int _completed;
+
     private Task ReportSuccess<T>(int count)
     {
         if (logger.IsEnabled(LogLevel.Debug))
@@ -13,8 +16,6 @@ public class HandlerBase(ILogger<HandlerBase> logger)
         return Task.CompletedTask;
     }
 
-    private int _counter;
-    private int _completed;
     protected Task Handle<T>(T value) =>
         Interlocked.Increment(ref _counter) % 10 == 0
             //Simulating some exception on out of process dependencies
@@ -22,14 +23,14 @@ public class HandlerBase(ILogger<HandlerBase> logger)
             : ReportSuccess<T>(Interlocked.Increment(ref _completed));
 }
 
-public class HandleImpl2(ILogger<HandleImpl2> logger): HandlerBase(logger),
-    IHandler<UserDeletedContract>
+public class HandleImpl2(ILogger<HandleImpl2> logger)
+    : HandlerBase(logger), IMessageHandler<UserDeletedContract>
 {
     public Task Handle(UserDeletedContract value) => Handle<UserDeletedContract>(value);
 }
 
-public class HandleImpl1(ILogger<HandleImpl1> logger) : HandlerBase(logger),
-    IHandler<UserCreatedContract>, IHandler<UserModifiedContract>
+public class HandleImpl1(ILogger<HandleImpl1> logger)
+    : HandlerBase(logger), IMessageHandler<UserCreatedContract>, IMessageHandler<UserModifiedContract>
 {
     public Task Handle(UserCreatedContract value) => Handle<UserCreatedContract>(value);
 

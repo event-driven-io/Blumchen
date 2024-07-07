@@ -7,7 +7,7 @@ namespace Blumchen.DependencyInjection;
 
 public class Worker<T>(
     WorkerOptions options,
-    ILogger<Worker<T>> logger): BackgroundService where T : class, IHandler
+    ILogger<Worker<T>> logger): BackgroundService where T : class, IMessageHandler
 {
     private string WorkerName { get; } = $"{nameof(Worker<T>)}<{typeof(T).Name}>";
     private static readonly ConcurrentDictionary<string, Action<ILogger, string, object[]>> LoggingActions = new(StringComparer.OrdinalIgnoreCase);

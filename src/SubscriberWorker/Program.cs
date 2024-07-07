@@ -13,12 +13,9 @@ using Npgsql;
 using Blumchen.Subscriptions.Management;
 using Polly.Registry;
 
-
 #pragma warning disable CS8601 // Possible null reference assignment.
 Console.Title = typeof(Program).Assembly.GetName().Name;
 #pragma warning restore CS8601 // Possible null reference assignment.
-
-
 
 AppDomain.CurrentDomain.UnhandledException += (_, e) => Console.Out.WriteLine(e.ExceptionObject.ToString());
 TaskScheduler.UnobservedTaskException += (_, e) => Console.Out.WriteLine(e.Exception.ToString());
@@ -27,10 +24,9 @@ var cancellationTokenSource = new CancellationTokenSource();
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.Services
-
-    .AddSingleton<IHandler<UserCreatedContract>, HandleImpl1>()
-    .AddSingleton<IHandler<UserModifiedContract>, HandleImpl1>()
-    .AddSingleton<IHandler<UserDeletedContract>, HandleImpl2>()
+    .AddSingleton<IMessageHandler<UserCreatedContract>, HandleImpl1>()
+    .AddSingleton<IMessageHandler<UserModifiedContract>, HandleImpl1>()
+    .AddSingleton<IMessageHandler<UserDeletedContract>, HandleImpl2>()
 
     .AddSingleton<INamingPolicy, AttributeNamingPolicy>()
 
@@ -71,12 +67,11 @@ builder.Services
                     .WithErrorProcessor(provider.GetRequiredService<IErrorProcessor>())
                     .NamingPolicy(provider.GetRequiredService<INamingPolicy>())
                     .JsonContext(SourceGenerationContext.Default)
-                    .Consumes(provider.GetRequiredService<IHandler<UserCreatedContract>>())
-                    .Consumes(provider.GetRequiredService<IHandler<UserModifiedContract>>()))
+                    .Consumes(provider.GetRequiredService<IMessageHandler<UserCreatedContract>>())
+                    .Consumes(provider.GetRequiredService<IMessageHandler<UserModifiedContract>>())
+                )
             .ResiliencyPipeline(provider.GetRequiredService<ResiliencePipelineProvider<string>>().GetPipeline("default"))
-            
     )
-
     .AddBlumchen<HandleImpl2>((provider, workerOptions) =>
         workerOptions
             .Subscription(subscriptionOptions =>
@@ -87,10 +82,10 @@ builder.Services
                     .WithErrorProcessor(provider.GetRequiredService<IErrorProcessor>())
                     .NamingPolicy(provider.GetRequiredService<INamingPolicy>())
                     .JsonContext(SourceGenerationContext.Default)
-                    .Consumes(provider.GetRequiredService<IHandler<UserDeletedContract>>()))
+                    .Consumes(provider.GetRequiredService<IMessageHandler<UserDeletedContract>>())
+                )
             .ResiliencyPipeline(provider.GetRequiredService<ResiliencePipelineProvider<string>>().GetPipeline("default"))
-        )
-    ;
+        );
 
 await builder
     .Build()
