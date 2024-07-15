@@ -5,13 +5,12 @@ using Microsoft.Extensions.Logging;
 namespace SubscriberWorker;
 
 
-public class Handler<T>(ILoggerFactory loggerFactory): IHandler<T> where T : class
+public class Handler<T>(ILogger logger): IHandler<T> where T : class
 {
-    private readonly ILogger _logger = loggerFactory.CreateLogger<Handler<T>>();
     private Task ReportSuccess(int count)
     {
-        if(_logger.IsEnabled(LogLevel.Debug))
-            _logger.LogDebug($"Read #{count} messages {typeof(T).FullName}");
+        if(logger.IsEnabled(LogLevel.Debug))
+            logger.LogDebug($"Read #{count} messages {typeof(T).FullName}");
         return Task.CompletedTask;
     }
 
