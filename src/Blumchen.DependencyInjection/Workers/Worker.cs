@@ -49,7 +49,7 @@ public abstract class Worker<T>(
                         .ConnectionString(connectionString)
                         .WithTable(tableDescriptorBuilder)
                         .WithErrorProcessor(errorProcessor)
-                        .Handles<T, IHandler<T>>(handler)
+                        .Consumes<T, IHandler<T>>(handler)
                         .NamingPolicy(namingPolicy)
                         .JsonContext(jsonSerializerContext)
                         .WithPublicationOptions(publicationSetupOptions)

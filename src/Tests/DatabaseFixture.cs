@@ -85,7 +85,7 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
             .ConnectionString(connectionString)
             .JsonContext(info)
             .NamingPolicy(namingPolicy)
-            .Handles<T, TestHandler<T>>(consumer)
+            .Consumes<T, TestHandler<T>>(consumer)
             .WithTable(o => o.Name(eventsTable))
             .WithPublicationOptions(
                 new PublicationManagement.PublicationSetupOptions(PublicationName: publicationName ?? Randomise("events_pub"))

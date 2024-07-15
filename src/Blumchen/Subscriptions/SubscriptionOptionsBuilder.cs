@@ -83,7 +83,7 @@ public sealed class SubscriptionOptionsBuilder
     }
 
     [UsedImplicitly]
-    public SubscriptionOptionsBuilder Handles<T, TU>(TU handler) where T : class
+    public SubscriptionOptionsBuilder Consumes<T, TU>(TU handler) where T : class
         where TU : class, IHandler<T>
     {
         _registry.TryAdd(typeof(T), handler);
