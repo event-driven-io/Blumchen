@@ -2,6 +2,7 @@ using Blumchen.Serialization;
 using Blumchen.Subscriptions;
 using Commons;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 using Subscriber;
 
 #pragma warning disable CS8601 // Possible null reference assignment.
@@ -20,8 +21,11 @@ await using var subscription1 = subscription.ConfigureAwait(false);
 
 try
 {
+    var dataSourceBuilder = new NpgsqlDataSourceBuilder(Settings.ConnectionString)
+        .UseLoggerFactory(LoggerFactory.Create(builder => builder.AddConsole()));
     var cursor = subscription.Subscribe(
         builder => builder
+            .DataSource(dataSourceBuilder.Build())
             .ConnectionString(Settings.ConnectionString)
             .WithTable(options => options
                 .Id("id")
@@ -31,7 +35,7 @@ try
             .NamingPolicy(new AttributeNamingPolicy())
             .JsonContext(SourceGenerationContext.Default)
             .Handles<UserCreatedContract, Consumer>(consumer)
-            .Handles<UserDeletedContract, Consumer>(consumer), LoggerFactory.Create(builder => builder.AddConsole()), ct
+            .Handles<UserDeletedContract, Consumer>(consumer), ct:ct
     ).GetAsyncEnumerator(ct);
     await using var cursor1 = cursor.ConfigureAwait(false);
     while (await cursor.MoveNextAsync().ConfigureAwait(false) && !ct.IsCancellationRequested);

@@ -81,6 +81,7 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
         var consumer = new TestHandler<T>(log, jsonTypeInfo);
         var subscriptionOptionsBuilder = new SubscriptionOptionsBuilder()
             .WithErrorProcessor(new TestOutErrorProcessor(Output))
+            .DataSource(new NpgsqlDataSourceBuilder(connectionString).Build())
             .ConnectionString(connectionString)
             .JsonContext(info)
             .NamingPolicy(namingPolicy)

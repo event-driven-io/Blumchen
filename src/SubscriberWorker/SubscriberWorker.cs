@@ -1,23 +1,25 @@
 using System.Text.Json.Serialization;
-using Blumchen.Configuration;
 using Blumchen.Serialization;
 using Blumchen.Subscriptions;
 using Blumchen.Subscriptions.Management;
 using Blumchen.Workers;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 using Polly.Registry;
 // ReSharper disable ClassNeverInstantiated.Global
 
 namespace SubscriberWorker;
 public class SubscriberWorker<T>(
-    DatabaseOptions databaseOptions,
+    NpgsqlDataSource dataSource,
+    string connectionString,
     IHandler<T> handler,
     JsonSerializerContext jsonSerializerContext,
     ResiliencePipelineProvider<string> pipelineProvider,
     INamingPolicy namingPolicy,
     IErrorProcessor errorProcessor,
-    ILoggerFactory loggerFactory
-): Worker<T>(databaseOptions
+    ILogger logger
+): Worker<T>(dataSource
+    , connectionString
     , handler
     , jsonSerializerContext
     , errorProcessor
@@ -26,4 +28,4 @@ public class SubscriberWorker<T>(
     , new PublicationManagement.PublicationSetupOptions($"{typeof(T).Name}_pub")
     , new ReplicationSlotManagement.ReplicationSlotSetupOptions($"{typeof(T).Name}_slot")
     , tableDescriptorBuilder => tableDescriptorBuilder.UseDefaults()
-    , loggerFactory) where T : class;
+    , logger) where T : class;

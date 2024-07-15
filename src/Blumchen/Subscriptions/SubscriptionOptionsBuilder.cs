@@ -2,13 +2,15 @@ using Blumchen.Serialization;
 using Blumchen.Subscriptions.Management;
 using Blumchen.Subscriptions.Replication;
 using JetBrains.Annotations;
+using Npgsql;
 using System.Text.Json.Serialization;
 
 namespace Blumchen.Subscriptions;
 
 public sealed class SubscriptionOptionsBuilder
 {
-    private static string? _connectionString;
+    private static NpgsqlConnectionStringBuilder? _connectionStringBuilder;
+    private static NpgsqlDataSource? _dataSource;
     private static PublicationManagement.PublicationSetupOptions _publicationSetupOptions;
     private static ReplicationSlotManagement.ReplicationSlotSetupOptions? _replicationSlotSetupOptions;
     private static IReplicationDataMapper? _dataMapper;
@@ -22,7 +24,7 @@ public sealed class SubscriptionOptionsBuilder
 
     static SubscriptionOptionsBuilder()
     {
-        _connectionString = null;
+        _connectionStringBuilder = default;
         _publicationSetupOptions = new();
         _replicationSlotSetupOptions = default;
         _dataMapper = default;
@@ -40,7 +42,14 @@ public sealed class SubscriptionOptionsBuilder
     [UsedImplicitly]
     public SubscriptionOptionsBuilder ConnectionString(string connectionString)
     {
-        _connectionString = connectionString;
+        _connectionStringBuilder = new NpgsqlConnectionStringBuilder(connectionString);
+        return this;
+    }
+
+    [UsedImplicitly]
+    public SubscriptionOptionsBuilder DataSource(NpgsqlDataSource dataSource)
+    {
+        _dataSource = dataSource;
         return this;
     }
 
@@ -91,7 +100,8 @@ public sealed class SubscriptionOptionsBuilder
     internal ISubscriptionOptions Build()
     {
         _messageTable ??= TableDescriptorBuilder.Build();
-        ArgumentNullException.ThrowIfNull(_connectionString);
+        ArgumentNullException.ThrowIfNull(_connectionStringBuilder);
+        ArgumentNullException.ThrowIfNull(_dataSource);
         ArgumentNullException.ThrowIfNull(_jsonSerializerContext);
 
         var typeResolver = new JsonTypeResolver(_jsonSerializerContext, _namingPolicy);
@@ -104,7 +114,8 @@ public sealed class SubscriptionOptionsBuilder
         if (_registry.Count == 0)_registry.Add(typeof(object), new ObjectTracingConsumer());
         
         return new SubscriptionOptions(
-            _connectionString,
+            _dataSource,
+            _connectionStringBuilder,
             _publicationSetupOptions,
             _replicationSlotSetupOptions ?? new ReplicationSlotManagement.ReplicationSlotSetupOptions(),
             _errorProcessor ?? new ConsoleOutErrorProcessor(),

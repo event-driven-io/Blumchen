@@ -30,21 +30,16 @@ public sealed class Subscription: IAsyncDisposable
     private ISubscriptionOptions? _options;
     public async IAsyncEnumerable<IEnvelope> Subscribe(
         Func<SubscriptionOptionsBuilder, SubscriptionOptionsBuilder> builder,
-        ILoggerFactory? loggerFactory = null,
         [EnumeratorCancellation] CancellationToken ct = default
     )
     {
         _options = builder(_builder).Build();
-        var (connectionString, publicationSetupOptions, replicationSlotSetupOptions, errorProcessor, replicationDataMapper, registry) = _options;
-        var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
-        dataSourceBuilder.UseLoggerFactory(loggerFactory);
-
-        var dataSource = dataSourceBuilder.Build();
+        var (dataSource, connectionStringBuilder, publicationSetupOptions, replicationSlotSetupOptions, errorProcessor, replicationDataMapper, registry) = _options;
+        
         await dataSource.EnsureTableExists(publicationSetupOptions.TableDescriptor, ct).ConfigureAwait(false);
 
-        _connection = new LogicalReplicationConnection(connectionString);
+        _connection = new LogicalReplicationConnection(connectionStringBuilder.ConnectionString);
         await _connection.Open(ct).ConfigureAwait(false);
-
 
         await dataSource.SetupPublication(publicationSetupOptions, ct).ConfigureAwait(false);
         var result = await dataSource.SetupReplicationSlot(_connection, replicationSlotSetupOptions, ct).ConfigureAwait(false);

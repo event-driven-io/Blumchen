@@ -38,7 +38,7 @@ public class When_Subscription_Does_Not_Exist_And_Table_Is_Empty(ITestOutputHelp
             SubscriberContext.Default, sharedNamingPolicy, Output.WriteLine);
         var subscription = new Subscription();
         await using var subscription1 = subscription.ConfigureAwait(false);
-        await foreach (var envelope in subscription.Subscribe(_ => subscriptionOptions, null, ct).ConfigureAwait(false))
+        await foreach (var envelope in subscription.Subscribe(_ => subscriptionOptions, ct).ConfigureAwait(false))
         {
             Assert.Equal(@expected, ((OkEnvelope)envelope).Value);
             return;

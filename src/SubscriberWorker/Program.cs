@@ -1,5 +1,4 @@
 using System.Text.Json.Serialization;
-using Blumchen.Configuration;
 using Blumchen.Serialization;
 using Blumchen.Subscriptions;
 using Blumchen.Workers;
@@ -10,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Polly.Retry;
 using Polly;
 using SubscriberWorker;
+using Npgsql;
 
 
 #pragma warning disable CS8601 // Possible null reference assignment.
@@ -29,19 +29,21 @@ builder.Services
     .AddSingleton<IHandler<UserCreatedContract>, Handler<UserCreatedContract>>()
     .AddBlumchen<SubscriberWorker<UserDeletedContract>, UserDeletedContract>()
     .AddSingleton<IHandler<UserDeletedContract>, Handler<UserDeletedContract>>()
-
+    .AddSingleton(Settings.ConnectionString)
+    .AddTransient(sp =>
+        new NpgsqlDataSourceBuilder(Settings.ConnectionString)
+            .UseLoggerFactory(sp.GetRequiredService<ILoggerFactory>()).Build())
     .AddSingleton<INamingPolicy, AttributeNamingPolicy>()
     .AddSingleton<IErrorProcessor, ConsoleOutErrorProcessor>()
     .AddSingleton<JsonSerializerContext, SourceGenerationContext>()
-    .AddSingleton(new DatabaseOptions(Settings.ConnectionString))
-    .AddResiliencePipeline("default",(pipelineBuilder,context) =>
+    .AddResiliencePipeline("default", (pipelineBuilder, _) =>
         pipelineBuilder
-        .AddRetry(new RetryStrategyOptions
-        {
-            BackoffType = DelayBackoffType.Constant,
-            Delay = TimeSpan.FromSeconds(5),
-            MaxRetryAttempts = int.MaxValue
-        }).Build())
+            .AddRetry(new RetryStrategyOptions
+            {
+                BackoffType = DelayBackoffType.Constant,
+                Delay = TimeSpan.FromSeconds(5),
+                MaxRetryAttempts = int.MaxValue
+            }).Build())
     .AddLogging(loggingBuilder =>
     {
         loggingBuilder
@@ -51,7 +53,7 @@ builder.Services
             .AddFilter("Blumchen", LogLevel.Debug)
             .AddFilter("SubscriberWorker", LogLevel.Debug)
             .AddSimpleConsole();
-    });
+    }).AddSingleton<ILogger>(sp => sp.GetRequiredService<ILoggerFactory>().CreateLogger<ILogger>());
 
 await builder
     .Build()

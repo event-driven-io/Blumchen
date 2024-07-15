@@ -1,18 +1,19 @@
 using System.Collections.Concurrent;
 using System.Text.Json.Serialization;
-using Blumchen.Configuration;
 using Blumchen.Serialization;
 using Blumchen.Subscriptions;
 using Blumchen.Subscriptions.Management;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 using Polly;
 
 
 namespace Blumchen.Workers;
 
 public abstract class Worker<T>(
-    DatabaseOptions databaseOptions,
+    NpgsqlDataSource dataSource,
+    string connectionString,
     IHandler<T> handler,
     JsonSerializerContext jsonSerializerContext,
     IErrorProcessor errorProcessor,
@@ -21,9 +22,8 @@ public abstract class Worker<T>(
     PublicationManagement.PublicationSetupOptions publicationSetupOptions,
     ReplicationSlotManagement.ReplicationSlotSetupOptions replicationSlotSetupOptions,
     Func<TableDescriptorBuilder,TableDescriptorBuilder> tableDescriptorBuilder,
-    ILoggerFactory loggerFactory): BackgroundService where T : class
+    ILogger logger): BackgroundService where T : class
 {
-    private readonly ILogger<Worker<T>> _logger = loggerFactory.CreateLogger<Worker<T>>();
     private string WorkerName { get; } = $"{nameof(Worker<T>)}<{typeof(T).Name}>";
     private static readonly ConcurrentDictionary<string, Action<ILogger, string, object[]>> LoggingActions = new(StringComparer.OrdinalIgnoreCase);
     private static void Notify(ILogger logger, LogLevel level, string template, params object[] parameters)
@@ -33,9 +33,9 @@ public abstract class Worker<T>(
             {
                 (LogLevel.Information, true) => (logger, template, parameters) => logger.LogInformation(template, parameters),
                 (LogLevel.Debug, true) => (logger, template, parameters) => logger.LogDebug(template, parameters),
-                (_, _) => (_, __, ___) => { }
+                (_, _) => (_, _, _) => { }
             };
-        LoggingActions.GetOrAdd(template,s => LoggerAction(level, logger.IsEnabled(level)))(logger, template, parameters);
+        LoggingActions.GetOrAdd(template,_ => LoggerAction(level, logger.IsEnabled(level)))(logger, template, parameters);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -45,7 +45,8 @@ public abstract class Worker<T>(
             await using var subscription = new Subscription();
             await using var cursor = subscription.Subscribe(builder =>
                     builder
-                        .ConnectionString(databaseOptions.ConnectionString)
+                        .DataSource(dataSource)
+                        .ConnectionString(connectionString)
                         .WithTable(tableDescriptorBuilder)
                         .WithErrorProcessor(errorProcessor)
                         .Handles<T, IHandler<T>>(handler)
@@ -53,13 +54,13 @@ public abstract class Worker<T>(
                         .JsonContext(jsonSerializerContext)
                         .WithPublicationOptions(publicationSetupOptions)
                         .WithReplicationOptions(replicationSlotSetupOptions)
-                , ct: token, loggerFactory: loggerFactory).GetAsyncEnumerator(token);
-            Notify(_logger, LogLevel.Information,"{WorkerName} started", WorkerName);
+                , ct: token).GetAsyncEnumerator(token);
+            Notify(logger, LogLevel.Information,"{WorkerName} started", WorkerName);
             while (await cursor.MoveNextAsync().ConfigureAwait(false) && !token.IsCancellationRequested)
-                Notify(_logger, LogLevel.Debug, "{cursor.Current} processed", cursor.Current);
+                Notify(logger, LogLevel.Debug, "{cursor.Current} processed", cursor.Current);
 
         }, stoppingToken).ConfigureAwait(false);
-        Notify(_logger, LogLevel.Information, "{WorkerName} stopped", WorkerName);
+        Notify(logger, LogLevel.Information, "{WorkerName} stopped", WorkerName);
         return;
     }
 
