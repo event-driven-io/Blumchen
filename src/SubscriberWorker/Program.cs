@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Blumchen.DependencyInjection;
 using Blumchen.Serialization;
 using Blumchen.Subscriptions;
 using Commons;
@@ -10,7 +11,6 @@ using Polly;
 using SubscriberWorker;
 using Npgsql;
 using Blumchen.Subscriptions.Management;
-using Blumchen.Workers;
 using Polly.Registry;
 
 

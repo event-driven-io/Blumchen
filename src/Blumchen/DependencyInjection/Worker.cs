@@ -3,7 +3,7 @@ using Blumchen.Subscriptions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Blumchen.Workers;
+namespace Blumchen.DependencyInjection;
 
 public class Worker<T>(
     WorkerOptions options,

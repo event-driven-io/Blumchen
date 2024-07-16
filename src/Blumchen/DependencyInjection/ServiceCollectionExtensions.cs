@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 #pragma warning disable IL2091
 
-namespace Blumchen.Workers;
+namespace Blumchen.DependencyInjection;
 
 public static class ServiceCollectionExtensions
 {

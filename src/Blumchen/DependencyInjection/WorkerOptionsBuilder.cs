@@ -1,7 +1,7 @@
 using Blumchen.Subscriptions;
 using Polly;
 
-namespace Blumchen.Workers;
+namespace Blumchen.DependencyInjection;
 
 public record WorkerOptions(ResiliencePipeline ResiliencePipeline, ISubscriptionOptions SubscriptionOptions);
 
