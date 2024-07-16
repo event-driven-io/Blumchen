@@ -6,7 +6,7 @@ using static Blumchen.Subscriptions.Management.ReplicationSlotManagement;
 
 namespace Blumchen.Subscriptions;
 
-internal interface ISubscriptionOptions
+public interface ISubscriptionOptions
 {
     [UsedImplicitly] NpgsqlDataSource DataSource { get; }
     [UsedImplicitly] NpgsqlConnectionStringBuilder ConnectionStringBuilder { get; }

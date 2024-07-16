@@ -5,7 +5,6 @@ using Blumchen.Serialization;
 using Blumchen.Subscriptions.Management;
 using Blumchen.Subscriptions.ReplicationMessageHandlers;
 using Blumchen.Subscriptions.SnapshotReader;
-using Microsoft.Extensions.Logging;
 using Npgsql;
 using Npgsql.Replication;
 using Npgsql.Replication.PgOutput;
@@ -33,9 +32,18 @@ public sealed class Subscription: IAsyncDisposable
         [EnumeratorCancellation] CancellationToken ct = default
     )
     {
-        _options = builder(_builder).Build();
-        var (dataSource, connectionStringBuilder, publicationSetupOptions, replicationSlotSetupOptions, errorProcessor, replicationDataMapper, registry) = _options;
-        
+        await foreach (var _ in Subscribe(builder(_builder).Build(), ct))
+            yield return _;
+    }
+
+    internal async IAsyncEnumerable<IEnvelope> Subscribe(
+       ISubscriptionOptions subscriptionOptions,
+       [EnumeratorCancellation] CancellationToken ct = default
+   )
+    {
+        _options = subscriptionOptions;
+        var (dataSource, connectionStringBuilder, publicationSetupOptions, replicationSlotSetupOptions, errorProcessor, replicationDataMapper, registry) = subscriptionOptions;
+
         await dataSource.EnsureTableExists(publicationSetupOptions.TableDescriptor, ct).ConfigureAwait(false);
 
         _connection = new LogicalReplicationConnection(connectionStringBuilder.ConnectionString);
@@ -60,8 +68,8 @@ public sealed class Subscription: IAsyncDisposable
             );
 
             await foreach (var envelope in ReadExistingRowsFromSnapshot(dataSource, created.SnapshotName, _options, ct).ConfigureAwait(false))
-            await foreach (var subscribe in ProcessEnvelope<IEnvelope>(envelope, registry, errorProcessor).WithCancellation(ct).ConfigureAwait(false))
-                yield return subscribe;
+                await foreach (var subscribe in ProcessEnvelope<IEnvelope>(envelope, registry, errorProcessor).WithCancellation(ct).ConfigureAwait(false))
+                    yield return subscribe;
         }
 
         await foreach (var message in

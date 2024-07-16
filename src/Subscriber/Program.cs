@@ -34,8 +34,8 @@ try
             )
             .NamingPolicy(new AttributeNamingPolicy())
             .JsonContext(SourceGenerationContext.Default)
-            .Consumes<UserCreatedContract, Consumer>(consumer)
-            .Consumes<UserDeletedContract, Consumer>(consumer), ct:ct
+            .Consumes<UserCreatedContract>(consumer)
+            .Consumes<UserDeletedContract>(consumer), ct:ct
     ).GetAsyncEnumerator(ct);
     await using var cursor1 = cursor.ConfigureAwait(false);
     while (await cursor.MoveNextAsync().ConfigureAwait(false) && !ct.IsCancellationRequested);

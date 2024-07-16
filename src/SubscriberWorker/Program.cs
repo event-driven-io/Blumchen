@@ -10,6 +10,8 @@ using Polly.Retry;
 using Polly;
 using SubscriberWorker;
 using Npgsql;
+using Blumchen.Subscriptions.Management;
+using Polly.Registry;
 
 
 #pragma warning disable CS8601 // Possible null reference assignment.
@@ -25,17 +27,16 @@ var cancellationTokenSource = new CancellationTokenSource();
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.Services
-    .AddBlumchen<SubscriberWorker<UserCreatedContract>, UserCreatedContract>()
-    .AddSingleton<IHandler<UserCreatedContract>, Handler<UserCreatedContract>>()
-    .AddBlumchen<SubscriberWorker<UserDeletedContract>, UserDeletedContract>()
-    .AddSingleton<IHandler<UserDeletedContract>, Handler<UserDeletedContract>>()
-    .AddSingleton(Settings.ConnectionString)
-    .AddTransient(sp =>
-        new NpgsqlDataSourceBuilder(Settings.ConnectionString)
-            .UseLoggerFactory(sp.GetRequiredService<ILoggerFactory>()).Build())
+
+    .AddSingleton<IHandler<UserCreatedContract>, HandleImpl1>()
+    .AddSingleton<IHandler<UserModifiedContract>, HandleImpl1>()
+    .AddSingleton<IHandler<UserDeletedContract>, HandleImpl2>()
+
     .AddSingleton<INamingPolicy, AttributeNamingPolicy>()
+
     .AddSingleton<IErrorProcessor, ConsoleOutErrorProcessor>()
     .AddSingleton<JsonSerializerContext, SourceGenerationContext>()
+
     .AddResiliencePipeline("default", (pipelineBuilder, _) =>
         pipelineBuilder
             .AddRetry(new RetryStrategyOptions
@@ -44,6 +45,7 @@ builder.Services
                 Delay = TimeSpan.FromSeconds(5),
                 MaxRetryAttempts = int.MaxValue
             }).Build())
+
     .AddLogging(loggingBuilder =>
     {
         loggingBuilder
@@ -53,7 +55,42 @@ builder.Services
             .AddFilter("Blumchen", LogLevel.Debug)
             .AddFilter("SubscriberWorker", LogLevel.Debug)
             .AddSimpleConsole();
-    }).AddSingleton<ILogger>(sp => sp.GetRequiredService<ILoggerFactory>().CreateLogger<ILogger>());
+    })
+    .AddTransient(sp =>
+        new NpgsqlDataSourceBuilder(Settings.ConnectionString)
+            .UseLoggerFactory(sp.GetRequiredService<ILoggerFactory>()).Build())
+
+    .AddBlumchen<HandleImpl1>((provider, workerOptions) =>
+        workerOptions
+            .Subscription(subscriptionOptions =>
+                subscriptionOptions
+                    .ConnectionString(Settings.ConnectionString)
+                    .DataSource(provider.GetRequiredService<NpgsqlDataSource>())
+                    .WithReplicationOptions(new ReplicationSlotManagement.ReplicationSlotSetupOptions($"{nameof(HandleImpl1)}_slot"))
+                    .WithPublicationOptions(new PublicationManagement.PublicationSetupOptions($"{nameof(HandleImpl1)}_pub"))
+                    .WithErrorProcessor(provider.GetRequiredService<IErrorProcessor>())
+                    .NamingPolicy(provider.GetRequiredService<INamingPolicy>())
+                    .JsonContext(SourceGenerationContext.Default)
+                    .Consumes(provider.GetRequiredService<IHandler<UserCreatedContract>>())
+                    .Consumes(provider.GetRequiredService<IHandler<UserModifiedContract>>()))
+            .ResiliencyPipeline(provider.GetRequiredService<ResiliencePipelineProvider<string>>().GetPipeline("default"))
+            
+    )
+
+    .AddBlumchen<HandleImpl2>((provider, workerOptions) =>
+        workerOptions
+            .Subscription(subscriptionOptions =>
+                subscriptionOptions.ConnectionString(Settings.ConnectionString)
+                    .DataSource(provider.GetRequiredService<NpgsqlDataSource>())
+                    .WithReplicationOptions(new ReplicationSlotManagement.ReplicationSlotSetupOptions($"{nameof(HandleImpl2)}_slot"))
+                    .WithPublicationOptions(new PublicationManagement.PublicationSetupOptions($"{nameof(HandleImpl2)}_pub"))
+                    .WithErrorProcessor(provider.GetRequiredService<IErrorProcessor>())
+                    .NamingPolicy(provider.GetRequiredService<INamingPolicy>())
+                    .JsonContext(SourceGenerationContext.Default)
+                    .Consumes(provider.GetRequiredService<IHandler<UserDeletedContract>>()))
+            .ResiliencyPipeline(provider.GetRequiredService<ResiliencePipelineProvider<string>>().GetPipeline("default"))
+        )
+    ;
 
 await builder
     .Build()

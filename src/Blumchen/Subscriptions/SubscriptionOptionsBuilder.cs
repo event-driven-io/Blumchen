@@ -9,33 +9,23 @@ namespace Blumchen.Subscriptions;
 
 public sealed class SubscriptionOptionsBuilder
 {
-    private static NpgsqlConnectionStringBuilder? _connectionStringBuilder;
-    private static NpgsqlDataSource? _dataSource;
-    private static PublicationManagement.PublicationSetupOptions _publicationSetupOptions;
-    private static ReplicationSlotManagement.ReplicationSlotSetupOptions? _replicationSlotSetupOptions;
-    private static IReplicationDataMapper? _dataMapper;
+    private NpgsqlConnectionStringBuilder? _connectionStringBuilder;
+    private NpgsqlDataSource? _dataSource;
+    private PublicationManagement.PublicationSetupOptions _publicationSetupOptions = new();
+    private ReplicationSlotManagement.ReplicationSlotSetupOptions? _replicationSlotSetupOptions;
+    private IReplicationDataMapper? _dataMapper;
     private readonly Dictionary<Type, IHandler> _registry = [];
     private IErrorProcessor? _errorProcessor;
     private INamingPolicy? _namingPolicy;
     private JsonSerializerContext? _jsonSerializerContext;
-    private static readonly TableDescriptorBuilder TableDescriptorBuilder = new();
+    private readonly TableDescriptorBuilder _tableDescriptorBuilder = new();
     private TableDescriptorBuilder.MessageTable? _messageTable;
-
-
-    static SubscriptionOptionsBuilder()
-    {
-        _connectionStringBuilder = default;
-        _publicationSetupOptions = new();
-        _replicationSlotSetupOptions = default;
-        _dataMapper = default;
-    }
-
     
     [UsedImplicitly]
     public SubscriptionOptionsBuilder WithTable(
         Func<TableDescriptorBuilder, TableDescriptorBuilder> builder)
     {
-        _messageTable = builder(TableDescriptorBuilder).Build();
+        _messageTable = builder(_tableDescriptorBuilder).Build();
         return this;
     }
 
@@ -83,8 +73,7 @@ public sealed class SubscriptionOptionsBuilder
     }
 
     [UsedImplicitly]
-    public SubscriptionOptionsBuilder Consumes<T, TU>(TU handler) where T : class
-        where TU : class, IHandler<T>
+    public SubscriptionOptionsBuilder Consumes<T>(IHandler<T> handler) where T : class
     {
         _registry.TryAdd(typeof(T), handler);
         return this;
@@ -99,7 +88,7 @@ public sealed class SubscriptionOptionsBuilder
     
     internal ISubscriptionOptions Build()
     {
-        _messageTable ??= TableDescriptorBuilder.Build();
+        _messageTable ??= _tableDescriptorBuilder.Build();
         ArgumentNullException.ThrowIfNull(_connectionStringBuilder);
         ArgumentNullException.ThrowIfNull(_dataSource);
         ArgumentNullException.ThrowIfNull(_jsonSerializerContext);
@@ -121,11 +110,11 @@ public sealed class SubscriptionOptionsBuilder
             _errorProcessor ?? new ConsoleOutErrorProcessor(),
             _dataMapper,
             _registry);
+
         static void Ensure(Func<IEnumerable<Type>> evalFn, string formattedMsg)
         {
             var misses = evalFn().ToArray();
             if (misses.Length > 0) throw new Exception(string.Format(formattedMsg, string.Join(", ", misses.Select(t => $"'{t.Name}'"))));
         }
-
     }
 }
