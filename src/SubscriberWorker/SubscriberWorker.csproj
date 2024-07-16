@@ -16,7 +16,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Blumchen.DependencyInjection\Blumchen.DependencyInjection.csproj" />
     <ProjectReference Include="..\Commons\Commons.csproj" />
   </ItemGroup>
 

@@ -1,7 +1,6 @@
 using System.Text.Json.Serialization;
 using Blumchen.Serialization;
 using Blumchen.Subscriptions;
-using Blumchen.Workers;
 using Commons;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -11,6 +10,7 @@ using Polly;
 using SubscriberWorker;
 using Npgsql;
 using Blumchen.Subscriptions.Management;
+using Blumchen.Workers;
 using Polly.Registry;
 
 
