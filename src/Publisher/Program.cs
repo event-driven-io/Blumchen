@@ -14,6 +14,7 @@ Console.WriteLine("How many messages do you want to publish?(press CTRL+C to exi
 var resolver = new PublisherSetupOptionsBuilder()
     .JsonContext(SourceGenerationContext.Default)
     .NamingPolicy(new AttributeNamingPolicy())
+    .WithTable(builder => builder.UseDefaults())//default, but explicit
     .Build();
 
 do
