@@ -1,3 +1,4 @@
+using Blumchen.Database;
 using Blumchen.Publications;
 using Blumchen.Serialization;
 using Commons;
@@ -10,12 +11,7 @@ using UserSubscribed = Publisher.UserSubscribed;
 
 Console.Title = typeof(Program).Assembly.GetName().Name!;
 Console.WriteLine("How many messages do you want to publish?(press CTRL+C to exit):");
-
-var resolver = new PublisherSetupOptionsBuilder()
-    .JsonContext(SourceGenerationContext.Default)
-    .NamingPolicy(new AttributeNamingPolicy())
-    .WithTable(builder => builder.UseDefaults())//default, but explicit
-    .Build();
+var cts = new CancellationTokenSource();
 
 do
 {
@@ -23,7 +19,19 @@ do
     var line = Console.ReadLine();
     if (line != null && int.TryParse(line, out var result))
     {
-        var cts = new CancellationTokenSource();
+        var resolver = await new PublisherSetupOptionsBuilder()
+            .JsonContext(SourceGenerationContext.Default)
+            .NamingPolicy(new AttributeNamingPolicy())
+            .WithTable(builder => builder.UseDefaults()) //default, but explicit
+            .Build()
+            .EnsureTable(Settings.ConnectionString, cts.Token)//enforce table existence and conformity - db roundtrip
+            .ConfigureAwait(false);
+
+        //Or you might want to verify at a later stage
+        await new NpgsqlDataSourceBuilder(Settings.ConnectionString)
+            .Build()
+            .EnsureTableExists(resolver.TableDescriptor, cts.Token).ConfigureAwait(false);
+
         var messages = result / 4;
         var ct = cts.Token;
         var connection = new NpgsqlConnection(Settings.ConnectionString);
