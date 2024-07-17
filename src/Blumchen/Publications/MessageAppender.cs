@@ -55,12 +55,12 @@ public static class MessageAppender
         var (typeName, jsonTypeInfo) = options.resolver.Resolve(type);
         var data = JsonSerialization.ToJson(input, jsonTypeInfo);
 
-        var connection = new NpgsqlConnection(connectionString);
-        await using var connection1 = connection.ConfigureAwait(false);
+        await using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync(ct).ConfigureAwait(false);
-        var command = connection.CreateCommand();
+        await using var command = connection.CreateCommand();
         command.CommandText =
             $"INSERT INTO {options.tableDescriptor.Name}({options.tableDescriptor.MessageType.Name}, {options.tableDescriptor.Data.Name}) values ('{typeName}', '{data}')";
+        await command.PrepareAsync(ct).ConfigureAwait(false);
         await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
@@ -71,7 +71,7 @@ public static class MessageAppender
         , NpgsqlTransaction transaction
         , CancellationToken ct) where T : class, IEnumerable
     {
-            var batch = new NpgsqlBatch(connection, transaction);
+        await using var batch = new NpgsqlBatch(connection, transaction);
             foreach (var input in inputs)
             {
                 var (typeName, jsonTypeInfo) = resolver.Resolve(input.GetType());
