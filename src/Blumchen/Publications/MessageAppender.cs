@@ -35,11 +35,13 @@ public static class MessageAppender
     {
         var (typeName, jsonTypeInfo) = typeResolver.Resolve(typeof(T));
         var data = JsonSerialization.ToJson(@input, jsonTypeInfo);
-        var command = new NpgsqlCommand(
+        
+        await using var command = new NpgsqlCommand(
             $"INSERT INTO {tableDescriptor.Name}({tableDescriptor.MessageType.Name}, {tableDescriptor.Data.Name}) values ('{typeName}', '{data}')",
             connection,
             transaction
         );
+        await command.PrepareAsync(ct).ConfigureAwait(false);
         await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
