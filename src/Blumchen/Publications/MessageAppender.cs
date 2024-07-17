@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Text.Json.Serialization.Metadata;
 using Blumchen.Serialization;
 using Npgsql;
 
@@ -28,7 +29,7 @@ public static class MessageAppender
 
     private static async Task AppendAsyncOfT<T>(T input
         , TableDescriptorBuilder.MessageTable tableDescriptor
-        , IJsonTypeResolver typeResolver
+        , ITypeResolver<JsonTypeInfo> typeResolver
         , NpgsqlConnection connection
         , NpgsqlTransaction transaction
         , CancellationToken ct) where T : class
@@ -66,7 +67,7 @@ public static class MessageAppender
 
     private static async Task AppendBatchAsyncOfT<T>(T inputs
         , TableDescriptorBuilder.MessageTable tableDescriptor
-        , IJsonTypeResolver resolver
+        , ITypeResolver<JsonTypeInfo> resolver
         , NpgsqlConnection connection
         , NpgsqlTransaction transaction
         , CancellationToken ct) where T : class, IEnumerable

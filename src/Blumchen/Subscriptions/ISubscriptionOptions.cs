@@ -10,7 +10,7 @@ public interface ISubscriptionOptions
 {
     [UsedImplicitly] NpgsqlDataSource DataSource { get; }
     [UsedImplicitly] NpgsqlConnectionStringBuilder ConnectionStringBuilder { get; }
-    IReplicationDataMapper DataMapper { get; }
+    IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler>> Registry { get; }
     [UsedImplicitly] PublicationSetupOptions PublicationOptions { get; }
     [UsedImplicitly] ReplicationSlotSetupOptions ReplicationOptions { get; }
     [UsedImplicitly] IErrorProcessor ErrorProcessor { get; }
@@ -21,8 +21,7 @@ public interface ISubscriptionOptions
         out PublicationSetupOptions publicationSetupOptions,
         out ReplicationSlotSetupOptions replicationSlotSetupOptions,
         out IErrorProcessor errorProcessor,
-        out IReplicationDataMapper dataMapper,
-        out Dictionary<Type, IMessageHandler> registry);
+        out IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler>> registry);
 }
 
 internal record SubscriptionOptions(
@@ -31,5 +30,4 @@ internal record SubscriptionOptions(
     PublicationSetupOptions PublicationOptions,
     ReplicationSlotSetupOptions ReplicationOptions,
     IErrorProcessor ErrorProcessor,
-    IReplicationDataMapper DataMapper,
-    Dictionary<Type, IMessageHandler> Registry): ISubscriptionOptions;
+    IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler>> Registry): ISubscriptionOptions;

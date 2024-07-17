@@ -40,7 +40,7 @@ public static class Run
         string snapshotName,
         TableDescriptorBuilder.MessageTable tableDescriptor,
         ISet<string> registeredTypesKeys,
-        IReplicationDataMapper dataMapper,
+        ReplicationDataMapper dataMapper,
         [EnumeratorCancellation] CancellationToken ct)
     {
         var transaction = await connection.BeginTransactionAsync(IsolationLevel.RepeatableRead, ct).ConfigureAwait(false);

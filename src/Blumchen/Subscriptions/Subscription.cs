@@ -1,8 +1,8 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Blumchen.Database;
-using Blumchen.Serialization;
 using Blumchen.Subscriptions.Management;
+using Blumchen.Subscriptions.Replication;
 using Blumchen.Subscriptions.ReplicationMessageHandlers;
 using Blumchen.Subscriptions.SnapshotReader;
 using Npgsql;
@@ -26,7 +26,7 @@ public sealed class Subscription: IAsyncDisposable
     }
     private LogicalReplicationConnection? _connection;
     private readonly SubscriptionOptionsBuilder _builder = new();
-    private ISubscriptionOptions? _options;
+
     public async IAsyncEnumerable<IEnvelope> Subscribe(
         Func<SubscriptionOptionsBuilder, SubscriptionOptionsBuilder> builder,
         [EnumeratorCancellation] CancellationToken ct = default
@@ -41,9 +41,7 @@ public sealed class Subscription: IAsyncDisposable
        [EnumeratorCancellation] CancellationToken ct = default
    )
     {
-        _options = subscriptionOptions;
-        var (dataSource, connectionStringBuilder, publicationSetupOptions, replicationSlotSetupOptions, errorProcessor, replicationDataMapper, registry) = subscriptionOptions;
-
+        var (dataSource, connectionStringBuilder, publicationSetupOptions, replicationSlotSetupOptions, errorProcessor, registry) = subscriptionOptions;
         await dataSource.EnsureTableExists(publicationSetupOptions.TableDescriptor, ct).ConfigureAwait(false);
 
         _connection = new LogicalReplicationConnection(connectionStringBuilder.ConnectionString);
@@ -51,7 +49,7 @@ public sealed class Subscription: IAsyncDisposable
 
         await dataSource.SetupPublication(publicationSetupOptions, ct).ConfigureAwait(false);
         var result = await dataSource.SetupReplicationSlot(_connection, replicationSlotSetupOptions, ct).ConfigureAwait(false);
-
+        var replicationDataMapper = new ReplicationDataMapper(registry);
         PgOutputReplicationSlot slot;
 
         if (result is not Created created)
@@ -67,9 +65,11 @@ public sealed class Subscription: IAsyncDisposable
                 )
             );
 
-            await foreach (var envelope in ReadExistingRowsFromSnapshot(dataSource, created.SnapshotName, _options, ct).ConfigureAwait(false))
-                await foreach (var subscribe in ProcessEnvelope<IEnvelope>(envelope, registry, errorProcessor).WithCancellation(ct).ConfigureAwait(false))
+            await foreach (var envelope in ReadExistingRowsFromSnapshot(dataSource, created.SnapshotName, replicationDataMapper, publicationSetupOptions.TableDescriptor, publicationSetupOptions.RegisteredTypes,  ct).ConfigureAwait(false))
+            {
+                await foreach (var subscribe in ProcessEnvelope(envelope, registry, errorProcessor).WithCancellation(ct).ConfigureAwait(false))
                     yield return subscribe;
+            }
         }
 
         await foreach (var message in
@@ -79,7 +79,7 @@ public sealed class Subscription: IAsyncDisposable
             if (message is InsertMessage insertMessage)
             {
                 var envelope = await replicationDataMapper.ReadFromReplication(insertMessage, ct).ConfigureAwait(false);
-                await foreach (var subscribe in ProcessEnvelope<IEnvelope>(envelope, registry, errorProcessor).WithCancellation(ct).ConfigureAwait(false))
+                await foreach (var subscribe in ProcessEnvelope(envelope, registry, errorProcessor).WithCancellation(ct).ConfigureAwait(false))
                     yield return subscribe;
             }
             // Always call SetReplicationStatus() or assign LastAppliedLsn and LastFlushedLsn individually
@@ -89,47 +89,44 @@ public sealed class Subscription: IAsyncDisposable
         }
     }
 
-    private static async IAsyncEnumerable<T> ProcessEnvelope<T>(
+    private static async IAsyncEnumerable<IEnvelope> ProcessEnvelope(
         IEnvelope envelope,
-        Dictionary<Type, IMessageHandler> registry,
+        IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler>> registry,
         IErrorProcessor errorProcessor
-    ) where T:class
+    )
     {
         switch (envelope)
         {
             case KoEnvelope error:
                 await errorProcessor.Process(error.Error).ConfigureAwait(false);
                 yield break;
-            case OkEnvelope okEnvelope:
+            case OkEnvelope(var value, var messageType):
             {
-                var obj = okEnvelope.Value;
-                var objType = obj.GetType();
-                var (messageHandler, methodInfo) = Memoize(registry, objType, MessageHandler);
-                await ((Task)methodInfo.Invoke(messageHandler, [obj])!).ConfigureAwait(false);
-                yield return (T)envelope;
+                var objType = value.GetType();
+                var (messageHandler, methodInfo) = Memoize(registry[messageType].Item2, messageType, objType, MessageHandler);
+                await ((Task)methodInfo.Invoke(messageHandler, [value])!).ConfigureAwait(false);
+                yield return envelope;
                 yield break;
             }
         }
     }
 
-    private static readonly Dictionary<Type, (IMessageHandler messageHandler, MethodInfo methodInfo)> Cache = [];
-
+    private static readonly Dictionary<string, (IMessageHandler messageHandler, MethodInfo methodInfo)> Cache = [];
 
     private static (IMessageHandler messageHandler, MethodInfo methodInfo) Memoize
     (
-        Dictionary<Type, IMessageHandler> registry,
+        IMessageHandler messageHandler,
+        string messageType,
         Type objType,
-        Func<Dictionary<Type, IMessageHandler>, Type, (IMessageHandler messageHandler, MethodInfo methodInfo)> func
-    )
+        Func<IMessageHandler, Type, (IMessageHandler messageHandler, MethodInfo methodInfo)> func)
     {
-        if (!Cache.TryGetValue(objType, out var entry))
-            entry = func(registry, objType);
-        Cache[objType] = entry;
+        if (!Cache.TryGetValue(messageType, out var entry))
+            entry = func(messageHandler, objType);
+        Cache[messageType] = entry;
         return entry;
     }
-    private static (IMessageHandler messageHandler, MethodInfo methodInfo) MessageHandler(Dictionary<Type, IMessageHandler> registry, Type objType)
+    private static (IMessageHandler messageHandler, MethodInfo methodInfo) MessageHandler(IMessageHandler messageHandler, Type objType)
     {
-        var messageHandler = registry[objType] ?? throw new NotSupportedException($"Unregistered type for {objType.AssemblyQualifiedName}");
         var methodInfos = messageHandler.GetType().GetMethods(BindingFlags.Instance|BindingFlags.Public);
         var methodInfo = methodInfos.SingleOrDefault(mi=>mi.GetParameters().Any(pa => pa.ParameterType == objType))
                          ?? throw new NotSupportedException($"Unregistered type for {objType.AssemblyQualifiedName}");
@@ -139,17 +136,19 @@ public sealed class Subscription: IAsyncDisposable
     private static async IAsyncEnumerable<IEnvelope> ReadExistingRowsFromSnapshot(
         NpgsqlDataSource dataSource,
         string snapshotName,
-        ISubscriptionOptions options,
-        [EnumeratorCancellation] CancellationToken ct = default
+        ReplicationDataMapper dataMapper,
+        TableDescriptorBuilder.MessageTable tableDescriptor,
+        ISet<string> registeredTypes,
+    [EnumeratorCancellation] CancellationToken ct = default
     )
     {
         var connection = await dataSource.OpenConnectionAsync(ct).ConfigureAwait(false);
         await using var connection1 = connection.ConfigureAwait(false);
         await foreach (var row in connection.GetRowsFromSnapshot(
                            snapshotName,
-                           options.PublicationOptions.TableDescriptor,
-                           options.DataMapper,
-                           options.PublicationOptions.TypeResolver.Keys().ToHashSet(),
+                           tableDescriptor,
+                           dataMapper,
+                           registeredTypes,
                            ct).ConfigureAwait(false))
             yield return row;
     }

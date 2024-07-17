@@ -1,10 +1,11 @@
+using System.Text.Json.Serialization.Metadata;
 using Blumchen.Database;
 using Blumchen.Serialization;
 using Npgsql;
 
 namespace Blumchen.Publications;
 
-public record PublisherOptions(TableDescriptorBuilder.MessageTable TableDescriptor, IJsonTypeResolver JsonTypeResolver);
+public record PublisherOptions(TableDescriptorBuilder.MessageTable TableDescriptor, ITypeResolver<JsonTypeInfo> JsonTypeResolver);
 
 public static class PublisherOptionsExtensions
 {

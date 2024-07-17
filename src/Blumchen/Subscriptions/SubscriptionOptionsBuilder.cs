@@ -9,20 +9,22 @@ namespace Blumchen.Subscriptions;
 
 public sealed class SubscriptionOptionsBuilder
 {
-
     private NpgsqlConnectionStringBuilder? _connectionStringBuilder;
     private NpgsqlDataSource? _dataSource;
     private PublicationManagement.PublicationSetupOptions _publicationSetupOptions = new();
     private ReplicationSlotManagement.ReplicationSlotSetupOptions? _replicationSlotSetupOptions;
-    private IReplicationDataMapper? _dataMapper;
-    private readonly Dictionary<Type, IMessageHandler> _registry = [];
-
+    private readonly Dictionary<Type, IMessageHandler> _typeRegistry = [];
+    private readonly Dictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler>> _replicationDataMapperSelector = [];
     private IErrorProcessor? _errorProcessor;
     private INamingPolicy? _namingPolicy;
-    private JsonSerializerContext? _jsonSerializerContext;
     private readonly TableDescriptorBuilder _tableDescriptorBuilder = new();
     private TableDescriptorBuilder.MessageTable? _messageTable;
-    
+    private readonly IReplicationJsonBMapper _stringDataMapper = new StringReplicationDataMapper(new StringReplicationDataReader());
+    private readonly IReplicationJsonBMapper _objectDataMapper = new ObjectReplicationDataMapper(new ObjectReplicationDataReader());
+    private IReplicationJsonBMapper? _jsonDataMapper;
+    private JsonSerializerContext? _jsonSerializerContext;
+
+
     [UsedImplicitly]
     public SubscriptionOptionsBuilder WithTable(
         Func<TableDescriptorBuilder, TableDescriptorBuilder> builder)
@@ -63,7 +65,7 @@ public sealed class SubscriptionOptionsBuilder
     public SubscriptionOptionsBuilder WithPublicationOptions(PublicationManagement.PublicationSetupOptions publicationOptions)
     {
         _publicationSetupOptions =
-            publicationOptions with { TypeResolver = _publicationSetupOptions.TypeResolver};
+            publicationOptions with { RegisteredTypes = _publicationSetupOptions.RegisteredTypes};
         return this;
     }
 
@@ -77,7 +79,26 @@ public sealed class SubscriptionOptionsBuilder
     [UsedImplicitly]
     public SubscriptionOptionsBuilder Consumes<T>(IMessageHandler<T> handler) where T : class
     {
-        _registry.TryAdd(typeof(T), handler);
+        _typeRegistry.Add(typeof(T), handler);
+        return this;
+    }
+
+    [UsedImplicitly]
+    public SubscriptionOptionsBuilder ConsumesRowObject<T>(IMessageHandler<object> handler) where T : class
+        => ConsumesRow<T>(handler, RawData.Object);
+
+    [UsedImplicitly]
+    public SubscriptionOptionsBuilder ConsumesRowString<T>(IMessageHandler<string> handler) where T : class
+        => ConsumesRow<T>(handler, RawData.String);
+
+    private SubscriptionOptionsBuilder ConsumesRow<T>(IMessageHandler<string> handler, RawData filter) where T : class
+    {
+        using var urnEnum = typeof(T)
+            .GetCustomAttributes(typeof(RawUrnAttribute), false)
+            .OfType<RawUrnAttribute>()
+            .Where(attribute => attribute.Data == filter)
+            .Select(attribute => attribute.Urn).GetEnumerator();
+        while (urnEnum.MoveNext()) _replicationDataMapperSelector.Add(urnEnum.Current.ToString(), new Tuple<IReplicationJsonBMapper, IMessageHandler>(_stringDataMapper, handler));
         return this;
     }
 
@@ -93,16 +114,26 @@ public sealed class SubscriptionOptionsBuilder
         _messageTable ??= _tableDescriptorBuilder.Build();
         ArgumentNullException.ThrowIfNull(_connectionStringBuilder);
         ArgumentNullException.ThrowIfNull(_dataSource);
-        ArgumentNullException.ThrowIfNull(_jsonSerializerContext);
+        if (_jsonSerializerContext != null)
+        {
 
-        var typeResolver = new JsonTypeResolver(_jsonSerializerContext, _namingPolicy);
-        foreach (var type in _registry.Keys) typeResolver.WhiteList(type);
-        _dataMapper = new ReplicationDataMapper(typeResolver);
-        _publicationSetupOptions = _publicationSetupOptions with { TypeResolver = typeResolver, TableDescriptor = _messageTable};
+            var typeResolver = new JsonTypeResolver(_jsonSerializerContext, _namingPolicy);
+            foreach (var type in _typeRegistry.Keys)
+                typeResolver.WhiteList(type);
+            _jsonDataMapper = new JsonReplicationDataMapper(typeResolver, new JsonReplicationDataReader(typeResolver));
+            foreach (var (key, value) in typeResolver.RegisteredTypes.Join(_typeRegistry,pair => pair.Value, pair => pair.Key, (pair, valuePair) => (pair.Key, valuePair.Value)))
+            {
+                _replicationDataMapperSelector.Add(key,new Tuple<IReplicationJsonBMapper, IMessageHandler>(_jsonDataMapper, value));
+            }
 
-        Ensure(() =>_registry.Keys.Except(_publicationSetupOptions.TypeResolver.Values()), "Unregistered types:{0}");
-        Ensure(() => _publicationSetupOptions.TypeResolver.Values().Except(_registry.Keys), "Unregistered consumer for type:{0}");
-        if (_registry.Count == 0)_registry.Add(typeof(object), new ObjectTracingConsumer());
+        }
+        
+        _publicationSetupOptions = _publicationSetupOptions
+            with
+            {
+                RegisteredTypes  = _replicationDataMapperSelector.Keys.ToHashSet(),
+                TableDescriptor = _messageTable
+            };
         
         return new SubscriptionOptions(
             _dataSource,
@@ -110,13 +141,12 @@ public sealed class SubscriptionOptionsBuilder
             _publicationSetupOptions,
             _replicationSlotSetupOptions ?? new ReplicationSlotManagement.ReplicationSlotSetupOptions(),
             _errorProcessor ?? new ConsoleOutErrorProcessor(),
-            _dataMapper,
-            _registry);
-
-        static void Ensure(Func<IEnumerable<Type>> evalFn, string formattedMsg)
-        {
-            var misses = evalFn().ToArray();
-            if (misses.Length > 0) throw new Exception(string.Format(formattedMsg, string.Join(", ", misses.Select(t => $"'{t.Name}'"))));
-        }
+            _replicationDataMapperSelector
+            );
+        //static void Ensure(Func<IEnumerable<Type>> evalFn, string formattedMsg)
+        //{
+        //    var misses = evalFn().ToArray();
+        //    if (misses.Length > 0) throw new Exception(string.Format(formattedMsg, string.Join(", ", misses.Select(t => $"'{t.Name}'"))));
+        //}
     }
 }

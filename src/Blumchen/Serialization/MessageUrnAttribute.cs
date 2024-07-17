@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 
 namespace Blumchen.Serialization;
 
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface)]
+[AttributeUsage(AttributeTargets.Class)]
 public class MessageUrnAttribute:
     Attribute
 {
@@ -31,6 +31,48 @@ public class MessageUrnAttribute:
         throw new UriFormatException($"Invalid URN: {fullValue}");
     }
 }
+
+
+public enum RawData
+{
+    String,
+    Object
+}
+
+[AttributeUsage(AttributeTargets.Interface, AllowMultiple = true)]
+public class RawUrnAttribute:
+    Attribute
+{
+    public RawData Data { get; }
+
+    /// <summary>
+    /// </summary>
+    /// <param name="urn">The urn value to use for this message type.</param>
+    /// <param name="data">The <see cref="RawData"/> value to bind to this <paramref name="urn"/></param>
+    public RawUrnAttribute(string urn, RawData data)
+    {
+        Data = data;
+        ArgumentException.ThrowIfNullOrEmpty(urn, nameof(urn));
+
+        if (urn.StartsWith(MessageUrn.Prefix))
+            throw new ArgumentException($"Value should not contain the default prefix '{MessageUrn.Prefix}'.", nameof(urn));
+
+        Urn = FormatUrn(urn);
+    }
+
+    public Uri Urn { get; }
+
+    private static Uri FormatUrn(string urn)
+    {
+        var fullValue = MessageUrn.Prefix + urn;
+
+        if (Uri.TryCreate(fullValue, UriKind.Absolute, out var uri))
+            return uri;
+
+        throw new UriFormatException($"Invalid URN: {fullValue}");
+    }
+}
+
 
 
 public static class MessageUrn

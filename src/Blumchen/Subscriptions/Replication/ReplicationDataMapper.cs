@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using Blumchen.Serialization;
 using Blumchen.Subscriptions.ReplicationMessageHandlers;
 using Npgsql;
@@ -7,7 +8,61 @@ using Npgsql.Replication.PgOutput.Messages;
 
 namespace Blumchen.Subscriptions.Replication;
 
-internal sealed class ReplicationDataMapper(JsonTypeResolver resolver): IReplicationDataMapper
+internal interface IReplicationDataReader<T>
+{
+    Task<T> Read(ReplicationValue replicationValue,  CancellationToken ct, Type? type = default);
+    Task<T> Read(NpgsqlDataReader reader, CancellationToken ct, Type? type = default);
+}
+
+internal class ObjectReplicationDataReader: IReplicationDataReader<object>
+{
+    public Task<object> Read(ReplicationValue replicationValue, CancellationToken ct, Type? type = default)
+        => replicationValue.Get<object>(ct).AsTask();
+
+
+    public Task<object> Read(NpgsqlDataReader reader, CancellationToken ct, Type? type = default)
+        => reader.GetFieldValueAsync<object>(2, ct);
+}
+
+
+internal class StringReplicationDataReader : IReplicationDataReader<string>
+{
+    public async Task<string> Read(ReplicationValue replicationValue, CancellationToken ct, Type? type = default)
+    {
+        using var tr = replicationValue.GetTextReader();
+        return await tr.ReadToEndAsync(ct).ConfigureAwait(false);
+    }
+
+
+    public async Task<string> Read(NpgsqlDataReader reader, CancellationToken ct, Type? type = default)
+    {
+        using var tr = await reader.GetTextReaderAsync(2, ct).ConfigureAwait(false);
+        return await tr.ReadToEndAsync(ct).ConfigureAwait(false);
+    }
+}
+
+internal class JsonReplicationDataReader(JsonTypeResolver resolver): IReplicationDataReader<object>
+{
+    public async Task<object> Read(ReplicationValue replicationValue, CancellationToken ct, Type? type = default)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+        await using var stream = replicationValue.GetStream();
+        return await JsonSerialization.FromJsonAsync(type, stream, resolver.SerializationContext, ct)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<object> Read(NpgsqlDataReader reader, CancellationToken ct, Type? type = default)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+        var stream = await reader.GetStreamAsync(2, ct).ConfigureAwait(false);
+        await using var stream1 = stream.ConfigureAwait(false);
+        return await JsonSerialization.FromJsonAsync(type, stream, resolver.SerializationContext, ct)
+            .ConfigureAwait(false);
+    }
+}
+
+internal class ReplicationDataMapper(IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler>> mapperSelector)
+    : IReplicationDataMapper
 {
     public async Task<IEnvelope> ReadFromReplication(InsertMessage insertMessage, CancellationToken ct)
     {
@@ -32,16 +87,12 @@ internal sealed class ReplicationDataMapper(JsonTypeResolver resolver): IReplica
                             break;
                         }
                     case 2 when column.GetDataTypeName().Equals("jsonb", StringComparison.OrdinalIgnoreCase):
-                    {
-                        var type = resolver.Resolve(typeName);
-                        ArgumentNullException.ThrowIfNull(type, typeName);
-                        return new OkEnvelope(await JsonSerialization.FromJsonAsync(type, column.GetStream(), resolver.SerializationContext, ct).ConfigureAwait(false));
-                    }
+                        return await mapperSelector[typeName].Item1.ReadFromReplication(id, typeName, column, ct);
                 }
             }
             catch (Exception ex) when (ex is ArgumentException or NotSupportedException or InvalidOperationException or JsonException)
             {
-                return new KoEnvelope(ex,id);
+                return new KoEnvelope(ex, id);
             }
             columnNumber++;
         }
@@ -54,12 +105,9 @@ internal sealed class ReplicationDataMapper(JsonTypeResolver resolver): IReplica
         try
         {
             id = reader.GetInt64(0);
-            var eventTypeName = reader.GetString(1);
-            var eventType = resolver.Resolve(eventTypeName);
-            ArgumentNullException.ThrowIfNull(eventType, eventTypeName);
-            var stream = await reader.GetStreamAsync(2, ct).ConfigureAwait(false);
-            await using var stream1 = stream.ConfigureAwait(false);
-            return new OkEnvelope(await JsonSerialization.FromJsonAsync(eventType, stream, resolver.SerializationContext, ct).ConfigureAwait(false));
+            var typeName = reader.GetString(1);
+
+            return await mapperSelector[typeName].Item1.ReadFromSnapshot(typeName, id, reader, ct);
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException or InvalidOperationException or JsonException)
         {
@@ -67,3 +115,63 @@ internal sealed class ReplicationDataMapper(JsonTypeResolver resolver): IReplica
         }
     }
 }
+
+public interface IReplicationJsonBMapper
+{
+    Task<IEnvelope> ReadFromReplication(string id, string typeName, ReplicationValue column,
+        CancellationToken ct);
+
+    Task<IEnvelope> ReadFromSnapshot(string typeName, long id, NpgsqlDataReader reader, CancellationToken ct);
+}
+
+internal class ReplicationDataMapper<T,TU>(
+    IReplicationDataReader<TU> replicationDataReader
+    , ITypeResolver<T>? resolver = default
+    ): IReplicationJsonBMapper
+{
+    public async Task<IEnvelope> ReadFromReplication(string id, string typeName, ReplicationValue column,
+        CancellationToken ct)
+    {
+
+        try
+        {
+            var type = resolver?.Resolve(typeName);
+            var value = await replicationDataReader.Read(column, ct, type).ConfigureAwait(false) ??
+                        throw new ArgumentNullException();
+            return new OkEnvelope(value, typeName);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or InvalidOperationException
+                                       or JsonException)
+        {
+            return new KoEnvelope(ex, id);
+        }
+    }
+
+    public async Task<IEnvelope> ReadFromSnapshot(string typeName, long id, NpgsqlDataReader reader, CancellationToken ct)
+    {
+        try
+        {
+            var eventType = resolver?.Resolve(typeName);
+            ArgumentNullException.ThrowIfNull(eventType, typeName);
+            var value = await replicationDataReader.Read(reader, ct, eventType).ConfigureAwait(false) ?? throw new ArgumentNullException();
+            return new OkEnvelope(value, typeName);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or InvalidOperationException or JsonException)
+        {
+            return new KoEnvelope(ex, id.ToString());
+        }
+    }
+}
+
+internal sealed class ObjectReplicationDataMapper(
+    IReplicationDataReader<object> replicationDataReader
+): ReplicationDataMapper<object, object>(replicationDataReader);
+
+internal sealed class StringReplicationDataMapper(
+    IReplicationDataReader<string> replicationDataReader
+): ReplicationDataMapper<string,string>(replicationDataReader);
+
+internal sealed class JsonReplicationDataMapper(
+    ITypeResolver<JsonTypeInfo> resolver,
+    IReplicationDataReader<object> replicationDataReader
+): ReplicationDataMapper<JsonTypeInfo,object>(replicationDataReader, resolver);

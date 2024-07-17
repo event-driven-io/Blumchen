@@ -11,7 +11,7 @@ public static class SnapshotReader
     internal static async IAsyncEnumerable<IEnvelope> GetRowsFromSnapshot(this NpgsqlConnection connection,
         string snapshotName,
         TableDescriptorBuilder.MessageTable tableDescriptor,
-        IReplicationDataMapper dataMapper,
+        ReplicationDataMapper dataMapper,
         ISet<string> registeredTypes,
         [EnumeratorCancellation] CancellationToken ct = default)
     {

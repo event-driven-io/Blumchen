@@ -7,14 +7,14 @@ namespace Blumchen.Serialization;
 public interface ITypeResolver<T>
 {
     (string, T) Resolve(Type type);
+    Type Resolve(string type);
+    IDictionary<string, Type> RegisteredTypes { get; }
 }
-
-public interface IJsonTypeResolver: ITypeResolver<JsonTypeInfo>;
 
 internal sealed class JsonTypeResolver(
     JsonSerializerContext serializationContext,
     INamingPolicy? namingPolicy = default)
-    : IJsonTypeResolver
+    : ITypeResolver<JsonTypeInfo>
 {
     public JsonSerializerContext SerializationContext { get; } = serializationContext;
     private readonly ConcurrentDictionary<string, Type> _typeDictionary = [];
@@ -31,7 +31,7 @@ internal sealed class JsonTypeResolver(
     public (string, JsonTypeInfo) Resolve(Type type) =>
         (_typeDictionary.Single(kv => kv.Value == type).Key, _typeInfoDictionary[type]);
 
-    internal IDictionary<string,Type> RegisteredTypes { get => _typeDictionary; }
-    internal Type Resolve(string type) => _typeDictionary[type];
+    public IDictionary<string,Type> RegisteredTypes { get => _typeDictionary; }
+    public Type Resolve(string type) => _typeDictionary[type];
 }
 

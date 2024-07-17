@@ -9,14 +9,14 @@ namespace Subscriber
         string Name
     );
 
-    [MessageUrn("user-deleted:v1")]
-    public record UserDeletedContract(
-        Guid Id,
-        string Name
-    );
+    [RawUrn("user-deleted:v1", RawData.Object)]
+    public interface MessageObjects;
+
+
+    [RawUrn("user-modified:v1", RawData.String)] 
+    internal interface MessageString;
 
     [JsonSourceGenerationOptions(WriteIndented = true)]
     [JsonSerializable(typeof(UserCreatedContract))]
-    [JsonSerializable(typeof(UserDeletedContract))]
     internal partial class SourceGenerationContext: JsonSerializerContext;
 }

@@ -33,9 +33,10 @@ try
                 .MessageData("data", new MimeType.Json())
             )
             .NamingPolicy(new AttributeNamingPolicy())
-            .JsonContext(SourceGenerationContext.Default)
             .Consumes<UserCreatedContract>(consumer)
-            .Consumes<UserDeletedContract>(consumer), ct:ct
+            .JsonContext(SourceGenerationContext.Default)
+            .ConsumesRowString<MessageString>(consumer)
+            .ConsumesRowObject<MessageObjects>(consumer), ct
     ).GetAsyncEnumerator(ct);
     await using var cursor1 = cursor.ConfigureAwait(false);
     while (await cursor.MoveNextAsync().ConfigureAwait(false) && !ct.IsCancellationRequested);
@@ -51,9 +52,12 @@ namespace Subscriber
 {
     internal class Consumer:
         IMessageHandler<UserCreatedContract>,
-        IMessageHandler<UserDeletedContract>
+        IMessageHandler<object>,
+        IMessageHandler<string>
     {
-        public Task Handle(UserCreatedContract value) => Console.Out.WriteLineAsync(JsonSerialization.ToJson(value, SourceGenerationContext.Default.UserCreatedContract));
-        public Task Handle(UserDeletedContract value) => Console.Out.WriteLineAsync(JsonSerialization.ToJson(value, SourceGenerationContext.Default.UserDeletedContract));
+        public Task Handle(string value) => Console.Out.WriteLineAsync(value);
+        public Task Handle(object value) => Console.Out.WriteLineAsync(value.ToString());
+        public Task Handle(UserCreatedContract value)  => Console.Out.WriteLineAsync(JsonSerialization.ToJson(value, SourceGenerationContext.Default.UserCreatedContract));
+
     }
 }

@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using Blumchen.Serialization;
 using JetBrains.Annotations;
 using static Blumchen.TableDescriptorBuilder;
