@@ -5,7 +5,8 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <PublishAot>true</PublishAot>
+        <PublishAot>True</PublishAot>
+        <InvariantGlobalization>true</InvariantGlobalization>
         <IsPackable>false</IsPackable>
     </PropertyGroup>
 

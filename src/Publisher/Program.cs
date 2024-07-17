@@ -1,3 +1,4 @@
+using Blumchen.Database;
 using Blumchen.Publications;
 using Blumchen.Serialization;
 using Commons;
@@ -6,14 +7,11 @@ using Publisher;
 using UserCreated = Publisher.UserCreated;
 using UserDeleted = Publisher.UserDeleted;
 using UserModified = Publisher.UserModified;
+using UserSubscribed = Publisher.UserSubscribed;
 
 Console.Title = typeof(Program).Assembly.GetName().Name!;
 Console.WriteLine("How many messages do you want to publish?(press CTRL+C to exit):");
-
-var resolver = new PublisherSetupOptionsBuilder()
-    .JsonContext(SourceGenerationContext.Default)
-    .NamingPolicy(new AttributeNamingPolicy())
-    .Build();
+var cts = new CancellationTokenSource();
 
 do
 {
@@ -21,8 +19,20 @@ do
     var line = Console.ReadLine();
     if (line != null && int.TryParse(line, out var result))
     {
-        var cts = new CancellationTokenSource();
+        var resolver = await new PublisherSetupOptionsBuilder()
+            .JsonContext(SourceGenerationContext.Default)
+            .NamingPolicy(new AttributeNamingPolicy())
+            .WithTable(builder => builder.UseDefaults()) //default, but explicit
+            .Build()
+            .EnsureTable(Settings.ConnectionString, cts.Token)//enforce table existence and conformity - db roundtrip
+            .ConfigureAwait(false);
 
+        //Or you might want to verify at a later stage
+        await new NpgsqlDataSourceBuilder(Settings.ConnectionString)
+            .Build()
+            .EnsureTableExists(resolver.TableDescriptor, cts.Token).ConfigureAwait(false);
+
+        var messages = result / 4;
         var ct = cts.Token;
         var connection = new NpgsqlConnection(Settings.ConnectionString);
         await using var connection1 = connection.ConfigureAwait(false);
@@ -30,12 +40,17 @@ do
         //use a command for each message
         {
             var @events = Enumerable.Range(0, result).Select(i =>
-                (i % 3) switch
+                (i % 4) switch
                 {
                     0 => new UserCreated(Guid.NewGuid()) as object,
                     1 => new UserDeleted(Guid.NewGuid()),
-                    _ => new UserModified(Guid.NewGuid())
+                    2 => new UserModified(Guid.NewGuid()),
+                    _ => new UserSubscribed(Guid.NewGuid())
                 });
+            await Console.Out.WriteLineAsync($"Publishing {messages + ((result % 3 > 0) ? 1 : 0)} {nameof(UserCreated)}");
+            await Console.Out.WriteLineAsync($"Publishing {messages + ((result % 3 > 1) ? 1 : 0)} {nameof(UserDeleted)}");
+            await Console.Out.WriteLineAsync($"Publishing {messages + ((result % 3 > 2) ? 1 : 0)} {nameof(UserModified)}");
+            await Console.Out.WriteLineAsync($"Publishing {messages} {nameof(UserSubscribed)}");
             foreach (var @event in @events)
             {
                 var transaction = await connection.BeginTransactionAsync(ct).ConfigureAwait(false);
@@ -52,6 +67,9 @@ do
                         case UserModified m:
                             await MessageAppender.AppendAsync(m, resolver, connection, transaction, ct).ConfigureAwait(false);
                             break;
+                        case UserSubscribed m:
+                            await MessageAppender.AppendAsync(m, resolver, connection, transaction, ct).ConfigureAwait(false);
+                            break;
                     }
 
                     await transaction.CommitAsync(ct).ConfigureAwait(false);
@@ -63,6 +81,7 @@ do
                     throw;
                 }
             }
+            await Console.Out.WriteLineAsync($"Published {result} messages!");
         }
         //use a batch command
         //{

@@ -1,31 +1,35 @@
 using Blumchen.Subscriptions.Replication;
 using JetBrains.Annotations;
+using Npgsql;
 using static Blumchen.Subscriptions.Management.PublicationManagement;
 using static Blumchen.Subscriptions.Management.ReplicationSlotManagement;
 
 namespace Blumchen.Subscriptions;
 
-internal interface ISubscriptionOptions
+public interface ISubscriptionOptions
 {
-    [UsedImplicitly] string ConnectionString { get; }
+    [UsedImplicitly] NpgsqlDataSource DataSource { get; }
+    [UsedImplicitly] NpgsqlConnectionStringBuilder ConnectionStringBuilder { get; }
     IReplicationDataMapper DataMapper { get; }
     [UsedImplicitly] PublicationSetupOptions PublicationOptions { get; }
     [UsedImplicitly] ReplicationSlotSetupOptions ReplicationOptions { get; }
     [UsedImplicitly] IErrorProcessor ErrorProcessor { get; }
 
     void Deconstruct(
-        out string connectionString,
+        out NpgsqlDataSource dataSource,
+        out NpgsqlConnectionStringBuilder connectionStringBuilder,
         out PublicationSetupOptions publicationSetupOptions,
         out ReplicationSlotSetupOptions replicationSlotSetupOptions,
         out IErrorProcessor errorProcessor,
         out IReplicationDataMapper dataMapper,
-        out Dictionary<Type, IConsume> registry);
+        out Dictionary<Type, IHandler> registry);
 }
 
 internal record SubscriptionOptions(
-    string ConnectionString,
+    NpgsqlDataSource DataSource,
+    NpgsqlConnectionStringBuilder ConnectionStringBuilder,
     PublicationSetupOptions PublicationOptions,
     ReplicationSlotSetupOptions ReplicationOptions,
     IErrorProcessor ErrorProcessor,
     IReplicationDataMapper DataMapper,
-    Dictionary<Type, IConsume> Registry): ISubscriptionOptions;
+    Dictionary<Type, IHandler> Registry): ISubscriptionOptions;

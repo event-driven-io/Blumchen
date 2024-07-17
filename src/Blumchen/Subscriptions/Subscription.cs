@@ -5,14 +5,12 @@ using Blumchen.Serialization;
 using Blumchen.Subscriptions.Management;
 using Blumchen.Subscriptions.ReplicationMessageHandlers;
 using Blumchen.Subscriptions.SnapshotReader;
-using Microsoft.Extensions.Logging;
 using Npgsql;
 using Npgsql.Replication;
 using Npgsql.Replication.PgOutput;
 using Npgsql.Replication.PgOutput.Messages;
 
 namespace Blumchen.Subscriptions;
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 using static PublicationManagement;
 using static ReplicationSlotManagement;
@@ -26,26 +24,30 @@ public sealed class Subscription: IAsyncDisposable
         AlwaysRecreate,
         Never
     }
-    private static LogicalReplicationConnection? _connection;
-    private static readonly SubscriptionOptionsBuilder Builder = new();
+    private LogicalReplicationConnection? _connection;
+    private readonly SubscriptionOptionsBuilder _builder = new();
     private ISubscriptionOptions? _options;
     public async IAsyncEnumerable<IEnvelope> Subscribe(
         Func<SubscriptionOptionsBuilder, SubscriptionOptionsBuilder> builder,
-        ILoggerFactory? loggerFactory = null,
         [EnumeratorCancellation] CancellationToken ct = default
     )
     {
-        _options = builder(Builder).Build();
-        var (connectionString, publicationSetupOptions, replicationSlotSetupOptions, errorProcessor, replicationDataMapper, registry) = _options;
-        var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
-        dataSourceBuilder.UseLoggerFactory(loggerFactory);
+        await foreach (var _ in Subscribe(builder(_builder).Build(), ct))
+            yield return _;
+    }
 
-        var dataSource = dataSourceBuilder.Build();
+    internal async IAsyncEnumerable<IEnvelope> Subscribe(
+       ISubscriptionOptions subscriptionOptions,
+       [EnumeratorCancellation] CancellationToken ct = default
+   )
+    {
+        _options = subscriptionOptions;
+        var (dataSource, connectionStringBuilder, publicationSetupOptions, replicationSlotSetupOptions, errorProcessor, replicationDataMapper, registry) = subscriptionOptions;
+
         await dataSource.EnsureTableExists(publicationSetupOptions.TableDescriptor, ct).ConfigureAwait(false);
 
-        _connection = new LogicalReplicationConnection(connectionString);
+        _connection = new LogicalReplicationConnection(connectionStringBuilder.ConnectionString);
         await _connection.Open(ct).ConfigureAwait(false);
-
 
         await dataSource.SetupPublication(publicationSetupOptions, ct).ConfigureAwait(false);
         var result = await dataSource.SetupReplicationSlot(_connection, replicationSlotSetupOptions, ct).ConfigureAwait(false);
@@ -66,8 +68,8 @@ public sealed class Subscription: IAsyncDisposable
             );
 
             await foreach (var envelope in ReadExistingRowsFromSnapshot(dataSource, created.SnapshotName, _options, ct).ConfigureAwait(false))
-            await foreach (var subscribe in ProcessEnvelope<IEnvelope>(envelope, registry, errorProcessor).WithCancellation(ct).ConfigureAwait(false))
-                yield return subscribe;
+                await foreach (var subscribe in ProcessEnvelope<IEnvelope>(envelope, registry, errorProcessor).WithCancellation(ct).ConfigureAwait(false))
+                    yield return subscribe;
         }
 
         await foreach (var message in
@@ -89,7 +91,7 @@ public sealed class Subscription: IAsyncDisposable
 
     private static async IAsyncEnumerable<T> ProcessEnvelope<T>(
         IEnvelope envelope,
-        Dictionary<Type, IConsume> registry,
+        Dictionary<Type, IHandler> registry,
         IErrorProcessor errorProcessor
     ) where T:class
     {
@@ -110,14 +112,14 @@ public sealed class Subscription: IAsyncDisposable
         }
     }
 
-    private static readonly Dictionary<Type, (IConsume consumer, MethodInfo methodInfo)> Cache = [];
+    private static readonly Dictionary<Type, (IHandler consumer, MethodInfo methodInfo)> Cache = [];
 
 
-    private static (IConsume consumer, MethodInfo methodInfo) Memoize
+    private static (IHandler consumer, MethodInfo methodInfo) Memoize
     (
-        Dictionary<Type, IConsume> registry,
+        Dictionary<Type, IHandler> registry,
         Type objType,
-        Func<Dictionary<Type, IConsume>, Type, (IConsume consumer, MethodInfo methodInfo)> func
+        Func<Dictionary<Type, IHandler>, Type, (IHandler consumer, MethodInfo methodInfo)> func
     )
     {
         if (!Cache.TryGetValue(objType, out var entry))
@@ -125,7 +127,7 @@ public sealed class Subscription: IAsyncDisposable
         Cache[objType] = entry;
         return entry;
     }
-    private static (IConsume consumer, MethodInfo methodInfo) Consumer(Dictionary<Type, IConsume> registry, Type objType)
+    private static (IHandler consumer, MethodInfo methodInfo) Consumer(Dictionary<Type, IHandler> registry, Type objType)
     {
         var consumer = registry[objType] ?? throw new NotSupportedException($"Unregistered type for {objType.AssemblyQualifiedName}");
         var methodInfos = consumer.GetType().GetMethods(BindingFlags.Instance|BindingFlags.Public);

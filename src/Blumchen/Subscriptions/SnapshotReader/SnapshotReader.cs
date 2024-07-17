@@ -5,7 +5,6 @@ using Blumchen.Subscriptions.ReplicationMessageHandlers;
 using Npgsql;
 
 namespace Blumchen.Subscriptions.SnapshotReader;
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 public static class SnapshotReader
 {

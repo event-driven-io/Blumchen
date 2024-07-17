@@ -2,45 +2,44 @@ using Blumchen.Serialization;
 using Blumchen.Subscriptions.Management;
 using Blumchen.Subscriptions.Replication;
 using JetBrains.Annotations;
+using Npgsql;
 using System.Text.Json.Serialization;
 
 namespace Blumchen.Subscriptions;
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+
 public sealed class SubscriptionOptionsBuilder
 {
-    private static string? _connectionString;
-    private static PublicationManagement.PublicationSetupOptions _publicationSetupOptions;
-    private static ReplicationSlotManagement.ReplicationSlotSetupOptions? _replicationSlotSetupOptions;
-    private static IReplicationDataMapper? _dataMapper;
-    private readonly Dictionary<Type, IConsume> _registry = [];
+    private NpgsqlConnectionStringBuilder? _connectionStringBuilder;
+    private NpgsqlDataSource? _dataSource;
+    private PublicationManagement.PublicationSetupOptions _publicationSetupOptions = new();
+    private ReplicationSlotManagement.ReplicationSlotSetupOptions? _replicationSlotSetupOptions;
+    private IReplicationDataMapper? _dataMapper;
+    private readonly Dictionary<Type, IHandler> _registry = [];
     private IErrorProcessor? _errorProcessor;
     private INamingPolicy? _namingPolicy;
     private JsonSerializerContext? _jsonSerializerContext;
-    private static readonly TableDescriptorBuilder TableDescriptorBuilder = new();
+    private readonly TableDescriptorBuilder _tableDescriptorBuilder = new();
     private TableDescriptorBuilder.MessageTable? _messageTable;
-
-
-    static SubscriptionOptionsBuilder()
-    {
-        _connectionString = null;
-        _publicationSetupOptions = new();
-        _replicationSlotSetupOptions = default;
-        _dataMapper = default;
-    }
-
     
     [UsedImplicitly]
     public SubscriptionOptionsBuilder WithTable(
         Func<TableDescriptorBuilder, TableDescriptorBuilder> builder)
     {
-        _messageTable = builder(TableDescriptorBuilder).Build();
+        _messageTable = builder(_tableDescriptorBuilder).Build();
         return this;
     }
 
     [UsedImplicitly]
     public SubscriptionOptionsBuilder ConnectionString(string connectionString)
     {
-        _connectionString = connectionString;
+        _connectionStringBuilder = new NpgsqlConnectionStringBuilder(connectionString);
+        return this;
+    }
+
+    [UsedImplicitly]
+    public SubscriptionOptionsBuilder DataSource(NpgsqlDataSource dataSource)
+    {
+        _dataSource = dataSource;
         return this;
     }
 
@@ -74,10 +73,9 @@ public sealed class SubscriptionOptionsBuilder
     }
 
     [UsedImplicitly]
-    public SubscriptionOptionsBuilder Consumes<T, TU>(TU consumer) where T : class
-        where TU : class, IConsumes<T>
+    public SubscriptionOptionsBuilder Consumes<T>(IHandler<T> handler) where T : class
     {
-        _registry.TryAdd(typeof(T), consumer);
+        _registry.TryAdd(typeof(T), handler);
         return this;
     }
 
@@ -90,9 +88,10 @@ public sealed class SubscriptionOptionsBuilder
     
     internal ISubscriptionOptions Build()
     {
-        ArgumentNullException.ThrowIfNull(_connectionString);
+        _messageTable ??= _tableDescriptorBuilder.Build();
+        ArgumentNullException.ThrowIfNull(_connectionStringBuilder);
+        ArgumentNullException.ThrowIfNull(_dataSource);
         ArgumentNullException.ThrowIfNull(_jsonSerializerContext);
-        ArgumentNullException.ThrowIfNull(_messageTable);
 
         var typeResolver = new JsonTypeResolver(_jsonSerializerContext, _namingPolicy);
         foreach (var type in _registry.Keys) typeResolver.WhiteList(type);
@@ -104,37 +103,18 @@ public sealed class SubscriptionOptionsBuilder
         if (_registry.Count == 0)_registry.Add(typeof(object), new ObjectTracingConsumer());
         
         return new SubscriptionOptions(
-            _connectionString,
+            _dataSource,
+            _connectionStringBuilder,
             _publicationSetupOptions,
             _replicationSlotSetupOptions ?? new ReplicationSlotManagement.ReplicationSlotSetupOptions(),
             _errorProcessor ?? new ConsoleOutErrorProcessor(),
             _dataMapper,
             _registry);
+
         static void Ensure(Func<IEnumerable<Type>> evalFn, string formattedMsg)
         {
             var misses = evalFn().ToArray();
             if (misses.Length > 0) throw new Exception(string.Format(formattedMsg, string.Join(", ", misses.Select(t => $"'{t.Name}'"))));
         }
-
     }
-}
-
-public class ObjectTracingConsumer: IConsumes<object>
-{
-    private static ulong _counter = 0;
-    public Task Handle(object value)
-    {
-        Interlocked.Increment(ref _counter);
-        return Console.Out.WriteLineAsync();
-    }
-}
-
-public interface IErrorProcessor
-{
-    Func<Exception, Task> Process { get; }
-}
-
-public record ConsoleOutErrorProcessor: IErrorProcessor
-{
-    public Func<Exception, Task> Process => exception => Console.Out.WriteLineAsync($"record id:{0} resulted in error:{exception.Message}");
 }

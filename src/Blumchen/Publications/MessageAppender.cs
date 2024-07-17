@@ -3,12 +3,11 @@ using Blumchen.Serialization;
 using Npgsql;
 
 namespace Blumchen.Publications;   
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 public static class MessageAppender
 {
     public static async Task AppendAsync<T>(T @input
-        , (TableDescriptorBuilder.MessageTable tableDescriptor, IJsonTypeResolver jsonTypeResolver) resolver
+        , PublisherOptions resolver
         , NpgsqlConnection connection
         , NpgsqlTransaction transaction
         , CancellationToken ct
@@ -19,10 +18,10 @@ public static class MessageAppender
             case null:
                 throw new ArgumentNullException(nameof(@input));
             case IEnumerable inputs:
-                await AppendBatchAsyncOfT(inputs, resolver.tableDescriptor, resolver.jsonTypeResolver, connection, transaction, ct).ConfigureAwait(false);
+                await AppendBatchAsyncOfT(inputs, resolver.TableDescriptor, resolver.JsonTypeResolver, connection, transaction, ct).ConfigureAwait(false);
                 break;
             default:
-                await AppendAsyncOfT(input, resolver.tableDescriptor, resolver.jsonTypeResolver, connection, transaction, ct).ConfigureAwait(false);
+                await AppendAsyncOfT(input, resolver.TableDescriptor, resolver.JsonTypeResolver, connection, transaction, ct).ConfigureAwait(false);
                 break;
         }
     }
@@ -36,30 +35,32 @@ public static class MessageAppender
     {
         var (typeName, jsonTypeInfo) = typeResolver.Resolve(typeof(T));
         var data = JsonSerialization.ToJson(@input, jsonTypeInfo);
-        var command = new NpgsqlCommand(
+        
+        await using var command = new NpgsqlCommand(
             $"INSERT INTO {tableDescriptor.Name}({tableDescriptor.MessageType.Name}, {tableDescriptor.Data.Name}) values ('{typeName}', '{data}')",
             connection,
             transaction
         );
+        await command.PrepareAsync(ct).ConfigureAwait(false);
         await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
     public static async Task AppendAsync<T>(T input
-        , (TableDescriptorBuilder.MessageTable tableDescriptor, IJsonTypeResolver resolver) options
+        , PublisherOptions options
         , string connectionString
         , CancellationToken ct)
         where T: class
     {
         var type = typeof(T);
-        var (typeName, jsonTypeInfo) = options.resolver.Resolve(type);
+        var (typeName, jsonTypeInfo) = options.JsonTypeResolver.Resolve(type);
         var data = JsonSerialization.ToJson(input, jsonTypeInfo);
 
-        var connection = new NpgsqlConnection(connectionString);
-        await using var connection1 = connection.ConfigureAwait(false);
+        await using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync(ct).ConfigureAwait(false);
-        var command = connection.CreateCommand();
+        await using var command = connection.CreateCommand();
         command.CommandText =
-            $"INSERT INTO {options.tableDescriptor.Name}({options.tableDescriptor.MessageType.Name}, {options.tableDescriptor.Data.Name}) values ('{typeName}', '{data}')";
+            $"INSERT INTO {options.TableDescriptor.Name}({options.TableDescriptor.MessageType.Name}, {options.TableDescriptor.Data.Name}) values ('{typeName}', '{data}')";
+        await command.PrepareAsync(ct).ConfigureAwait(false);
         await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
@@ -70,7 +71,7 @@ public static class MessageAppender
         , NpgsqlTransaction transaction
         , CancellationToken ct) where T : class, IEnumerable
     {
-            var batch = new NpgsqlBatch(connection, transaction);
+        await using var batch = new NpgsqlBatch(connection, transaction);
             foreach (var input in inputs)
             {
                 var (typeName, jsonTypeInfo) = resolver.Resolve(input.GetType());

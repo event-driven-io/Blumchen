@@ -5,11 +5,16 @@ using NpgsqlTypes;
 
 namespace Blumchen.Subscriptions.Management;
 using static ReplicationSlotManagement.CreateReplicationSlotResult;
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 public static class ReplicationSlotManagement
 {
     #pragma warning disable CA2208
+    private static Task<bool> ReplicationSlotExists(
+        this NpgsqlDataSource dataSource,
+        string slotName,
+        CancellationToken ct
+    ) => dataSource.Exists("pg_replication_slots", "slot_name ILIKE $1", [slotName], ct);
+
     public static async Task<CreateReplicationSlotResult> SetupReplicationSlot(
         this NpgsqlDataSource dataSource,
         LogicalReplicationConnection connection,
@@ -54,18 +59,12 @@ public static class ReplicationSlotManagement
         }
     }
 
-    private static Task<bool> ReplicationSlotExists(
-        this NpgsqlDataSource dataSource,
-        string slotName,
-        CancellationToken ct
-    ) => dataSource.Exists("pg_replication_slots", "slot_name = $1", [slotName], ct);
-
     public record ReplicationSlotSetupOptions(
         string SlotName = $"{TableDescriptorBuilder.MessageTable.DefaultName}_slot",
         Subscription.CreateStyle CreateStyle = Subscription.CreateStyle.WhenNotExists,
-        bool Binary = false //https://www.postgresql.org/docs/current/sql-createsubscription.html#SQL-CREATESUBSCRIPTION-WITH-BINARY
+        bool Binary =
+            false //https://www.postgresql.org/docs/current/sql-createsubscription.html#SQL-CREATESUBSCRIPTION-WITH-BINARY
     );
-
     public abstract record CreateReplicationSlotResult
     {
         public record None: CreateReplicationSlotResult;

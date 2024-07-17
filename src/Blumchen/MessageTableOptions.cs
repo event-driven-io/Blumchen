@@ -1,9 +1,9 @@
 using Blumchen.Subscriptions;
+using JetBrains.Annotations;
 using NpgsqlTypes;
 
 namespace Blumchen;
 
-#pragma warning disable CS1591
 public record TableDescriptorBuilder
 {
     private MessageTable TableDescriptor { get; set; } = new();
@@ -34,6 +34,9 @@ public record TableDescriptorBuilder
         return this;
     }
 
+    [UsedImplicitly]
+    public TableDescriptorBuilder UseDefaults() => this;
+    
     public record MessageTable(string Name = MessageTable.DefaultName)
     {
         internal const string DefaultName = "outbox";

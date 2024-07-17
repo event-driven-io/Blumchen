@@ -4,8 +4,6 @@ using Blumchen.Subscriptions.Replication;
 using Blumchen.Subscriptions.ReplicationMessageHandlers;
 using Npgsql;
 
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
 namespace Blumchen.Database;
 
 public static class Run

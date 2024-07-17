@@ -16,15 +16,21 @@ internal record UserDeleted(
     string Name = "Deleted"
 ): IContract;
 
-[MessageUrn("user-modified:v1")] //subscription ignored
+[MessageUrn("user-modified:v1")]
 internal record UserModified(
     Guid Id,
     string Name = "Modified"
 ): IContract;
 
+[MessageUrn("user-subscribed:v1")]
+internal record UserSubscribed(
+    Guid Id,
+    string Name = "Subscribed"
+): IContract;
 
 [JsonSourceGenerationOptions(WriteIndented = true)]
 [JsonSerializable(typeof(UserCreated))]
 [JsonSerializable(typeof(UserDeleted))]
 [JsonSerializable(typeof(UserModified))]
+[JsonSerializable(typeof(UserSubscribed))]
 internal partial class SourceGenerationContext: JsonSerializerContext;

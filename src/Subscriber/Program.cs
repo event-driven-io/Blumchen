@@ -2,6 +2,7 @@ using Blumchen.Serialization;
 using Blumchen.Subscriptions;
 using Commons;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 using Subscriber;
 
 #pragma warning disable CS8601 // Possible null reference assignment.
@@ -20,8 +21,11 @@ await using var subscription1 = subscription.ConfigureAwait(false);
 
 try
 {
+    var dataSourceBuilder = new NpgsqlDataSourceBuilder(Settings.ConnectionString)
+        .UseLoggerFactory(LoggerFactory.Create(builder => builder.AddConsole()));
     var cursor = subscription.Subscribe(
         builder => builder
+            .DataSource(dataSourceBuilder.Build())
             .ConnectionString(Settings.ConnectionString)
             .WithTable(options => options
                 .Id("id")
@@ -30,8 +34,8 @@ try
             )
             .NamingPolicy(new AttributeNamingPolicy())
             .JsonContext(SourceGenerationContext.Default)
-            .Consumes<UserCreatedContract, Consumer>(consumer)
-            .Consumes<UserDeletedContract, Consumer>(consumer), LoggerFactory.Create(builder => builder.AddConsole()), ct
+            .Consumes<UserCreatedContract>(consumer)
+            .Consumes<UserDeletedContract>(consumer), ct:ct
     ).GetAsyncEnumerator(ct);
     await using var cursor1 = cursor.ConfigureAwait(false);
     while (await cursor.MoveNextAsync().ConfigureAwait(false) && !ct.IsCancellationRequested);
@@ -46,8 +50,8 @@ Console.ReadKey();
 namespace Subscriber
 {
     internal class Consumer:
-        IConsumes<UserCreatedContract>,
-        IConsumes<UserDeletedContract>
+        IHandler<UserCreatedContract>,
+        IHandler<UserDeletedContract>
     {
         public Task Handle(UserCreatedContract value) => Console.Out.WriteLineAsync(JsonSerialization.ToJson(value, SourceGenerationContext.Default.UserCreatedContract));
         public Task Handle(UserDeletedContract value) => Console.Out.WriteLineAsync(JsonSerialization.ToJson(value, SourceGenerationContext.Default.UserDeletedContract));

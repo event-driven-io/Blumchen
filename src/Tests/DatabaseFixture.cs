@@ -17,7 +17,7 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
 {
     protected ITestOutputHelper Output { get; } = output;
     protected readonly Func<CancellationTokenSource> TimeoutTokenSource = () => new(Debugger.IsAttached ?  TimeSpan.FromHours(1) : TimeSpan.FromSeconds(2));
-    protected class TestConsumer<T>(Action<string> log, JsonTypeInfo info): IConsumes<T> where T : class
+    protected class TestHandler<T>(Action<string> log, JsonTypeInfo info): IHandler<T> where T : class
     {
         public async Task Handle(T value)
         {
@@ -67,7 +67,7 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
         await command.ExecuteNonQueryAsync(ct);
     }
 
-    protected (TestConsumer<T> consumer, SubscriptionOptionsBuilder subscriptionOptionsBuilder) SetupFor<T>(
+    protected (TestHandler<T> handler, SubscriptionOptionsBuilder subscriptionOptionsBuilder) SetupFor<T>(
         string connectionString,
         string eventsTable,
         JsonSerializerContext info,
@@ -78,13 +78,14 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
     {
         var jsonTypeInfo = info.GetTypeInfo(typeof(T));
         ArgumentNullException.ThrowIfNull(jsonTypeInfo);
-        var consumer = new TestConsumer<T>(log, jsonTypeInfo);
+        var consumer = new TestHandler<T>(log, jsonTypeInfo);
         var subscriptionOptionsBuilder = new SubscriptionOptionsBuilder()
             .WithErrorProcessor(new TestOutErrorProcessor(Output))
+            .DataSource(new NpgsqlDataSourceBuilder(connectionString).Build())
             .ConnectionString(connectionString)
             .JsonContext(info)
             .NamingPolicy(namingPolicy)
-            .Consumes<T, TestConsumer<T>>(consumer)
+            .Consumes(consumer)
             .WithTable(o => o.Name(eventsTable))
             .WithPublicationOptions(
                 new PublicationManagement.PublicationSetupOptions(PublicationName: publicationName ?? Randomise("events_pub"))

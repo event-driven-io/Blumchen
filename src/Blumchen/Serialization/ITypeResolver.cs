@@ -3,7 +3,6 @@ using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
 namespace Blumchen.Serialization;
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 public interface ITypeResolver<T>
 {
@@ -25,8 +24,8 @@ internal sealed class JsonTypeResolver(
     internal void WhiteList(Type type)
     {
         var typeInfo = SerializationContext.GetTypeInfo(type) ?? throw new NotSupportedException(type.FullName);
-        _typeDictionary.AddOrUpdate(_namingPolicy.Bind(typeInfo.Type), _ => typeInfo.Type, (s,t) =>typeInfo.Type);
-        _typeInfoDictionary.AddOrUpdate(typeInfo.Type, _ => typeInfo, (_,__)=> typeInfo);
+        _typeDictionary.AddOrUpdate(_namingPolicy.Bind(typeInfo.Type), _ => typeInfo.Type, (_,_) =>typeInfo.Type);
+        _typeInfoDictionary.AddOrUpdate(typeInfo.Type, _ => typeInfo, (_,_)=> typeInfo);
     }
 
     public (string, JsonTypeInfo) Resolve(Type type) =>

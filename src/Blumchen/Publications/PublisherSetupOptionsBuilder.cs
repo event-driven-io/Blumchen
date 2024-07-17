@@ -5,7 +5,6 @@ using static Blumchen.TableDescriptorBuilder;
 
 namespace Blumchen.Publications;
 
-#pragma warning disable CS1591
 public class PublisherSetupOptionsBuilder
 {
     private INamingPolicy? _namingPolicy;
@@ -34,7 +33,7 @@ public class PublisherSetupOptionsBuilder
         return this;
     }
 
-    public (MessageTable tableDescriptor, IJsonTypeResolver jsonTypeResolver) Build()
+    public PublisherOptions Build()
     {
         ArgumentNullException.ThrowIfNull(_jsonSerializerContext);
         ArgumentNullException.ThrowIfNull(_namingPolicy);
@@ -49,6 +48,6 @@ public class PublisherSetupOptionsBuilder
         while (typeEnum.MoveNext())
             jsonTypeResolver.WhiteList(typeEnum.Current);
         
-        return (_tableDescriptor,jsonTypeResolver);
+        return new(_tableDescriptor,jsonTypeResolver);
     }
 }
