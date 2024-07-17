@@ -7,7 +7,7 @@ namespace Blumchen.Publications;
 public static class MessageAppender
 {
     public static async Task AppendAsync<T>(T @input
-        , (TableDescriptorBuilder.MessageTable tableDescriptor, IJsonTypeResolver jsonTypeResolver) resolver
+        , PublisherOptions resolver
         , NpgsqlConnection connection
         , NpgsqlTransaction transaction
         , CancellationToken ct
@@ -18,10 +18,10 @@ public static class MessageAppender
             case null:
                 throw new ArgumentNullException(nameof(@input));
             case IEnumerable inputs:
-                await AppendBatchAsyncOfT(inputs, resolver.tableDescriptor, resolver.jsonTypeResolver, connection, transaction, ct).ConfigureAwait(false);
+                await AppendBatchAsyncOfT(inputs, resolver.TableDescriptor, resolver.JsonTypeResolver, connection, transaction, ct).ConfigureAwait(false);
                 break;
             default:
-                await AppendAsyncOfT(input, resolver.tableDescriptor, resolver.jsonTypeResolver, connection, transaction, ct).ConfigureAwait(false);
+                await AppendAsyncOfT(input, resolver.TableDescriptor, resolver.JsonTypeResolver, connection, transaction, ct).ConfigureAwait(false);
                 break;
         }
     }
@@ -46,20 +46,20 @@ public static class MessageAppender
     }
 
     public static async Task AppendAsync<T>(T input
-        , (TableDescriptorBuilder.MessageTable tableDescriptor, IJsonTypeResolver resolver) options
+        , PublisherOptions options
         , string connectionString
         , CancellationToken ct)
         where T: class
     {
         var type = typeof(T);
-        var (typeName, jsonTypeInfo) = options.resolver.Resolve(type);
+        var (typeName, jsonTypeInfo) = options.JsonTypeResolver.Resolve(type);
         var data = JsonSerialization.ToJson(input, jsonTypeInfo);
 
         await using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync(ct).ConfigureAwait(false);
         await using var command = connection.CreateCommand();
         command.CommandText =
-            $"INSERT INTO {options.tableDescriptor.Name}({options.tableDescriptor.MessageType.Name}, {options.tableDescriptor.Data.Name}) values ('{typeName}', '{data}')";
+            $"INSERT INTO {options.TableDescriptor.Name}({options.TableDescriptor.MessageType.Name}, {options.TableDescriptor.Data.Name}) values ('{typeName}', '{data}')";
         await command.PrepareAsync(ct).ConfigureAwait(false);
         await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
