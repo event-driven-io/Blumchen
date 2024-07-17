@@ -1,4 +1,5 @@
 using Blumchen.Subscriptions;
+using JetBrains.Annotations;
 using NpgsqlTypes;
 
 namespace Blumchen;
@@ -33,6 +34,7 @@ public record TableDescriptorBuilder
         return this;
     }
 
+    [UsedImplicitly]
     public TableDescriptorBuilder UseDefaults() => this;
     
     public record MessageTable(string Name = MessageTable.DefaultName)
