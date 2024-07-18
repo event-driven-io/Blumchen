@@ -6,6 +6,7 @@ using Blumchen.Database;
 using Blumchen.Serialization;
 using Blumchen.Subscriptions;
 using Blumchen.Subscriptions.Management;
+using Blumchen.Subscriptions.Replication;
 using Npgsql;
 using Testcontainers.PostgreSql;
 using Xunit.Abstractions;

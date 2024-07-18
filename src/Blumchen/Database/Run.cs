@@ -1,7 +1,6 @@
 using System.Data;
 using System.Runtime.CompilerServices;
 using Blumchen.Subscriptions.Replication;
-using Blumchen.Subscriptions.ReplicationMessageHandlers;
 using Npgsql;
 
 namespace Blumchen.Database;
@@ -40,7 +39,7 @@ public static class Run
         string snapshotName,
         TableDescriptorBuilder.MessageTable tableDescriptor,
         ISet<string> registeredTypesKeys,
-        ReplicationDataMapper dataMapper,
+        IReplicationDataMapper dataMapper,
         [EnumeratorCancellation] CancellationToken ct)
     {
         var transaction = await connection.BeginTransactionAsync(IsolationLevel.RepeatableRead, ct).ConfigureAwait(false);

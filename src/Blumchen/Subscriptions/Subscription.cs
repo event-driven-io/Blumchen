@@ -3,8 +3,6 @@ using System.Runtime.CompilerServices;
 using Blumchen.Database;
 using Blumchen.Subscriptions.Management;
 using Blumchen.Subscriptions.Replication;
-using Blumchen.Subscriptions.ReplicationMessageHandlers;
-using Blumchen.Subscriptions.SnapshotReader;
 using Npgsql;
 using Npgsql.Replication;
 using Npgsql.Replication.PgOutput;

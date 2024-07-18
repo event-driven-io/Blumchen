@@ -1,4 +1,4 @@
-namespace Blumchen.Subscriptions.ReplicationMessageHandlers;
+namespace Blumchen.Subscriptions.Replication;
 
 public interface IEnvelope;
 

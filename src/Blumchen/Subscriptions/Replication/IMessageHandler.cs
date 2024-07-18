@@ -1,4 +1,4 @@
-namespace Blumchen.Subscriptions;
+namespace Blumchen.Subscriptions.Replication;
 
 public interface IMessageHandler;
 

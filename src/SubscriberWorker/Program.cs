@@ -11,6 +11,7 @@ using Polly;
 using SubscriberWorker;
 using Npgsql;
 using Blumchen.Subscriptions.Management;
+using Blumchen.Subscriptions.Replication;
 using Polly.Registry;
 
 #pragma warning disable CS8601 // Possible null reference assignment.

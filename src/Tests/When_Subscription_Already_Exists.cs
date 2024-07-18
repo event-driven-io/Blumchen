@@ -2,7 +2,7 @@ using Blumchen.Publications;
 using Blumchen.Serialization;
 using Blumchen.Subscriptions;
 using Blumchen.Subscriptions.Management;
-using Blumchen.Subscriptions.ReplicationMessageHandlers;
+using Blumchen.Subscriptions.Replication;
 using Npgsql;
 using Xunit.Abstractions;
 

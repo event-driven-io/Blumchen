@@ -1,17 +1,15 @@
 using System.Runtime.CompilerServices;
 using Blumchen.Database;
-using Blumchen.Subscriptions.Replication;
-using Blumchen.Subscriptions.ReplicationMessageHandlers;
 using Npgsql;
 
-namespace Blumchen.Subscriptions.SnapshotReader;
+namespace Blumchen.Subscriptions.Replication;
 
 public static class SnapshotReader
 {
     internal static async IAsyncEnumerable<IEnvelope> GetRowsFromSnapshot(this NpgsqlConnection connection,
         string snapshotName,
         TableDescriptorBuilder.MessageTable tableDescriptor,
-        ReplicationDataMapper dataMapper,
+        IReplicationDataMapper dataMapper,
         ISet<string> registeredTypes,
         [EnumeratorCancellation] CancellationToken ct = default)
     {

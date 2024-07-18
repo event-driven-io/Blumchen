@@ -1,4 +1,3 @@
-using Blumchen.Subscriptions.ReplicationMessageHandlers;
 using Npgsql;
 using Npgsql.Replication.PgOutput.Messages;
 

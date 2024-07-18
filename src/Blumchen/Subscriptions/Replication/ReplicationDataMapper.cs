@@ -1,7 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Blumchen.Serialization;
-using Blumchen.Subscriptions.ReplicationMessageHandlers;
 using Npgsql;
 using Npgsql.Replication.PgOutput;
 using Npgsql.Replication.PgOutput.Messages;

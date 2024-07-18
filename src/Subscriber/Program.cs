@@ -1,5 +1,6 @@
 using Blumchen.Serialization;
 using Blumchen.Subscriptions;
+using Blumchen.Subscriptions.Replication;
 using Commons;
 using Microsoft.Extensions.Logging;
 using Npgsql;
