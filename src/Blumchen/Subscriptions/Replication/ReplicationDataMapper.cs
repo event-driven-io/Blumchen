@@ -164,11 +164,19 @@ internal class ReplicationDataMapper<T,TU>(
 
 internal sealed class ObjectReplicationDataMapper(
     IReplicationDataReader<object> replicationDataReader
-): ReplicationDataMapper<object, object>(replicationDataReader);
+): ReplicationDataMapper<object, object>(replicationDataReader)
+{
+    private static readonly Lazy<ObjectReplicationDataMapper> Lazy = new(() => new(new ObjectReplicationDataReader()));
+    public static ObjectReplicationDataMapper Instance => Lazy.Value;
+}
 
 internal sealed class StringReplicationDataMapper(
     IReplicationDataReader<string> replicationDataReader
-): ReplicationDataMapper<string,string>(replicationDataReader);
+): ReplicationDataMapper<string, string>(replicationDataReader)
+{
+    private static readonly Lazy<StringReplicationDataMapper> Lazy = new(() => new(new StringReplicationDataReader()));
+    public static StringReplicationDataMapper Instance => Lazy.Value;
+}
 
 internal sealed class JsonReplicationDataMapper(
     ITypeResolver<JsonTypeInfo> resolver,
