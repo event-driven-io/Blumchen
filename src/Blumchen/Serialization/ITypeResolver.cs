@@ -8,7 +8,6 @@ public interface ITypeResolver<T>
 {
     (string, T) Resolve(Type type);
     Type Resolve(string type);
-    IDictionary<string, Type> RegisteredTypes { get; }
 }
 
 internal sealed class JsonTypeResolver(
