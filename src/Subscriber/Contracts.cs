@@ -9,12 +9,12 @@ namespace Subscriber
         string Name
     );
 
-    [RawUrn("user-deleted:v1", RawData.Object)]
-    public interface MessageObjects;
+    [RawUrn("user-deleted:v1", RawUrnAttribute.RawData.Object)]
+    public class MessageObjects;
 
 
-    [RawUrn("user-modified:v1", RawData.String)] 
-    internal interface MessageString;
+    [RawUrn("user-modified:v1", RawUrnAttribute.RawData.String)] 
+    internal class MessageString;
 
     [JsonSourceGenerationOptions(WriteIndented = true)]
     [JsonSerializable(typeof(UserCreatedContract))]

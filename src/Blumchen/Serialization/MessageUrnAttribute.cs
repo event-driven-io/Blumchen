@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 
 namespace Blumchen.Serialization;
 
-[AttributeUsage(AttributeTargets.Class)]
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 public class MessageUrnAttribute:
     Attribute
 {
@@ -33,16 +33,15 @@ public class MessageUrnAttribute:
 }
 
 
-public enum RawData
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
+public class RawUrnAttribute: Attribute
 {
-    String,
-    Object
-}
+    public enum RawData
+    {
+        String,
+        Object
+    }
 
-[AttributeUsage(AttributeTargets.Interface, AllowMultiple = true)]
-public class RawUrnAttribute:
-    Attribute
-{
     public RawData Data { get; }
 
     /// <summary>
@@ -72,8 +71,6 @@ public class RawUrnAttribute:
         throw new UriFormatException($"Invalid URN: {fullValue}");
     }
 }
-
-
 
 public static class MessageUrn
 {

@@ -85,13 +85,13 @@ public sealed class SubscriptionOptionsBuilder
 
     [UsedImplicitly]
     public SubscriptionOptionsBuilder ConsumesRowObject<T>(IMessageHandler<object> handler) where T : class
-        => ConsumesRow<T>(handler, RawData.Object);
+        => ConsumesRow<T>(handler, RawUrnAttribute.RawData.Object);
 
     [UsedImplicitly]
     public SubscriptionOptionsBuilder ConsumesRowString<T>(IMessageHandler<string> handler) where T : class
-        => ConsumesRow<T>(handler, RawData.String);
+        => ConsumesRow<T>(handler, RawUrnAttribute.RawData.String);
 
-    private SubscriptionOptionsBuilder ConsumesRow<T>(IMessageHandler<string> handler, RawData filter) where T : class
+    private SubscriptionOptionsBuilder ConsumesRow<T>(IMessageHandler<string> handler, RawUrnAttribute.RawData filter) where T : class
     {
         using var urnEnum = typeof(T)
             .GetCustomAttributes(typeof(RawUrnAttribute), false)
