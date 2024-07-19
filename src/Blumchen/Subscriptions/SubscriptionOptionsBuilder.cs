@@ -9,6 +9,7 @@ namespace Blumchen.Subscriptions;
 
 public sealed class SubscriptionOptionsBuilder
 {
+    internal const string WildCard = "*";
     private NpgsqlConnectionStringBuilder? _connectionStringBuilder;
     private NpgsqlDataSource? _dataSource;
     private PublicationManagement.PublicationSetupOptions _publicationSetupOptions = new();
@@ -19,7 +20,7 @@ public sealed class SubscriptionOptionsBuilder
     private INamingPolicy? _namingPolicy;
     private readonly TableDescriptorBuilder _tableDescriptorBuilder = new();
     private TableDescriptorBuilder.MessageTable? _messageTable;
-    private readonly IReplicationJsonBMapper _stringDataMapper = new StringReplicationDataMapper(new StringReplicationDataReader());
+    
     private readonly IReplicationJsonBMapper _objectDataMapper = new ObjectReplicationDataMapper(new ObjectReplicationDataReader());
     private IReplicationJsonBMapper? _jsonDataMapper;
     private JsonSerializerContext? _jsonSerializerContext;
@@ -85,20 +86,34 @@ public sealed class SubscriptionOptionsBuilder
 
     [UsedImplicitly]
     public SubscriptionOptionsBuilder ConsumesRowObject<T>(IMessageHandler<object> handler) where T : class
-        => ConsumesRow<T>(handler, RawUrnAttribute.RawData.Object);
+        => ConsumesRow<T>(handler, RawUrnAttribute.RawData.Object, ObjectReplicationDataMapper.Instance);
 
     [UsedImplicitly]
     public SubscriptionOptionsBuilder ConsumesRowString<T>(IMessageHandler<string> handler) where T : class
-        => ConsumesRow<T>(handler, RawUrnAttribute.RawData.String);
+        => ConsumesRow<T>(handler, RawUrnAttribute.RawData.String, StringReplicationDataMapper.Instance);
 
-    private SubscriptionOptionsBuilder ConsumesRow<T>(IMessageHandler<string> handler, RawUrnAttribute.RawData filter) where T : class
+    [UsedImplicitly]
+    public SubscriptionOptionsBuilder ConsumesRowStrings(IMessageHandler<string> handler)
+    {
+        _replicationDataMapperSelector.Add(WildCard, new Tuple<IReplicationJsonBMapper, IMessageHandler>(StringReplicationDataMapper.Instance, handler));
+        return this;
+    }
+
+    [UsedImplicitly]
+    public SubscriptionOptionsBuilder ConsumesRowObjects(IMessageHandler<string> handler)
+    {
+        _replicationDataMapperSelector.Add(WildCard, new Tuple<IReplicationJsonBMapper, IMessageHandler>(ObjectReplicationDataMapper.Instance, handler));
+        return this;
+    }
+
+    private SubscriptionOptionsBuilder ConsumesRow<T>(IMessageHandler<string> handler, RawUrnAttribute.RawData filter, IReplicationJsonBMapper dataMapper) where T : class
     {
         using var urnEnum = typeof(T)
             .GetCustomAttributes(typeof(RawUrnAttribute), false)
             .OfType<RawUrnAttribute>()
             .Where(attribute => attribute.Data == filter)
             .Select(attribute => attribute.Urn).GetEnumerator();
-        while (urnEnum.MoveNext()) _replicationDataMapperSelector.Add(urnEnum.Current.ToString(), new Tuple<IReplicationJsonBMapper, IMessageHandler>(_stringDataMapper, handler));
+        while (urnEnum.MoveNext()) _replicationDataMapperSelector.Add(urnEnum.Current.ToString(), new Tuple<IReplicationJsonBMapper, IMessageHandler>(dataMapper, handler));
         return this;
     }
 
@@ -114,27 +129,31 @@ public sealed class SubscriptionOptionsBuilder
         _messageTable ??= _tableDescriptorBuilder.Build();
         ArgumentNullException.ThrowIfNull(_connectionStringBuilder);
         ArgumentNullException.ThrowIfNull(_dataSource);
-        if (_jsonSerializerContext != null)
-        {
-
-            var typeResolver = new JsonTypeResolver(_jsonSerializerContext, _namingPolicy);
-            foreach (var type in _typeRegistry.Keys)
-                typeResolver.WhiteList(type);
-            _jsonDataMapper = new JsonReplicationDataMapper(typeResolver, new JsonReplicationDataReader(typeResolver));
-            foreach (var (key, value) in typeResolver.RegisteredTypes.Join(_typeRegistry,pair => pair.Value, pair => pair.Key, (pair, valuePair) => (pair.Key, valuePair.Value)))
-            {
-                _replicationDataMapperSelector.Add(key,new Tuple<IReplicationJsonBMapper, IMessageHandler>(_jsonDataMapper, value));
-            }
-
-        }
         
+        if(_typeRegistry.Count > 0)
+        {
+            if (_jsonSerializerContext != null)
+            {
+                var typeResolver = new JsonTypeResolver(_jsonSerializerContext, _namingPolicy);
+                foreach (var type in _typeRegistry.Keys)
+                    typeResolver.WhiteList(type);
+
+                _jsonDataMapper = new JsonReplicationDataMapper(typeResolver, new JsonReplicationDataReader(typeResolver));
+                
+                foreach (var (key, value) in typeResolver.RegisteredTypes.Join(_typeRegistry,pair => pair.Value, pair => pair.Key, (pair, valuePair) => (pair.Key, valuePair.Value)))
+                    _replicationDataMapperSelector.Add(key,new Tuple<IReplicationJsonBMapper, IMessageHandler>(_jsonDataMapper, value));
+            }
+            else
+            {
+                throw new ConfigurationException($"`${nameof(Consumes)}<>` requires a valid `{nameof(JsonContext)}`.");
+            }
+        }
         _publicationSetupOptions = _publicationSetupOptions
             with
             {
-                RegisteredTypes  = _replicationDataMapperSelector.Keys.ToHashSet(),
+                RegisteredTypes  = _replicationDataMapperSelector.Keys.Except(new [] { WildCard }).ToHashSet(),
                 TableDescriptor = _messageTable
             };
-        
         return new SubscriptionOptions(
             _dataSource,
             _connectionStringBuilder,
@@ -143,10 +162,7 @@ public sealed class SubscriptionOptionsBuilder
             _errorProcessor ?? new ConsoleOutErrorProcessor(),
             _replicationDataMapperSelector
             );
-        //static void Ensure(Func<IEnumerable<Type>> evalFn, string formattedMsg)
-        //{
-        //    var misses = evalFn().ToArray();
-        //    if (misses.Length > 0) throw new Exception(string.Format(formattedMsg, string.Join(", ", misses.Select(t => $"'{t.Name}'"))));
-        //}
     }
 }
+
+public class ConfigurationException(string message): Exception(message);

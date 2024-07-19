@@ -63,6 +63,16 @@ internal class JsonReplicationDataReader(JsonTypeResolver resolver): IReplicatio
 internal class ReplicationDataMapper(IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler>> mapperSelector)
     : IReplicationDataMapper
 {
+    private readonly Func<string, IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler>>, IReplicationJsonBMapper> _memoizer = Memoizer<string, IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler>>, IReplicationJsonBMapper>.Execute(SelectMapper);
+
+    private static IReplicationJsonBMapper SelectMapper(string key,
+        IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler>> registry)
+        => registry.TryGetValue(key, out var tuple)
+            ? tuple.Item1
+            : registry.TryGetValue(SubscriptionOptionsBuilder.WildCard, out tuple)
+                ? tuple.Item1
+                : throw new Exception($"Unexpected message `{key}`");
+
     public async Task<IEnvelope> ReadFromReplication(InsertMessage insertMessage, CancellationToken ct)
     {
         var id = string.Empty;
@@ -86,15 +96,19 @@ internal class ReplicationDataMapper(IDictionary<string, Tuple<IReplicationJsonB
                             break;
                         }
                     case 2 when column.GetDataTypeName().Equals("jsonb", StringComparison.OrdinalIgnoreCase):
-                        return await mapperSelector[typeName].Item1.ReadFromReplication(id, typeName, column, ct);
+
+                        return await _memoizer(typeName, mapperSelector).ReadFromReplication(id, typeName, column, ct);
                 }
             }
-            catch (Exception ex) when (ex is ArgumentException or NotSupportedException or InvalidOperationException or JsonException)
+            catch (Exception ex) when (ex is ArgumentException or NotSupportedException or InvalidOperationException
+                                           or JsonException)
             {
                 return new KoEnvelope(ex, id);
             }
+
             columnNumber++;
         }
+
         throw new InvalidOperationException("You should not get here");
     }
 

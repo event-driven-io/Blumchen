@@ -16,13 +16,18 @@ using static ReplicationSlotManagement.CreateReplicationSlotResult;
 
 public sealed class Subscription: IAsyncDisposable
 {
+    private readonly Func<string, IMessageHandler, Type, (IMessageHandler messageHandler, MethodInfo methodInfo)> _memoizer = Memoizer<string, IMessageHandler, Type, (IMessageHandler messageHandler,
+        MethodInfo methodInfo)>.Execute(MessageHandler);
+
     public enum CreateStyle
     {
         WhenNotExists,
         AlwaysRecreate,
         Never
     }
+
     private LogicalReplicationConnection? _connection;
+
     private readonly SubscriptionOptionsBuilder _builder = new();
 
     public async IAsyncEnumerable<IEnvelope> Subscribe(
@@ -87,7 +92,7 @@ public sealed class Subscription: IAsyncDisposable
         }
     }
 
-    private static async IAsyncEnumerable<IEnvelope> ProcessEnvelope(
+    private async IAsyncEnumerable<IEnvelope> ProcessEnvelope(
         IEnvelope envelope,
         IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler>> registry,
         IErrorProcessor errorProcessor
@@ -101,32 +106,20 @@ public sealed class Subscription: IAsyncDisposable
             case OkEnvelope(var value, var messageType):
             {
                 var objType = value.GetType();
-                var (messageHandler, methodInfo) = Memoize(registry[messageType].Item2, messageType, objType, MessageHandler);
-                await ((Task)methodInfo.Invoke(messageHandler, [value])!).ConfigureAwait(false);
-                yield return envelope;
+                    var (messageHandler, methodInfo) = _memoizer(messageType, registry[messageType].Item2, objType);
+                    await ((Task)methodInfo.Invoke(messageHandler, [value])!).ConfigureAwait(false);
+
+                    yield return envelope;
                 yield break;
             }
         }
     }
 
-    private static readonly Dictionary<string, (IMessageHandler messageHandler, MethodInfo methodInfo)> Cache = [];
-
-    private static (IMessageHandler messageHandler, MethodInfo methodInfo) Memoize
-    (
-        IMessageHandler messageHandler,
-        string messageType,
-        Type objType,
-        Func<IMessageHandler, Type, (IMessageHandler messageHandler, MethodInfo methodInfo)> func)
+    private static (IMessageHandler messageHandler, MethodInfo methodInfo) MessageHandler(
+        string messageType, IMessageHandler messageHandler, Type objType)
     {
-        if (!Cache.TryGetValue(messageType, out var entry))
-            entry = func(messageHandler, objType);
-        Cache[messageType] = entry;
-        return entry;
-    }
-    private static (IMessageHandler messageHandler, MethodInfo methodInfo) MessageHandler(IMessageHandler messageHandler, Type objType)
-    {
-        var methodInfos = messageHandler.GetType().GetMethods(BindingFlags.Instance|BindingFlags.Public);
-        var methodInfo = methodInfos.SingleOrDefault(mi=>mi.GetParameters().Any(pa => pa.ParameterType == objType))
+        var methodInfos = messageHandler.GetType().GetMethods(BindingFlags.Instance | BindingFlags.Public);
+        var methodInfo = methodInfos.SingleOrDefault(mi => mi.GetParameters().Any(pa => pa.ParameterType == objType))
                          ?? throw new NotSupportedException($"Unregistered type for {objType.AssemblyQualifiedName}");
         return (messageHandler, methodInfo);
     }
