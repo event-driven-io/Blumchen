@@ -4,6 +4,7 @@ using System.Text.Json.Serialization.Metadata;
 using Blumchen;
 using Blumchen.Database;
 using Blumchen.Serialization;
+using Blumchen.Subscriber;
 using Blumchen.Subscriptions;
 using Blumchen.Subscriptions.Management;
 using Blumchen.Subscriptions.Replication;
@@ -67,7 +68,7 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
         await command.ExecuteNonQueryAsync(ct);
     }
 
-    protected (TestMessageHandler<T> handler, SubscriptionOptionsBuilder subscriptionOptionsBuilder) SetupFor<T>(
+    protected (TestMessageHandler<T> handler, OptionsBuilder subscriptionOptionsBuilder) SetupFor<T>(
         string connectionString,
         string eventsTable,
         JsonSerializerContext info,
@@ -79,7 +80,7 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
         var jsonTypeInfo = info.GetTypeInfo(typeof(T));
         ArgumentNullException.ThrowIfNull(jsonTypeInfo);
         var consumer = new TestMessageHandler<T>(log, jsonTypeInfo);
-        var subscriptionOptionsBuilder = new SubscriptionOptionsBuilder()
+        var subscriptionOptionsBuilder = new OptionsBuilder()
             .WithErrorProcessor(new TestOutErrorProcessor(Output))
             .DataSource(new NpgsqlDataSourceBuilder(connectionString).Build())
             .ConnectionString(connectionString)

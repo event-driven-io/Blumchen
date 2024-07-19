@@ -3,7 +3,7 @@ using Blumchen.Database;
 using Blumchen.Serialization;
 using Npgsql;
 
-namespace Blumchen.Publications;
+namespace Blumchen.Publisher;
 
 public record PublisherOptions(TableDescriptorBuilder.MessageTable TableDescriptor, ITypeResolver<JsonTypeInfo> JsonTypeResolver);
 

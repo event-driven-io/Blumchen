@@ -29,7 +29,7 @@ public class Worker<T>(
         await options.ResiliencePipeline.ExecuteAsync(async token =>
         {
             await using var subscription = new Subscription();
-            await using var cursor = subscription.Subscribe(options.SubscriptionOptions, ct: token)
+            await using var cursor = subscription.Subscribe(options.SubscriberOptions, ct: token)
                 .GetAsyncEnumerator(token);
             Notify(logger, LogLevel.Information,"{WorkerName} started", WorkerName);
             while (await cursor.MoveNextAsync().ConfigureAwait(false) && !token.IsCancellationRequested)

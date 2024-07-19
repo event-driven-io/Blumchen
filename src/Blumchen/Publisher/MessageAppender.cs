@@ -3,7 +3,7 @@ using System.Text.Json.Serialization.Metadata;
 using Blumchen.Serialization;
 using Npgsql;
 
-namespace Blumchen.Publications;   
+namespace Blumchen.Publisher;   
 
 public static class MessageAppender
 {

@@ -1,4 +1,4 @@
-using Blumchen.Publications;
+using Blumchen.Publisher;
 using Blumchen.Serialization;
 using Blumchen.Subscriptions;
 using Blumchen.Subscriptions.Replication;
@@ -18,7 +18,7 @@ public class When_Subscription_Does_Not_Exist_And_Table_Is_Not_Empty(ITestOutput
         var connectionString = Container.GetConnectionString();
         var eventsTable = await CreateOutboxTable(NpgsqlDataSource.Create(connectionString), ct);
 
-        var resolver = new PublisherSetupOptionsBuilder()
+        var resolver = new OptionsBuilder()
             .JsonContext(PublisherContext.Default)
             .NamingPolicy(sharedNamingPolicy)
             .WithTable(o => o.Name(eventsTable))

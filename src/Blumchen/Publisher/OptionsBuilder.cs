@@ -1,12 +1,11 @@
 using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
 using Blumchen.Serialization;
 using JetBrains.Annotations;
 using static Blumchen.TableDescriptorBuilder;
 
-namespace Blumchen.Publications;
+namespace Blumchen.Publisher;
 
-public class PublisherSetupOptionsBuilder
+public class OptionsBuilder
 {
     private INamingPolicy? _namingPolicy;
     private JsonSerializerContext? _jsonSerializerContext;
@@ -14,21 +13,21 @@ public class PublisherSetupOptionsBuilder
     private MessageTable? _tableDescriptor;
 
     [UsedImplicitly]
-    public PublisherSetupOptionsBuilder NamingPolicy(INamingPolicy namingPolicy)
+    public OptionsBuilder NamingPolicy(INamingPolicy namingPolicy)
     {
         _namingPolicy = namingPolicy;
         return this;
     }
 
     [UsedImplicitly]
-    public PublisherSetupOptionsBuilder JsonContext(JsonSerializerContext jsonSerializerContext)
+    public OptionsBuilder JsonContext(JsonSerializerContext jsonSerializerContext)
     {
         _jsonSerializerContext = jsonSerializerContext;
         return this;
     }
 
     [UsedImplicitly]
-    public PublisherSetupOptionsBuilder WithTable(Func<TableDescriptorBuilder, TableDescriptorBuilder> builder)
+    public OptionsBuilder WithTable(Func<TableDescriptorBuilder, TableDescriptorBuilder> builder)
     {
         _tableDescriptor = builder(TableDescriptorBuilder).Build();
         return this;

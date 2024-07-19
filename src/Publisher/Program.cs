@@ -1,5 +1,5 @@
 using Blumchen.Database;
-using Blumchen.Publications;
+using Blumchen.Publisher;
 using Blumchen.Serialization;
 using Commons;
 using Npgsql;
@@ -19,7 +19,7 @@ do
     var line = Console.ReadLine();
     if (line != null && int.TryParse(line, out var result))
     {
-        var resolver = await new PublisherSetupOptionsBuilder()
+        var resolver = await new OptionsBuilder()
             .JsonContext(SourceGenerationContext.Default)
             .NamingPolicy(new AttributeNamingPolicy())
             .WithTable(builder => builder.UseDefaults()) //default, but explicit

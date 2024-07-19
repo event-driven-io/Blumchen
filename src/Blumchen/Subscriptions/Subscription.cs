@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Blumchen.Database;
+using Blumchen.Subscriber;
 using Blumchen.Subscriptions.Management;
 using Blumchen.Subscriptions.Replication;
 using Npgsql;
@@ -14,7 +15,7 @@ namespace Blumchen.Subscriptions;
 public sealed class Subscription: IAsyncDisposable
 {
     private LogicalReplicationConnection? _connection;
-    private readonly SubscriptionOptionsBuilder _builder = new();
+    private readonly OptionsBuilder _builder = new();
 
     private readonly Func<string, IMessageHandler, Type, (IMessageHandler messageHandler, MethodInfo methodInfo)>
         _messageHandler = Memoizer<string, IMessageHandler, Type, (IMessageHandler messageHandler,
@@ -37,7 +38,7 @@ public sealed class Subscription: IAsyncDisposable
     }
 
     public async IAsyncEnumerable<IEnvelope> Subscribe(
-        Func<SubscriptionOptionsBuilder, SubscriptionOptionsBuilder> builder,
+        Func<OptionsBuilder, OptionsBuilder> builder,
         [EnumeratorCancellation] CancellationToken ct = default
     )
     {
@@ -46,12 +47,12 @@ public sealed class Subscription: IAsyncDisposable
     }
 
     internal async IAsyncEnumerable<IEnvelope> Subscribe(
-        ISubscriptionOptions subscriptionOptions,
+        ISubscriberOptions subscriberOptions,
         [EnumeratorCancellation] CancellationToken ct = default
     )
     {
         var (dataSource, connectionStringBuilder, publicationSetupOptions, replicationSlotSetupOptions, errorProcessor,
-            registry) = subscriptionOptions;
+            registry) = subscriberOptions;
         await dataSource.EnsureTableExists(publicationSetupOptions.TableDescriptor, ct).ConfigureAwait(false);
 
         _connection = new LogicalReplicationConnection(connectionStringBuilder.ConnectionString);
@@ -60,7 +61,7 @@ public sealed class Subscription: IAsyncDisposable
         await dataSource.SetupPublication(publicationSetupOptions, ct).ConfigureAwait(false);
         var result = await dataSource.SetupReplicationSlot(_connection, replicationSlotSetupOptions, ct)
             .ConfigureAwait(false);
-        var replicationDataMapper = new ReplicationDataMapper(registry);
+        IReplicationDataMapper replicationDataMapper = new ReplicationDataMapper(registry);
         PgOutputReplicationSlot slot;
 
         if (result is not Created created)
@@ -132,7 +133,7 @@ public sealed class Subscription: IAsyncDisposable
     private static async IAsyncEnumerable<IEnvelope> ReadExistingRowsFromSnapshot(
         NpgsqlDataSource dataSource,
         string snapshotName,
-        ReplicationDataMapper dataMapper,
+        IReplicationDataMapper dataMapper,
         TableDescriptorBuilder.MessageTable tableDescriptor,
         ISet<string> registeredTypes,
         [EnumeratorCancellation] CancellationToken ct = default

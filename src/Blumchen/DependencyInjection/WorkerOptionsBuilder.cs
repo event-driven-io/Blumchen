@@ -1,27 +1,27 @@
-using Blumchen.Subscriptions;
+using Blumchen.Subscriber;
 using Polly;
 
 namespace Blumchen.DependencyInjection;
 
-public record WorkerOptions(ResiliencePipeline ResiliencePipeline, ISubscriptionOptions SubscriptionOptions);
+public record WorkerOptions(ResiliencePipeline ResiliencePipeline, ISubscriberOptions SubscriberOptions);
 
 public interface IWorkerOptionsBuilder
 {
     IWorkerOptionsBuilder ResiliencyPipeline(ResiliencePipeline resiliencePipeline);
-    IWorkerOptionsBuilder Subscription(Func<SubscriptionOptionsBuilder, SubscriptionOptionsBuilder>? builder);
+    IWorkerOptionsBuilder Subscription(Func<OptionsBuilder, OptionsBuilder>? builder);
     WorkerOptions Build();
 }
 
 internal sealed class WorkerOptionsBuilder: IWorkerOptionsBuilder
 {
     private ResiliencePipeline? _resiliencePipeline = default;
-    private Func<SubscriptionOptionsBuilder, SubscriptionOptionsBuilder>? _builder;
+    private Func<OptionsBuilder, OptionsBuilder>? _builder;
 
     public IWorkerOptionsBuilder ResiliencyPipeline(ResiliencePipeline resiliencePipeline)
     {
         _resiliencePipeline = resiliencePipeline;
         return this;
-    }public IWorkerOptionsBuilder Subscription(Func<SubscriptionOptionsBuilder, SubscriptionOptionsBuilder>? builder)
+    }public IWorkerOptionsBuilder Subscription(Func<OptionsBuilder, OptionsBuilder>? builder)
     {
         _builder = builder;
         return this;
@@ -31,7 +31,7 @@ internal sealed class WorkerOptionsBuilder: IWorkerOptionsBuilder
     {
         ArgumentNullException.ThrowIfNull(_resiliencePipeline);
         ArgumentNullException.ThrowIfNull(_builder);
-        return new(_resiliencePipeline, _builder(new SubscriptionOptionsBuilder()).Build());
+        return new(_resiliencePipeline, _builder(new OptionsBuilder()).Build());
     }
 }
 

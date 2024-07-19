@@ -1,13 +1,14 @@
+using System.Text.Json.Serialization;
 using Blumchen.Serialization;
+using Blumchen.Subscriptions;
 using Blumchen.Subscriptions.Management;
 using Blumchen.Subscriptions.Replication;
 using JetBrains.Annotations;
 using Npgsql;
-using System.Text.Json.Serialization;
 
-namespace Blumchen.Subscriptions;
+namespace Blumchen.Subscriber;
 
-public sealed class SubscriptionOptionsBuilder
+public sealed class OptionsBuilder
 {
     internal const string WildCard = "*";
     private NpgsqlConnectionStringBuilder? _connectionStringBuilder;
@@ -27,7 +28,7 @@ public sealed class SubscriptionOptionsBuilder
 
 
     [UsedImplicitly]
-    public SubscriptionOptionsBuilder WithTable(
+    public OptionsBuilder WithTable(
         Func<TableDescriptorBuilder, TableDescriptorBuilder> builder)
     {
         _messageTable = builder(_tableDescriptorBuilder).Build();
@@ -35,35 +36,35 @@ public sealed class SubscriptionOptionsBuilder
     }
 
     [UsedImplicitly]
-    public SubscriptionOptionsBuilder ConnectionString(string connectionString)
+    public OptionsBuilder ConnectionString(string connectionString)
     {
         _connectionStringBuilder = new NpgsqlConnectionStringBuilder(connectionString);
         return this;
     }
 
     [UsedImplicitly]
-    public SubscriptionOptionsBuilder DataSource(NpgsqlDataSource dataSource)
+    public OptionsBuilder DataSource(NpgsqlDataSource dataSource)
     {
         _dataSource = dataSource;
         return this;
     }
 
     [UsedImplicitly]
-    public SubscriptionOptionsBuilder NamingPolicy(INamingPolicy namingPolicy)
+    public OptionsBuilder NamingPolicy(INamingPolicy namingPolicy)
     {
         _namingPolicy = namingPolicy;
         return this;
     }
 
     [UsedImplicitly]
-    public SubscriptionOptionsBuilder JsonContext(JsonSerializerContext jsonSerializerContext)
+    public OptionsBuilder JsonContext(JsonSerializerContext jsonSerializerContext)
     {
         _jsonSerializerContext = jsonSerializerContext;
         return this;
     }
 
     [UsedImplicitly]
-    public SubscriptionOptionsBuilder WithPublicationOptions(PublicationManagement.PublicationSetupOptions publicationOptions)
+    public OptionsBuilder WithPublicationOptions(PublicationManagement.PublicationSetupOptions publicationOptions)
     {
         _publicationSetupOptions =
             publicationOptions with { RegisteredTypes = _publicationSetupOptions.RegisteredTypes};
@@ -71,42 +72,42 @@ public sealed class SubscriptionOptionsBuilder
     }
 
     [UsedImplicitly]
-    public SubscriptionOptionsBuilder WithReplicationOptions(ReplicationSlotManagement.ReplicationSlotSetupOptions replicationSlotOptions)
+    public OptionsBuilder WithReplicationOptions(ReplicationSlotManagement.ReplicationSlotSetupOptions replicationSlotOptions)
     {
         _replicationSlotSetupOptions = replicationSlotOptions;
         return this;
     }
 
     [UsedImplicitly]
-    public SubscriptionOptionsBuilder Consumes<T>(IMessageHandler<T> handler) where T : class
+    public OptionsBuilder Consumes<T>(IMessageHandler<T> handler) where T : class
     {
         _typeRegistry.Add(typeof(T), handler);
         return this;
     }
 
     [UsedImplicitly]
-    public SubscriptionOptionsBuilder ConsumesRowObject<T>(IMessageHandler<object> handler) where T : class
+    public OptionsBuilder ConsumesRowObject<T>(IMessageHandler<object> handler) where T : class
         => ConsumesRow<T>(handler, RawUrnAttribute.RawData.Object, ObjectReplicationDataMapper.Instance);
 
     [UsedImplicitly]
-    public SubscriptionOptionsBuilder ConsumesRowString<T>(IMessageHandler<string> handler) where T : class
+    public OptionsBuilder ConsumesRowString<T>(IMessageHandler<string> handler) where T : class
         => ConsumesRow<T>(handler, RawUrnAttribute.RawData.String, StringReplicationDataMapper.Instance);
 
     [UsedImplicitly]
-    public SubscriptionOptionsBuilder ConsumesRowStrings(IMessageHandler<string> handler)
+    public OptionsBuilder ConsumesRowStrings(IMessageHandler<string> handler)
     {
         _replicationDataMapperSelector.Add(WildCard, new Tuple<IReplicationJsonBMapper, IMessageHandler>(StringReplicationDataMapper.Instance, handler));
         return this;
     }
 
     [UsedImplicitly]
-    public SubscriptionOptionsBuilder ConsumesRowObjects(IMessageHandler<string> handler)
+    public OptionsBuilder ConsumesRowObjects(IMessageHandler<string> handler)
     {
         _replicationDataMapperSelector.Add(WildCard, new Tuple<IReplicationJsonBMapper, IMessageHandler>(ObjectReplicationDataMapper.Instance, handler));
         return this;
     }
 
-    private SubscriptionOptionsBuilder ConsumesRow<T>(IMessageHandler<string> handler, RawUrnAttribute.RawData filter, IReplicationJsonBMapper dataMapper) where T : class
+    private OptionsBuilder ConsumesRow<T>(IMessageHandler<string> handler, RawUrnAttribute.RawData filter, IReplicationJsonBMapper dataMapper) where T : class
     {
         using var urnEnum = typeof(T)
             .GetCustomAttributes(typeof(RawUrnAttribute), false)
@@ -118,13 +119,13 @@ public sealed class SubscriptionOptionsBuilder
     }
 
     [UsedImplicitly]
-    public SubscriptionOptionsBuilder WithErrorProcessor(IErrorProcessor? errorProcessor)
+    public OptionsBuilder WithErrorProcessor(IErrorProcessor? errorProcessor)
     {
         _errorProcessor = errorProcessor;
         return this;
     }
     
-    internal ISubscriptionOptions Build()
+    internal ISubscriberOptions Build()
     {
         _messageTable ??= _tableDescriptorBuilder.Build();
         ArgumentNullException.ThrowIfNull(_connectionStringBuilder);
@@ -154,7 +155,7 @@ public sealed class SubscriptionOptionsBuilder
                 RegisteredTypes  = _replicationDataMapperSelector.Keys.Except(new [] { WildCard }).ToHashSet(),
                 TableDescriptor = _messageTable
             };
-        return new SubscriptionOptions(
+        return new SubscriberOptions(
             _dataSource,
             _connectionStringBuilder,
             _publicationSetupOptions,

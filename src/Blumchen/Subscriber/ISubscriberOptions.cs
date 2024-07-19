@@ -1,12 +1,13 @@
+using Blumchen.Subscriptions;
 using Blumchen.Subscriptions.Replication;
 using JetBrains.Annotations;
 using Npgsql;
 using static Blumchen.Subscriptions.Management.PublicationManagement;
 using static Blumchen.Subscriptions.Management.ReplicationSlotManagement;
 
-namespace Blumchen.Subscriptions;
+namespace Blumchen.Subscriber;
 
-public interface ISubscriptionOptions
+public interface ISubscriberOptions
 {
     [UsedImplicitly] NpgsqlDataSource DataSource { get; }
     [UsedImplicitly] NpgsqlConnectionStringBuilder ConnectionStringBuilder { get; }
@@ -24,10 +25,10 @@ public interface ISubscriptionOptions
         out IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler>> registry);
 }
 
-internal record SubscriptionOptions(
+internal record SubscriberOptions(
     NpgsqlDataSource DataSource,
     NpgsqlConnectionStringBuilder ConnectionStringBuilder,
     PublicationSetupOptions PublicationOptions,
     ReplicationSlotSetupOptions ReplicationOptions,
     IErrorProcessor ErrorProcessor,
-    IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler>> Registry): ISubscriptionOptions;
+    IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler>> Registry): ISubscriberOptions;
