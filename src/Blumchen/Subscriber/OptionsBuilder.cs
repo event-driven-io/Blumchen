@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using Blumchen.Serialization;
 using Blumchen.Subscriptions;
@@ -13,20 +12,15 @@ namespace Blumchen.Subscriber;
 public sealed class OptionsBuilder
 {
     internal const string WildCard = "*";
-    private PublicationManagement.PublicationSetupOptions _publicationSetupOptions = new();
-    private ReplicationSlotManagement.ReplicationSlotSetupOptions? _replicationSlotSetupOptions;
-
     [System.Diagnostics.CodeAnalysis.NotNull]
     private NpgsqlConnectionStringBuilder? _connectionStringBuilder = default;
-
     [System.Diagnostics.CodeAnalysis.NotNull]
     private NpgsqlDataSource? _dataSource = default;
-
+    private PublicationManagement.PublicationOptions _publicationOptions = new();
+    private ReplicationSlotManagement.ReplicationSlotOptions? _replicationSlotOptions;
     private readonly Dictionary<Type, IMessageHandler> _typeRegistry = [];
-
     private readonly Dictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler>>
         _replicationDataMapperSelector = [];
-
     private IErrorProcessor? _errorProcessor;
     private INamingPolicy? _namingPolicy;
     private readonly TableDescriptorBuilder _tableDescriptorBuilder = new();
@@ -78,18 +72,18 @@ public sealed class OptionsBuilder
     }
 
     [UsedImplicitly]
-    public OptionsBuilder WithPublicationOptions(PublicationManagement.PublicationSetupOptions publicationOptions)
+    public OptionsBuilder WithPublicationOptions(PublicationManagement.PublicationOptions publicationOptions)
     {
-        _publicationSetupOptions =
-            publicationOptions with { RegisteredTypes = _publicationSetupOptions.RegisteredTypes };
+
+        _publicationOptions =
+            publicationOptions with { RegisteredTypes = _publicationOptions.RegisteredTypes};
         return this;
     }
 
     [UsedImplicitly]
-    public OptionsBuilder WithReplicationOptions(
-        ReplicationSlotManagement.ReplicationSlotSetupOptions replicationSlotOptions)
+    public OptionsBuilder WithReplicationOptions(ReplicationSlotManagement.ReplicationSlotOptions replicationSlotOptions)
     {
-        _replicationSlotSetupOptions = replicationSlotOptions;
+        _replicationSlotOptions = replicationSlotOptions;
         return this;
     }
 
@@ -204,9 +198,7 @@ public sealed class OptionsBuilder
                 throw new ConfigurationException($"`${nameof(Consumes)}<>` requires a valid `{nameof(JsonContext)}`.");
             }
         }
-
-        Ensure.NotEmpty(_replicationDataMapperSelector, $"{nameof(Consumes)}...");
-        _publicationSetupOptions = _publicationSetupOptions
+        _publicationOptions = _publicationOptions
             with
             {
                 RegisteredTypes = _replicationDataMapperSelector.Keys.Except([WildCard]).ToHashSet(),
@@ -215,8 +207,8 @@ public sealed class OptionsBuilder
         return new SubscriberOptions(
             _dataSource,
             _connectionStringBuilder,
-            _publicationSetupOptions,
-            _replicationSlotSetupOptions ?? new ReplicationSlotManagement.ReplicationSlotSetupOptions(),
+            _publicationOptions,
+            _replicationSlotOptions ?? new ReplicationSlotManagement.ReplicationSlotOptions(),
             _errorProcessor ?? new ConsoleOutErrorProcessor(),
             _replicationDataMapperSelector
         );

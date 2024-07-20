@@ -11,11 +11,11 @@ public static class PublicationManagement
 {
     public static async Task<SetupPublicationResult> SetupPublication(
         this NpgsqlDataSource dataSource,
-        PublicationSetupOptions setupOptions,
+        PublicationOptions options,
         CancellationToken ct
     )
     {
-        var (publicationName, createStyle, shouldReAddTablesIfWereRecreated, registeredTypes, tableDescription) = setupOptions;
+        var (publicationName, createStyle, shouldReAddTablesIfWereRecreated, registeredTypes, tableDescription) = options;
 
         return createStyle switch
         {
@@ -23,7 +23,7 @@ public static class PublicationManagement
             Subscription.CreateStyle.AlwaysRecreate => await ReCreate(dataSource, publicationName, tableDescription.Name, registeredTypes, ct).ConfigureAwait(false),
             Subscription.CreateStyle.WhenNotExists when await dataSource.PublicationExists(publicationName, ct).ConfigureAwait(false) => await Refresh(dataSource, publicationName, tableDescription.Name, shouldReAddTablesIfWereRecreated, ct).ConfigureAwait(false),
             Subscription.CreateStyle.WhenNotExists => await Create(dataSource, publicationName, tableDescription.Name, registeredTypes, ct).ConfigureAwait(false),
-            _ => throw new ArgumentOutOfRangeException(nameof(setupOptions.CreateStyle))
+            _ => throw new ArgumentOutOfRangeException(nameof(options.CreateStyle))
         };
 
         static async Task<SetupPublicationResult> ReCreate(
@@ -141,13 +141,13 @@ public static class PublicationManagement
         public record Created: SetupPublicationResult;
     }
 
-    public sealed record PublicationSetupOptions(
-        string PublicationName = PublicationSetupOptions.DefaultPublicationName,
+    public sealed record PublicationOptions(
+        string PublicationName = PublicationOptions.DefaultName,
         Subscription.CreateStyle CreateStyle = Subscription.CreateStyle.WhenNotExists,
         bool ShouldReAddTablesIfWereRecreated = false
     )
     {
-        internal const string DefaultPublicationName = "pub";
+        internal const string DefaultName = "pub";
         internal ISet<string> RegisteredTypes { get; init; } = Enumerable.Empty<string>().ToHashSet();
 
         internal TableDescriptorBuilder.MessageTable TableDescriptor { get; init; } = new TableDescriptorBuilder().Build();

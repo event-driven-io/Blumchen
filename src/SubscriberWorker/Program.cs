@@ -63,8 +63,8 @@ builder.Services
                 subscriptionOptions
                     .ConnectionString(Settings.ConnectionString)
                     .DataSource(provider.GetRequiredService<NpgsqlDataSource>())
-                    .WithReplicationOptions(new ReplicationSlotManagement.ReplicationSlotSetupOptions($"{nameof(HandleImpl1)}_slot"))
-                    .WithPublicationOptions(new PublicationManagement.PublicationSetupOptions($"{nameof(HandleImpl1)}_pub"))
+                    .WithReplicationOptions(new ReplicationSlotManagement.ReplicationSlotOptions($"{nameof(HandleImpl1)}_slot"))
+                    .WithPublicationOptions(new PublicationManagement.PublicationOptions($"{nameof(HandleImpl1)}_pub"))
                     .WithErrorProcessor(provider.GetRequiredService<IErrorProcessor>())
                     .NamingPolicy(provider.GetRequiredService<INamingPolicy>())
                     .JsonContext(SourceGenerationContext.Default)
@@ -78,8 +78,8 @@ builder.Services
             .Subscription(subscriptionOptions =>
                 subscriptionOptions.ConnectionString(Settings.ConnectionString)
                     .DataSource(provider.GetRequiredService<NpgsqlDataSource>())
-                    .WithReplicationOptions(new ReplicationSlotManagement.ReplicationSlotSetupOptions($"{nameof(HandleImpl2)}_slot"))
-                    .WithPublicationOptions(new PublicationManagement.PublicationSetupOptions($"{nameof(HandleImpl2)}_pub"))
+                    .WithReplicationOptions(new ReplicationSlotManagement.ReplicationSlotOptions($"{nameof(HandleImpl2)}_slot"))
+                    .WithPublicationOptions(new PublicationManagement.PublicationOptions($"{nameof(HandleImpl2)}_pub"))
                     .WithErrorProcessor(provider.GetRequiredService<IErrorProcessor>())
                     .NamingPolicy(provider.GetRequiredService<INamingPolicy>())
                     .JsonContext(SourceGenerationContext.Default)

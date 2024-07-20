@@ -89,10 +89,10 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
             .Consumes(consumer)
             .WithTable(o => o.Name(eventsTable))
             .WithPublicationOptions(
-                new PublicationManagement.PublicationSetupOptions(PublicationName: publicationName ?? Randomise("events_pub"))
+                new PublicationManagement.PublicationOptions(PublicationName: publicationName ?? Randomise("events_pub"))
             )
             .WithReplicationOptions(
-                new ReplicationSlotManagement.ReplicationSlotSetupOptions(slotName ?? Randomise("events_slot"))
+                new ReplicationSlotManagement.ReplicationSlotOptions(slotName ?? Randomise("events_slot"))
             );
         return (consumer, subscriptionOptionsBuilder);
     }

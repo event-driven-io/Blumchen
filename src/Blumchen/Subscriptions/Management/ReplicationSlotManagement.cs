@@ -18,7 +18,7 @@ public static class ReplicationSlotManagement
     public static async Task<CreateReplicationSlotResult> SetupReplicationSlot(
         this NpgsqlDataSource dataSource,
         LogicalReplicationConnection connection,
-        ReplicationSlotSetupOptions options,
+        ReplicationSlotOptions options,
         CancellationToken ct
     )
     {
@@ -59,7 +59,7 @@ public static class ReplicationSlotManagement
         }
     }
 
-    public record ReplicationSlotSetupOptions(
+    public record ReplicationSlotOptions(
         string SlotName = $"{TableDescriptorBuilder.MessageTable.DefaultName}_slot",
         Subscription.CreateStyle CreateStyle = Subscription.CreateStyle.WhenNotExists,
         bool Binary =
