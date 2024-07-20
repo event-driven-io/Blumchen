@@ -12,15 +12,20 @@ namespace Blumchen.Subscriber;
 public sealed class OptionsBuilder
 {
     internal const string WildCard = "*";
+
     [System.Diagnostics.CodeAnalysis.NotNull]
     private NpgsqlConnectionStringBuilder? _connectionStringBuilder = default;
+
     [System.Diagnostics.CodeAnalysis.NotNull]
     private NpgsqlDataSource? _dataSource = default;
+
     private PublicationManagement.PublicationOptions _publicationOptions = new();
     private ReplicationSlotManagement.ReplicationSlotOptions? _replicationSlotOptions;
     private readonly Dictionary<Type, IMessageHandler> _typeRegistry = [];
+
     private readonly Dictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler>>
         _replicationDataMapperSelector = [];
+
     private IErrorProcessor? _errorProcessor;
     private INamingPolicy? _namingPolicy;
     private readonly TableDescriptorBuilder _tableDescriptorBuilder = new();
@@ -76,12 +81,13 @@ public sealed class OptionsBuilder
     {
 
         _publicationOptions =
-            publicationOptions with { RegisteredTypes = _publicationOptions.RegisteredTypes};
+            publicationOptions with { RegisteredTypes = _publicationOptions.RegisteredTypes };
         return this;
     }
 
     [UsedImplicitly]
-    public OptionsBuilder WithReplicationOptions(ReplicationSlotManagement.ReplicationSlotOptions replicationSlotOptions)
+    public OptionsBuilder WithReplicationOptions(
+        ReplicationSlotManagement.ReplicationSlotOptions replicationSlotOptions)
     {
         _replicationSlotOptions = replicationSlotOptions;
         return this;
@@ -141,35 +147,6 @@ public sealed class OptionsBuilder
         return this;
     }
 
-    internal abstract class Validable<T>(Func<T, bool> condition, string errorFormat)
-    {
-        public void IsValid(T value, params object[] parameters)
-        {
-            if (!condition(value)) throw new ConfigurationException(string.Format(errorFormat, parameters));
-        }
-    }
-
-    internal static class Ensure
-    {
-        public static void Null<T>(T value, params object[] parameters) =>
-            new NullTrait<T>().IsValid(value, parameters);
-
-        public static void NotNull<T>(T value, params object[] parameters) =>
-            new NotNullTrait<T>().IsValid(value, parameters);
-
-        public static void NotEmpty<T>(T value, params object[] parameters) =>
-            new NotEmptyTrait<T>().IsValid(value, parameters);
-    }
-
-    internal class NullTrait<T>()
-        : Validable<T>(v => v is null, $"`{{0}}` method on {nameof(OptionsBuilder)} called more then once");
-
-    internal class NotNullTrait<T>()
-        : Validable<T>(v => v is not null, $"`{{0}}` method not called on {nameof(OptionsBuilder)}");
-
-    internal class NotEmptyTrait<T>(): Validable<T>(v => v is ICollection { Count: > 0 },
-        $"No `{{0}}` method called on {nameof(OptionsBuilder)}");
-
     internal ISubscriberOptions Build()
     {
         _messageTable ??= _tableDescriptorBuilder.Build();
@@ -198,6 +175,7 @@ public sealed class OptionsBuilder
                 throw new ConfigurationException($"`${nameof(Consumes)}<>` requires a valid `{nameof(JsonContext)}`.");
             }
         }
+
         _publicationOptions = _publicationOptions
             with
             {
@@ -214,5 +192,3 @@ public sealed class OptionsBuilder
         );
     }
 }
-
-public class ConfigurationException(string message): Exception(message);
