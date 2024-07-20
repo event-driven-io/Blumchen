@@ -59,21 +59,29 @@ public static class PublicationManagement
         }
     }
 
+    internal static string CreatePublication(
+        string publicationName,
+        string tableName,
+        ISet<string> registeredTypes
+    )
+    {
+        var sql = $"CREATE PUBLICATION \"{publicationName}\" FOR TABLE {tableName} {{0}} WITH (publish = 'insert');";
+        return registeredTypes.Count switch
+        {
+            0 => string.Format(sql, string.Empty),
+            _ => string.Format(sql, $"WHERE ({PublicationFilter(registeredTypes)})")
+        };
+        static string PublicationFilter(ICollection<string> input) => string.Join(" OR ", input.Select(s => $"message_type = '{s}'"));
+    }
+
     internal static Task CreatePublication(
         this NpgsqlDataSource dataSource,
         string publicationName,
         string tableName,
         ISet<string> registeredTypes,
         CancellationToken ct
-    ) {
-        var sql = $"CREATE PUBLICATION \"{publicationName}\" FOR TABLE {tableName} {{0}} WITH (publish = 'insert');";
-        return registeredTypes.Count switch
-        {
-            0 => Execute(dataSource, string.Format(sql,string.Empty), ct),
-            _ => Execute(dataSource, string.Format(sql, $"WHERE ({PublicationFilter(registeredTypes)})"), ct)
-        };
-        static string PublicationFilter(ICollection<string> input) => string.Join(" OR ", input.Select(s => $"message_type = '{s}'"));
-    }
+    ) => Execute(dataSource, CreatePublication(publicationName, tableName, registeredTypes), ct);
+    
 
     private static async Task Execute(
         this NpgsqlDataSource dataSource,
