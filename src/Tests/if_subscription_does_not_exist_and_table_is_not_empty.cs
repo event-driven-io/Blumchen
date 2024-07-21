@@ -1,7 +1,6 @@
 using Blumchen.Publisher;
 using Blumchen.Serialization;
 using Blumchen.Subscriptions;
-using Blumchen.Subscriptions.Management;
 using Blumchen.Subscriptions.Replication;
 using Npgsql;
 using Xunit.Abstractions;
@@ -9,43 +8,38 @@ using Xunit.Abstractions;
 namespace Tests;
 
 // ReSharper disable once InconsistentNaming
-public class When_Subscription_Already_Exists(ITestOutputHelper testOutputHelper): DatabaseFixture(testOutputHelper)
+public class if_subscription_does_not_exist_and_table_is_not_empty(ITestOutputHelper testOutputHelper): DatabaseFixture(testOutputHelper)
 {
     [Fact]
-    public async Task Read_from_transaction_log()
+    public async Task read_from_table_using_named_transaction_snapshot()
     {
         var ct = TimeoutTokenSource().Token;
         var sharedNamingPolicy = new AttributeNamingPolicy();
         var connectionString = Container.GetConnectionString();
-        var dataSource = NpgsqlDataSource.Create(connectionString);
-        var eventsTable = await CreateOutboxTable(dataSource, ct);
-        var opts = new OptionsBuilder()
+        var eventsTable = await CreateOutboxTable(NpgsqlDataSource.Create(connectionString), ct);
+
+        var resolver = new OptionsBuilder()
             .JsonContext(PublisherContext.Default)
             .NamingPolicy(sharedNamingPolicy)
             .WithTable(o => o.Name(eventsTable))
             .Build();
-        var slotName = "subscription_test";
-        var publicationName = "publication_test";
-        
-        await dataSource.CreatePublication(publicationName, eventsTable, new HashSet<string>{"urn:message:user-created:v1"}, ct);
-        
-        var (_, subscriptionOptions) = SetupFor<SubscriberUserCreated>(connectionString, eventsTable,
-            SubscriberContext.Default, sharedNamingPolicy, Output.WriteLine, publicationName: publicationName, slotName: slotName);
 
         //subscriber ignored msg
-        await MessageAppender.AppendAsync(
-            new PublisherUserDeleted(Guid.NewGuid(), Guid.NewGuid().ToString()), opts, connectionString, ct);
+        await MessageAppender.AppendAsync( new PublisherUserDeleted(Guid.NewGuid(), Guid.NewGuid().ToString()), resolver, connectionString, ct);
 
         //poison message
         await InsertPoisoningMessage(connectionString, eventsTable, ct);
 
         var @event = new PublisherUserCreated(Guid.NewGuid(), Guid.NewGuid().ToString());
-        await MessageAppender.AppendAsync(@event, opts, connectionString, ct);
+        await MessageAppender.AppendAsync(@event, resolver, connectionString, ct);
 
         var @expected = new SubscriberUserCreated(@event.Id, @event.Name);
 
+        var ( _, subscriptionOptions) =
+            SetupFor<SubscriberUserCreated>(connectionString, eventsTable, SubscriberContext.Default, sharedNamingPolicy, Output.WriteLine);
         var subscription = new Subscription();
         await using var subscription1 = subscription.ConfigureAwait(false);
+
         await foreach (var envelope in subscription.Subscribe(_ => subscriptionOptions, ct).ConfigureAwait(false))
         {
             Assert.Equal(@expected, ((OkEnvelope)envelope).Value);
