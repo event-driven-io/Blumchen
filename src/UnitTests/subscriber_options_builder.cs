@@ -4,7 +4,6 @@ using Blumchen.Subscriptions;
 using Blumchen.Subscriptions.Replication;
 using Npgsql;
 using NSubstitute;
-using static Blumchen.Subscriptions.Management.PublicationManagement;
 using static Blumchen.Subscriptions.Subscription;
 
 namespace UnitTests
@@ -94,6 +93,30 @@ namespace UnitTests
             var messageHandler = Substitute.For<IMessageHandler<object>>();
             var opts = _builder(ValidConnectionString).ConsumesRawObjects(messageHandler).Build();
             Assert.Equivalent(new Dictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler>> { { OptionsBuilder.WildCard, new Tuple<IReplicationJsonBMapper, IMessageHandler>(ObjectReplicationDataMapper.Instance, messageHandler) } }, opts.Registry);
+        }
+
+        [Fact]
+        public void ConsumesRawObjects_cannot_be_mixed_with_other_consuming_strategies()
+        {
+            var messageHandler1 = Substitute.For<IMessageHandler<object>>();
+            var messageHandler2 = Substitute.For<IMessageHandler<object>>();
+            var exception = Record.Exception(() =>
+                _builder(ValidConnectionString).ConsumesRawStrings(messageHandler2).ConsumesRawObjects(messageHandler1)
+                    .Build());
+            Assert.IsType<ConfigurationException>(exception);
+            Assert.Equal("`ConsumesRawObjects` cannot be mixed with other consuming strategies", exception.Message);
+        }
+
+        [Fact]
+        public void ConsumesRawStrings_cannot_be_mixed_with_other_consuming_strategies()
+        {
+            var messageHandler1 = Substitute.For<IMessageHandler<object>>();
+            var messageHandler2 = Substitute.For<IMessageHandler<object>>();
+            var exception = Record.Exception(() =>
+                _builder(ValidConnectionString).ConsumesRawObjects(messageHandler1).ConsumesRawStrings(messageHandler2)
+                    .Build());
+            Assert.IsType<ConfigurationException>(exception);
+            Assert.Equal("`ConsumesRawStrings` cannot be mixed with other consuming strategies", exception.Message);
         }
 
         [Fact]

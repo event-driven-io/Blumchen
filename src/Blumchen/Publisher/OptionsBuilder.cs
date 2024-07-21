@@ -7,10 +7,15 @@ namespace Blumchen.Publisher;
 
 public class OptionsBuilder
 {
-    private INamingPolicy? _namingPolicy;
-    private JsonSerializerContext? _jsonSerializerContext;
+    [System.Diagnostics.CodeAnalysis.NotNull]
+    private INamingPolicy? _namingPolicy = default;
+
+    [System.Diagnostics.CodeAnalysis.NotNull]
+    private JsonSerializerContext? _jsonSerializerContext = default;
+
     private static readonly TableDescriptorBuilder TableDescriptorBuilder = new();
-    private MessageTable? _tableDescriptor;
+
+    private MessageTable? _tableDescriptor = default;
 
     [UsedImplicitly]
     public OptionsBuilder NamingPolicy(INamingPolicy namingPolicy)
@@ -35,10 +40,10 @@ public class OptionsBuilder
 
     public PublisherOptions Build()
     {
-        ArgumentNullException.ThrowIfNull(_jsonSerializerContext);
-        ArgumentNullException.ThrowIfNull(_namingPolicy);
-
         _tableDescriptor ??= TableDescriptorBuilder.Build();
+        Ensure.NotNull(_jsonSerializerContext, nameof(JsonContext));
+        Ensure.NotNull(_namingPolicy, nameof(NamingPolicy));
+
         var jsonTypeResolver = new JsonTypeResolver(_jsonSerializerContext, _namingPolicy);
         using var typeEnum = _jsonSerializerContext.GetType()
             .GetCustomAttributesData()

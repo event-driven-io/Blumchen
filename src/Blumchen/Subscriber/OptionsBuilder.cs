@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Text.Json.Serialization;
 using Blumchen.Serialization;
 using Blumchen.Subscriptions;
@@ -28,8 +27,8 @@ public sealed class OptionsBuilder
 
     private IErrorProcessor? _errorProcessor;
     private INamingPolicy? _namingPolicy;
-    private readonly TableDescriptorBuilder _tableDescriptorBuilder = new();
-    private TableDescriptorBuilder.MessageTable? _messageTable;
+    private static readonly TableDescriptorBuilder TableDescriptorBuilder = new();
+    private TableDescriptorBuilder.MessageTable? _tableDescriptor;
 
     private readonly IReplicationJsonBMapper _objectDataMapper =
         new ObjectReplicationDataMapper(new ObjectReplicationDataReader());
@@ -42,7 +41,7 @@ public sealed class OptionsBuilder
     public OptionsBuilder WithTable(
         Func<TableDescriptorBuilder, TableDescriptorBuilder> builder)
     {
-        _messageTable = builder(_tableDescriptorBuilder).Build();
+        _tableDescriptor = builder(TableDescriptorBuilder).Build();
         return this;
     }
 
@@ -111,6 +110,8 @@ public sealed class OptionsBuilder
     [UsedImplicitly]
     public OptionsBuilder ConsumesRawStrings(IMessageHandler<string> handler)
     {
+        Ensure.Empty(_replicationDataMapperSelector, nameof(ConsumesRawStrings));
+            
         _replicationDataMapperSelector.Add(WildCard,
             new Tuple<IReplicationJsonBMapper, IMessageHandler>(StringReplicationDataMapper.Instance, handler));
         return this;
@@ -119,6 +120,8 @@ public sealed class OptionsBuilder
     [UsedImplicitly]
     public OptionsBuilder ConsumesRawObjects(IMessageHandler<string> handler)
     {
+        Ensure.Empty(_replicationDataMapperSelector, nameof(ConsumesRawObjects));
+
         _replicationDataMapperSelector.Add(WildCard,
             new Tuple<IReplicationJsonBMapper, IMessageHandler>(ObjectReplicationDataMapper.Instance, handler));
         return this;
@@ -149,7 +152,7 @@ public sealed class OptionsBuilder
 
     internal ISubscriberOptions Build()
     {
-        _messageTable ??= _tableDescriptorBuilder.Build();
+        _tableDescriptor ??= TableDescriptorBuilder.Build();
         Ensure.NotNull<NpgsqlConnectionStringBuilder?>(_connectionStringBuilder, $"{nameof(ConnectionString)}");
         Ensure.NotNull<NpgsqlDataSource?>(_dataSource, $"{nameof(DataSource)}");
 
@@ -175,12 +178,12 @@ public sealed class OptionsBuilder
                 throw new ConfigurationException($"`${nameof(Consumes)}<>` requires a valid `{nameof(JsonContext)}`.");
             }
         }
-
+        Ensure.NotEmpty(_replicationDataMapperSelector, $"{nameof(Consumes)}...");
         _publicationOptions = _publicationOptions
             with
             {
                 RegisteredTypes = _replicationDataMapperSelector.Keys.Except([WildCard]).ToHashSet(),
-                TableDescriptor = _messageTable
+                TableDescriptor = _tableDescriptor
             };
         return new SubscriberOptions(
             _dataSource,
