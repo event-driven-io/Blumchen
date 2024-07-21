@@ -2,6 +2,7 @@ using Blumchen.Database;
 using Blumchen.Publisher;
 using Blumchen.Serialization;
 using Commons;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using Publisher;
 using UserCreated = Publisher.UserCreated;
@@ -12,6 +13,14 @@ using UserSubscribed = Publisher.UserSubscribed;
 Console.Title = typeof(Program).Assembly.GetName().Name!;
 Console.WriteLine("How many messages do you want to publish?(press CTRL+C to exit):");
 var cts = new CancellationTokenSource();
+
+var generator = new Func<object>[]
+{
+    () => new UserCreated(Guid.NewGuid()),
+    () => new UserDeleted(Guid.NewGuid()),
+    () => new UserModified(Guid.NewGuid()),
+    () => new UserSubscribed(Guid.NewGuid())
+};
 
 do
 {
@@ -29,7 +38,8 @@ do
 
         //Or you might want to verify at a later stage
         await new NpgsqlDataSourceBuilder(Settings.ConnectionString)
-            .Build()
+                .UseLoggerFactory(LoggerFactory.Create(builder => builder.AddConsole()))
+                .Build()
             .EnsureTableExists(resolver.TableDescriptor, cts.Token).ConfigureAwait(false);
 
         var messages = result / 4;
@@ -40,13 +50,7 @@ do
         //use a command for each message
         {
             var @events = Enumerable.Range(0, result).Select(i =>
-                (i % 4) switch
-                {
-                    0 => new UserCreated(Guid.NewGuid()) as object,
-                    1 => new UserDeleted(Guid.NewGuid()),
-                    2 => new UserModified(Guid.NewGuid()),
-                    _ => new UserSubscribed(Guid.NewGuid())
-                });
+                generator[i % generator.Length]());
             await Console.Out.WriteLineAsync($"Publishing {messages + ((result % 3 > 0) ? 1 : 0)} {nameof(UserCreated)}");
             await Console.Out.WriteLineAsync($"Publishing {messages + ((result % 3 > 1) ? 1 : 0)} {nameof(UserDeleted)}");
             await Console.Out.WriteLineAsync($"Publishing {messages + ((result % 3 > 2) ? 1 : 0)} {nameof(UserModified)}");

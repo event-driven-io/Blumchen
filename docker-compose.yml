@@ -15,9 +15,6 @@ services:
             - "wal_level=logical"
             - "-c"
             - "wal_compression=on"
-        volumes:
-            - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
-
     pgadmin:
         container_name: pgadmin_container
         image: dpage/pgadmin4
@@ -36,4 +33,3 @@ services:
         depends_on:
             - postgres
         restart: unless-stopped
-
