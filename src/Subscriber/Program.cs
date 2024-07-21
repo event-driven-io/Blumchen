@@ -36,8 +36,8 @@ try
             .NamingPolicy(new AttributeNamingPolicy())
             .Consumes<UserCreatedContract>(consumer)
             .JsonContext(SourceGenerationContext.Default)
-            .ConsumesRowString<MessageString>(consumer)
-            .ConsumesRowObject<MessageObjects>(consumer), ct
+            .ConsumesRawString<MessageString>(consumer)
+            .ConsumesRawObject<MessageObjects>(consumer), ct
     ).GetAsyncEnumerator(ct);
     await using var cursor1 = cursor.ConfigureAwait(false);
     while (await cursor.MoveNextAsync().ConfigureAwait(false) && !ct.IsCancellationRequested);

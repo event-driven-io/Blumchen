@@ -101,15 +101,15 @@ public sealed class OptionsBuilder
     }
 
     [UsedImplicitly]
-    public OptionsBuilder ConsumesRowObject<T>(IMessageHandler<object> handler) where T : class
-        => ConsumesRow<T>(handler, RawUrnAttribute.RawData.Object, ObjectReplicationDataMapper.Instance);
+    public OptionsBuilder ConsumesRawObject<T>(IMessageHandler<object> handler) where T : class
+        => ConsumesRaw<T>(handler, RawUrnAttribute.RawData.Object, ObjectReplicationDataMapper.Instance);
 
     [UsedImplicitly]
-    public OptionsBuilder ConsumesRowString<T>(IMessageHandler<string> handler) where T : class
-        => ConsumesRow<T>(handler, RawUrnAttribute.RawData.String, StringReplicationDataMapper.Instance);
+    public OptionsBuilder ConsumesRawString<T>(IMessageHandler<string> handler) where T : class
+        => ConsumesRaw<T>(handler, RawUrnAttribute.RawData.String, StringReplicationDataMapper.Instance);
 
     [UsedImplicitly]
-    public OptionsBuilder ConsumesRowStrings(IMessageHandler<string> handler)
+    public OptionsBuilder ConsumesRawStrings(IMessageHandler<string> handler)
     {
         _replicationDataMapperSelector.Add(WildCard,
             new Tuple<IReplicationJsonBMapper, IMessageHandler>(StringReplicationDataMapper.Instance, handler));
@@ -117,14 +117,14 @@ public sealed class OptionsBuilder
     }
 
     [UsedImplicitly]
-    public OptionsBuilder ConsumesRowObjects(IMessageHandler<string> handler)
+    public OptionsBuilder ConsumesRawObjects(IMessageHandler<string> handler)
     {
         _replicationDataMapperSelector.Add(WildCard,
             new Tuple<IReplicationJsonBMapper, IMessageHandler>(ObjectReplicationDataMapper.Instance, handler));
         return this;
     }
 
-    private OptionsBuilder ConsumesRow<T>(IMessageHandler<string> handler, RawUrnAttribute.RawData filter,
+    private OptionsBuilder ConsumesRaw<T>(IMessageHandler<string> handler, RawUrnAttribute.RawData filter,
         IReplicationJsonBMapper dataMapper) where T : class
     {
         var urns = typeof(T)

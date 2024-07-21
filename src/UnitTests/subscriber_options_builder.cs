@@ -63,7 +63,7 @@ namespace UnitTests
         public void has_default_options()
         {
             var messageHandler = Substitute.For<IMessageHandler<string>>();
-            var opts = _builder(ValidConnectionString).ConsumesRowStrings(messageHandler).Build();
+            var opts = _builder(ValidConnectionString).ConsumesRawStrings(messageHandler).Build();
 
             Assert.NotNull(opts.PublicationOptions);
             Assert.Equal(CreateStyle.WhenNotExists, opts.PublicationOptions.CreateStyle);
@@ -81,18 +81,18 @@ namespace UnitTests
         }
 
         [Fact]
-        public void with_ConsumesRowStrings()
+        public void with_ConsumesRawStrings()
         {
             var messageHandler = Substitute.For<IMessageHandler<string>>();
-            var opts = _builder(ValidConnectionString).ConsumesRowStrings(messageHandler).Build();
+            var opts = _builder(ValidConnectionString).ConsumesRawStrings(messageHandler).Build();
             Assert.Equivalent(new Dictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler>> { { OptionsBuilder.WildCard, new Tuple<IReplicationJsonBMapper, IMessageHandler>(StringReplicationDataMapper.Instance, messageHandler) } }, opts.Registry);
         }
 
         [Fact]
-        public void with_ConsumesRowObjects()
+        public void with_ConsumesRawObjects()
         {
             var messageHandler = Substitute.For<IMessageHandler<object>>();
-            var opts = _builder(ValidConnectionString).ConsumesRowObjects(messageHandler).Build();
+            var opts = _builder(ValidConnectionString).ConsumesRawObjects(messageHandler).Build();
             Assert.Equivalent(new Dictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler>> { { OptionsBuilder.WildCard, new Tuple<IReplicationJsonBMapper, IMessageHandler>(ObjectReplicationDataMapper.Instance, messageHandler) } }, opts.Registry);
         }
 
@@ -100,7 +100,7 @@ namespace UnitTests
         public void with_typed_raw_consumer_of_object_requires_RawUrn_decoration()
         {
             var messageHandler = Substitute.For<IMessageHandler<object>>();
-            var exception = Record.Exception(() => _builder(ValidConnectionString).ConsumesRowObject<InvalidMessage>(messageHandler).Build());
+            var exception = Record.Exception(() => _builder(ValidConnectionString).ConsumesRawObject<InvalidMessage>(messageHandler).Build());
             Assert.IsType<ConfigurationException>(exception);
             Assert.Equal("No `NamingPolicy` method called on OptionsBuilder", exception.Message);
         }
@@ -109,7 +109,7 @@ namespace UnitTests
         public void with_typed_raw_consumer_of_string_requires_RawUrn_decoration()
         {
             var messageHandler = Substitute.For<IMessageHandler<string>>();
-            var exception = Record.Exception(() => _builder(ValidConnectionString).ConsumesRowString<InvalidMessage>(messageHandler).Build());
+            var exception = Record.Exception(() => _builder(ValidConnectionString).ConsumesRawString<InvalidMessage>(messageHandler).Build());
             Assert.IsType<ConfigurationException>(exception);
             Assert.Equal("No `NamingPolicy` method called on OptionsBuilder", exception.Message);
         }
