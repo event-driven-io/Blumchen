@@ -12,6 +12,7 @@
 
     <ItemGroup>
       <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
+      <PackageReference Include="Microsoft.DotNet.ILCompiler" Version="8.0.7" />
     </ItemGroup>
 
     <ItemGroup>

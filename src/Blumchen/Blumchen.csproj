@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <VersionPrefix>0.1.1</VersionPrefix>
@@ -48,7 +48,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="JetBrains.Annotations" Version="2023.3.0">
+        <PackageReference Include="JetBrains.Annotations" Version="2024.2.0">
             <PrivateAssets>all</PrivateAssets>
             <ExcludeAssets>none</ExcludeAssets>
             <IncludeAssets>all</IncludeAssets>
