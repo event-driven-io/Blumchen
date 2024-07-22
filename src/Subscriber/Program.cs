@@ -33,11 +33,16 @@ try
                 .MessageType("message_type")
                 .MessageData("data", new MimeType.Json())
             )
-            .NamingPolicy(new AttributeNamingPolicy())
-            .Consumes<UserCreatedContract>(consumer)
-            .JsonContext(SourceGenerationContext.Default)
-            .ConsumesRawString<MessageString>(consumer)
-            .ConsumesRawObject<MessageObjects>(consumer), ct
+        .NamingPolicy(new AttributeNamingPolicy())
+        .Consumes<UserCreatedContract>(consumer)
+        .JsonContext(SourceGenerationContext.Default)
+        .ConsumesRawString<MessageString>(consumer)
+        .ConsumesRawObject<MessageObjects>(consumer)
+        //OR
+        //.ConsumesRawStrings(consumer)
+        //OR
+        //.ConsumesRawObjects(consumer)
+        , ct
     ).GetAsyncEnumerator(ct);
     await using var cursor1 = cursor.ConfigureAwait(false);
     while (await cursor.MoveNextAsync().ConfigureAwait(false) && !ct.IsCancellationRequested);
