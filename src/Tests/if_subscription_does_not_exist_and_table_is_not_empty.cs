@@ -35,7 +35,7 @@ public class if_subscription_does_not_exist_and_table_is_not_empty(ITestOutputHe
 
         var @expected = new SubscriberUserCreated(@event.Id, @event.Name);
 
-        var ( _, subscriptionOptions) =
+        var subscriptionOptions =
             SetupFor<SubscriberUserCreated>(connectionString, eventsTable, SubscriberContext.Default, sharedNamingPolicy, Output.WriteLine);
         var subscription = new Subscription();
         await using var subscription1 = subscription.ConfigureAwait(false);

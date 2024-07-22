@@ -34,7 +34,7 @@ public class if_subscription_does_not_exist_and_table_is_empty(ITestOutputHelper
 
         await MessageAppender.AppendAsync(@event, resolver, connectionString, ct);
 
-        var ( _, subscriptionOptions) = SetupFor<SubscriberUserCreated>(connectionString, eventsTable,
+        var subscriptionOptions = SetupFor<SubscriberUserCreated>(connectionString, eventsTable,
             SubscriberContext.Default, sharedNamingPolicy, Output.WriteLine);
         var subscription = new Subscription();
         await using var subscription1 = subscription.ConfigureAwait(false);

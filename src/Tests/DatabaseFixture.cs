@@ -68,7 +68,7 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
         await command.ExecuteNonQueryAsync(ct);
     }
 
-    protected (TestMessageHandler<T> handler, OptionsBuilder subscriptionOptionsBuilder) SetupFor<T>(
+    protected  OptionsBuilder SetupFor<T>(
         string connectionString,
         string eventsTable,
         JsonSerializerContext info,
@@ -94,7 +94,7 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
             .WithReplicationOptions(
                 new ReplicationSlotManagement.ReplicationSlotOptions(slotName ?? Randomise("events_slot"))
             );
-        return (consumer, subscriptionOptionsBuilder);
+        return subscriptionOptionsBuilder;
     }
 
     private sealed record TestOutErrorProcessor(ITestOutputHelper Output): IErrorProcessor

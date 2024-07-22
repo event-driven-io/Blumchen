@@ -29,7 +29,7 @@ public class if_subscription_already_exists(ITestOutputHelper testOutputHelper):
         
         await dataSource.CreatePublication(publicationName, eventsTable, new HashSet<string>{"urn:message:user-created:v1"}, ct);
         
-        var (_, subscriptionOptions) = SetupFor<SubscriberUserCreated>(connectionString, eventsTable,
+        var subscriptionOptions = SetupFor<SubscriberUserCreated>(connectionString, eventsTable,
             SubscriberContext.Default, sharedNamingPolicy, Output.WriteLine, publicationName: publicationName, slotName: slotName);
 
         //subscriber ignored msg
