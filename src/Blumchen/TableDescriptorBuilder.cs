@@ -22,9 +22,9 @@ public record TableDescriptorBuilder
         return this;
     }
 
-    public TableDescriptorBuilder MessageData(string name, MimeType mime)
+    public TableDescriptorBuilder MessageData(string name)
     {
-        TableDescriptor = TableDescriptor with { Data = new Column.Data(name), MimeType = mime };
+        TableDescriptor = TableDescriptor with { Data = new Column.Data(name), MimeType = MimeType.Json };
         return this;
     }
 
@@ -43,7 +43,7 @@ public record TableDescriptorBuilder
         public Column.Id Id { get; internal init; } = Column.Id.Default();
         public Column.MessageType MessageType { get; internal init; } = Column.MessageType.Default();
         public Column.Data Data { get; internal init; } = Column.Data.Default();
-        public MimeType MimeType { get; internal init; } = new MimeType.Json();
+        public MimeType MimeType { get; internal init; } = MimeType.Json;
         public MessageTable Build() => this;
 
         public override string ToString() => @$"

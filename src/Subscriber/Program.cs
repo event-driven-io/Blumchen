@@ -31,7 +31,7 @@ try
             .WithTable(options => options
                 .Id("id")
                 .MessageType("message_type")
-                .MessageData("data", new MimeType.Json())
+                .MessageData("data")
             )
         .NamingPolicy(new AttributeNamingPolicy())
         .Consumes<UserCreatedContract>(consumer)
