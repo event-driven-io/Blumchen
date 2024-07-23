@@ -13,11 +13,11 @@ public static class Run
         CancellationToken ct)
     {
         await using var command = dataSource.CreateCommand(sql);
-        await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        await command.ExecuteNonQueryAsync(ct);
     }
 
     public static async Task EnsureTableExists(this NpgsqlDataSource dataSource, TableDescriptorBuilder.MessageTable tableDescriptor, CancellationToken ct)
-        => await dataSource.Execute(tableDescriptor.ToString(), ct).ConfigureAwait(false);
+        => await dataSource.Execute(string.Concat("select pg_advisory_xact_lock(12345);", tableDescriptor), ct).ConfigureAwait(false);
 
     public static async Task<bool> Exists(
         this NpgsqlDataSource dataSource,
