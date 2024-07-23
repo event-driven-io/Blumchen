@@ -1,6 +1,3 @@
-using System.Collections;
-using Blumchen.Subscriber;
-
 namespace Blumchen;
 
 internal static class IDictionaryExtensions
