@@ -49,7 +49,7 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
     {
         var tableName = Randomise("outbox");
 
-        var tableDesc = new TableDescriptorBuilder().Name(tableName).Build();
+        var tableDesc = new TableDescriptorBuilder().Named(tableName).Build();
         await dataSource.EnsureTableExists(tableDesc, ct).ConfigureAwait(false);
 
         return tableName;
@@ -87,7 +87,7 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
             .JsonContext(info)
             .NamingPolicy(namingPolicy)
             .Consumes(consumer)
-            .WithTable(o => o.Name(eventsTable))
+            .WithTable(o => o.Named(eventsTable))
             .WithPublicationOptions(
                 new PublicationManagement.PublicationOptions(PublicationName: publicationName ?? Randomise("events_pub"))
             )

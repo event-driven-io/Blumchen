@@ -22,7 +22,7 @@ public class if_subscription_already_exists(ITestOutputHelper testOutputHelper):
         var opts = new OptionsBuilder()
             .JsonContext(PublisherContext.Default)
             .NamingPolicy(sharedNamingPolicy)
-            .WithTable(o => o.Name(eventsTable))
+            .WithTable(o => o.Named(eventsTable))
             .Build();
         var slotName = "subscription_test";
         var publicationName = "publication_test";

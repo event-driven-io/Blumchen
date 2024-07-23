@@ -21,7 +21,7 @@ public class if_subscription_does_not_exist_and_table_is_not_empty(ITestOutputHe
         var resolver = new OptionsBuilder()
             .JsonContext(PublisherContext.Default)
             .NamingPolicy(sharedNamingPolicy)
-            .WithTable(o => o.Name(eventsTable))
+            .WithTable(o => o.Named(eventsTable))
             .Build();
 
         //subscriber ignored msg

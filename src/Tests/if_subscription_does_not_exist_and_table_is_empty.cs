@@ -21,7 +21,7 @@ public class if_subscription_does_not_exist_and_table_is_empty(ITestOutputHelper
         var resolver = new OptionsBuilder()
             .JsonContext(PublisherContext.Default)
             .NamingPolicy(sharedNamingPolicy)
-            .WithTable(o => o.Name(eventsTable))
+            .WithTable(o => o.Named(eventsTable))
             .Build();
         //subscriber ignored msg
         await MessageAppender.AppendAsync(new PublisherUserDeleted(Guid.NewGuid(), Guid.NewGuid().ToString()), resolver, connectionString, ct);
