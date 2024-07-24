@@ -11,70 +11,73 @@ using UserModified = Publisher.UserModified;
 using UserSubscribed = Publisher.UserSubscribed;
 
 Console.Title = typeof(Program).Assembly.GetName().Name!;
-Console.WriteLine("How many messages do you want to publish?(press CTRL+C to exit):");
+
+var generator = new Dictionary<string, Func<object>>
+{
+    { nameof(UserCreated), () => new UserCreated(Guid.NewGuid()) },
+    { nameof(UserDeleted), () => new UserDeleted(Guid.NewGuid()) },
+    { nameof(UserModified), () => new UserModified(Guid.NewGuid()) },
+    { nameof(UserSubscribed), () => new UserSubscribed(Guid.NewGuid()) }
+};
+
 var cts = new CancellationTokenSource();
 
-var generator = new Func<object>[]
-{
-    () => new UserCreated(Guid.NewGuid()),
-    () => new UserDeleted(Guid.NewGuid()),
-    () => new UserModified(Guid.NewGuid()),
-    () => new UserSubscribed(Guid.NewGuid())
-};
+var resolver = await new OptionsBuilder()
+    .JsonContext(SourceGenerationContext.Default)
+    .NamingPolicy(new AttributeNamingPolicy())
+    .WithTable(builder => builder.UseDefaults()) //default, but explicit
+    .Build()
+    .EnsureTable(Settings.ConnectionString, cts.Token)//enforce table existence and conformity - db roundtrip
+    .ConfigureAwait(false);
+
+//Or you might want to verify at a later stage
+await new NpgsqlDataSourceBuilder(Settings.ConnectionString)
+    .UseLoggerFactory(LoggerFactory.Create(builder => builder.AddConsole()))
+    .Build()
+    .EnsureTableExists(resolver.TableDescriptor, cts.Token).ConfigureAwait(false);
 
 do
 {
-
+    await Console.Out.WriteLineAsync("How many messages do you want to publish?(press CTRL+C to exit):");
     var line = Console.ReadLine();
     if (line != null && int.TryParse(line, out var result))
     {
-        var resolver = await new OptionsBuilder()
-            .JsonContext(SourceGenerationContext.Default)
-            .NamingPolicy(new AttributeNamingPolicy())
-            .WithTable(builder => builder.UseDefaults()) //default, but explicit
-            .Build()
-            .EnsureTable(Settings.ConnectionString, cts.Token)//enforce table existence and conformity - db roundtrip
-            .ConfigureAwait(false);
-
-        //Or you might want to verify at a later stage
-        await new NpgsqlDataSourceBuilder(Settings.ConnectionString)
-                .UseLoggerFactory(LoggerFactory.Create(builder => builder.AddConsole()))
-                .Build()
-            .EnsureTableExists(resolver.TableDescriptor, cts.Token).ConfigureAwait(false);
-
-        var messages = result / 4;
+        var generatorLength = generator.Count;
+        var messageCount = result / generatorLength;
         var ct = cts.Token;
         var connection = new NpgsqlConnection(Settings.ConnectionString);
         await using var connection1 = connection.ConfigureAwait(false);
         await connection.OpenAsync(ct).ConfigureAwait(false);
         //use a command for each message
         {
-            var @events = Enumerable.Range(0, result).Select(i =>
-                generator[i % generator.Length]());
-            await Console.Out.WriteLineAsync($"Publishing {messages + ((result % 3 > 0) ? 1 : 0)} {nameof(UserCreated)}");
-            await Console.Out.WriteLineAsync($"Publishing {messages + ((result % 3 > 1) ? 1 : 0)} {nameof(UserDeleted)}");
-            await Console.Out.WriteLineAsync($"Publishing {messages + ((result % 3 > 2) ? 1 : 0)} {nameof(UserModified)}");
-            await Console.Out.WriteLineAsync($"Publishing {messages} {nameof(UserSubscribed)}");
-            foreach (var @event in @events)
+            var tuple = Enumerable.Range(0, result).Select(i =>
+                generator.ElementAt(i % generatorLength));
+
+            foreach (var s in generator.Keys.Select((key, i) => $"Publishing {(messageCount + (result % generatorLength > i ? 1 : 0))} {key}").ToList())
+                await Console.Out.WriteLineAsync(s);
+
+            foreach (var message in tuple.Select(_ => _.Value()))
             {
                 var transaction = await connection.BeginTransactionAsync(ct).ConfigureAwait(false);
                 try
                 {
-                    switch (@event)
-                    {
-                        case UserCreated m:
-                            await MessageAppender.AppendAsync(m, resolver, connection, transaction, ct).ConfigureAwait(false);
-                            break;
-                        case UserDeleted m:
-                            await MessageAppender.AppendAsync( m, resolver, connection, transaction, ct).ConfigureAwait(false);
-                            break;
-                        case UserModified m:
-                            await MessageAppender.AppendAsync(m, resolver, connection, transaction, ct).ConfigureAwait(false);
-                            break;
-                        case UserSubscribed m:
-                            await MessageAppender.AppendAsync(m, resolver, connection, transaction, ct).ConfigureAwait(false);
-                            break;
-                    }
+                    await MessageAppender.AppendAsync(message, resolver, connection, transaction, ct).ConfigureAwait(false);
+                    //OR with typed version
+                    //switch (message)
+                    //{
+                    //    case UserCreated m:
+                    //        await MessageAppender.AppendAsync(m, resolver, connection, transaction, ct).ConfigureAwait(false);
+                    //        break;
+                    //    case UserDeleted m:
+                    //        await MessageAppender.AppendAsync( m, resolver, connection, transaction, ct).ConfigureAwait(false);
+                    //        break;
+                    //    case UserModified m:
+                    //        await MessageAppender.AppendAsync(m, resolver, connection, transaction, ct).ConfigureAwait(false);
+                    //        break;
+                    //    case UserSubscribed m:
+                    //        await MessageAppender.AppendAsync(m, resolver, connection, transaction, ct).ConfigureAwait(false);
+                    //        break;
+                    //}
 
                     await transaction.CommitAsync(ct).ConfigureAwait(false);
                 }
