@@ -7,6 +7,26 @@ namespace Blumchen.Publisher;
 
 public static class MessageAppender
 {
+    public static async Task AppendAsync(object @input
+        , PublisherOptions resolver
+        , NpgsqlConnection connection
+        , NpgsqlTransaction transaction
+        , CancellationToken ct
+    )
+    {
+        switch (@input)
+        {
+            case null:
+                throw new ArgumentNullException(nameof(@input));
+            case IEnumerable inputs:
+                await AppendBatchAsyncOfT(inputs, resolver.TableDescriptor, resolver.JsonTypeResolver, connection, transaction, ct).ConfigureAwait(false);
+                break;
+            default:
+                await AppendAsyncOfT(input, resolver.TableDescriptor, resolver.JsonTypeResolver, connection, transaction, ct).ConfigureAwait(false);
+                break;
+        }
+    }
+
     public static async Task AppendAsync<T>(T @input
         , PublisherOptions resolver
         , NpgsqlConnection connection
@@ -34,7 +54,7 @@ public static class MessageAppender
         , NpgsqlTransaction transaction
         , CancellationToken ct) where T : class
     {
-        var (typeName, jsonTypeInfo) = typeResolver.Resolve(typeof(T));
+        var (typeName, jsonTypeInfo) = typeResolver.Resolve(input.GetType());
         var data = JsonSerialization.ToJson(@input, jsonTypeInfo);
         
         await using var command = new NpgsqlCommand(
