@@ -101,11 +101,11 @@ public sealed class OptionsBuilder
 
     [UsedImplicitly]
     public OptionsBuilder ConsumesRawObject<T>(IMessageHandler<object> handler) where T : class
-        => ConsumesRaw<T>(handler, RawUrnAttribute.RawData.Object, ObjectReplicationDataMapper.Instance);
+        => ConsumesRaw<T>(handler, ObjectReplicationDataMapper.Instance);
 
     [UsedImplicitly]
     public OptionsBuilder ConsumesRawString<T>(IMessageHandler<string> handler) where T : class
-        => ConsumesRaw<T>(handler, RawUrnAttribute.RawData.String, StringReplicationDataMapper.Instance);
+        => ConsumesRaw<T>(handler, StringReplicationDataMapper.Instance);
 
     [UsedImplicitly]
     public OptionsBuilder ConsumesRawStrings(IMessageHandler<string> handler)
@@ -127,15 +127,14 @@ public sealed class OptionsBuilder
         return this;
     }
 
-    private OptionsBuilder ConsumesRaw<T>(IMessageHandler<string> handler, RawUrnAttribute.RawData filter,
+    private OptionsBuilder ConsumesRaw<T>(IMessageHandler<string> handler,
         IReplicationJsonBMapper dataMapper) where T : class
     {
         var urns = typeof(T)
             .GetCustomAttributes(typeof(RawUrnAttribute), false)
             .OfType<RawUrnAttribute>()
-            .Where(attribute => attribute.Data == filter)
             .Select(attribute => attribute.Urn).ToList();
-        Ensure.NotEmpty<IEnumerable<Uri>>(urns, nameof(NamingPolicy));
+        Ensure.RawUrn<IEnumerable<Uri>,T>(urns, nameof(NamingPolicy));
         using var urnEnum = urns.GetEnumerator();
         while (urnEnum.MoveNext())
             _replicationDataMapperSelector.Add(urnEnum.Current.ToString(),

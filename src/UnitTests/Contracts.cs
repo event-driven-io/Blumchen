@@ -9,11 +9,11 @@ namespace UnitTests
         string Name
     );
 
-    [RawUrn("user-deleted:v1", RawUrnAttribute.RawData.Object)]
+    [RawUrn("user-deleted:v1")]
     public class MessageObjects;
 
 
-    [RawUrn("user-modified:v1", RawUrnAttribute.RawData.String)]
+    [RawUrn("user-modified:v1")]
     internal class MessageString;
 
     internal class InvalidMessage;
