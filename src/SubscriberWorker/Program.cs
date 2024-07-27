@@ -49,7 +49,7 @@ builder.Services
             .AddFilter("Microsoft", LogLevel.Warning)
             .AddFilter("System", LogLevel.Warning)
             .AddFilter("Npgsql", LogLevel.Information)
-            .AddFilter("Blumchen", LogLevel.Debug)
+            .AddFilter("Blumchen", LogLevel.Trace)
             .AddFilter("SubscriberWorker", LogLevel.Debug)
             .AddSimpleConsole();
     })

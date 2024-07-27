@@ -29,7 +29,7 @@ try
         .AddFilter("Blumchen", LogLevel.Debug)
         .AddFilter("Subscriber", LogLevel.Trace)
         .AddSimpleConsole());
-    var logger = loggerFactory.CreateLogger<Program>();
+    var logger = loggerFactory.CreateLogger("Subscriber");
     var dataSourceBuilder = new NpgsqlDataSourceBuilder(Settings.ConnectionString)
         .UseLoggerFactory(loggerFactory);
     var cursor = subscription.Subscribe(
@@ -59,7 +59,7 @@ try
     await using var cursor1 = cursor.ConfigureAwait(false);
     while (await cursor.MoveNextAsync().ConfigureAwait(false) && !ct.IsCancellationRequested)
         if(logger.IsEnabled(LogLevel.Trace))
-            logger.LogTrace(cursor.Current.ToString());
+            logger.LogTrace($"{cursor.Current} processed");
 }
 catch (Exception e)
 {
