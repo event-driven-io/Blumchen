@@ -17,27 +17,26 @@ public sealed class Subscription: IAsyncDisposable
     private LogicalReplicationConnection? _connection;
     private readonly OptionsBuilder _builder = new();
 
-    private readonly Func<string, IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler>>, Type, (IMessageHandler messageHandler, MethodInfo methodInfo)> _messageHandler;
+    private readonly
+        Func<string, IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>>, Type, (
+            IMessageHandler messageHandler, MethodInfo methodInfo)> _messageHandler;
 
     public Subscription()
     {
-        _messageHandler = Memoizer<string, IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler>>, Type, (IMessageHandler messageHandler,
-            MethodInfo methodInfo)>.Execute(MessageHandler);
+        _messageHandler =
+            Memoizer<string, IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>>, Type, (
+                IMessageHandler messageHandler,
+                MethodInfo methodInfo)>.Execute(MessageHandler);
     }
 
     private (IMessageHandler messageHandler, MethodInfo methodInfo) MessageHandler(
-        string messageType, IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler>> registry, Type objType)
+        string messageType, IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>> registry,
+        Type objType)
     {
-        var tuple = registry.FindByMultiKey(messageType, OptionsBuilder.WildCard) ??
-                    throw new NotSupportedException($"Unregistered type for {objType.AssemblyQualifiedName}");
-        {
-            var messageHandler = tuple.Item2;
-            var methodInfos = messageHandler.GetType().GetMethods(BindingFlags.Instance | BindingFlags.Public);
-            var methodInfo =
-                methodInfos.SingleOrDefault(mi => mi.GetParameters().Any(pa => pa.ParameterType == objType))
-                ?? throw new NotSupportedException($"Unregistered type for {objType.AssemblyQualifiedName}");
-            return (messageHandler, methodInfo);
-        }
+        var (_, messageHandler, methodInfo) = registry.FindByMultiKey(messageType, OptionsBuilder.WildCard) ??
+                                              throw new NotSupportedException(
+                                                  $"Unregistered type for {objType.AssemblyQualifiedName}");
+        return (messageHandler, methodInfo);
     }
 
     public enum CreateStyle
@@ -119,7 +118,7 @@ public sealed class Subscription: IAsyncDisposable
 
     private async IAsyncEnumerable<IEnvelope> ProcessEnvelope(
         IEnvelope envelope,
-        IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler>> registry,
+        IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>> registry,
         IErrorProcessor errorProcessor
     )
     {
@@ -129,14 +128,13 @@ public sealed class Subscription: IAsyncDisposable
                 await errorProcessor.Process(error.Error).ConfigureAwait(false);
                 yield break;
             case OkEnvelope(var value, var messageType):
-                {
-                    var (messageHandler, methodInfo) =
-                        _messageHandler(messageType, registry, value.GetType());
-                    await ((Task)methodInfo.Invoke(messageHandler, [value])!).ConfigureAwait(false);
-
-                    yield return envelope;
-                    yield break;
-                }
+            {
+                var (messageHandler, methodInfo) =
+                    _messageHandler(messageType, registry, value.GetType());
+                await ((Task)methodInfo.Invoke(messageHandler, [value])!).ConfigureAwait(false);
+                yield return envelope;
+                yield break;
+            }
         }
     }
 

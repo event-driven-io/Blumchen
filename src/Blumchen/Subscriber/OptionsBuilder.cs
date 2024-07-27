@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json.Serialization;
 using Blumchen.Serialization;
 using Blumchen.Subscriptions;
@@ -20,17 +21,14 @@ public sealed partial class OptionsBuilder
 
     private PublicationManagement.PublicationOptions _publicationOptions = new();
     private ReplicationSlotManagement.ReplicationSlotOptions? _replicationSlotOptions;
-    private readonly Dictionary<Type, IMessageHandler> _typeRegistry = [];
+    private readonly Dictionary<Type, Tuple<IMessageHandler, MethodInfo>> _typeRegistry = [];
 
-    private readonly Dictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler>>
+    private readonly Dictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>>
         _replicationDataMapperSelector = [];
 
     private IErrorProcessor? _errorProcessor;
     private static readonly TableDescriptorBuilder TableDescriptorBuilder = new();
     private TableDescriptorBuilder.MessageTable? _tableDescriptor;
-
-    private readonly IReplicationJsonBMapper _objectDataMapper =
-        new ObjectReplicationDataMapper(new ObjectReplicationDataReader());
 
     private IReplicationJsonBMapper? _jsonDataMapper;
 
@@ -77,20 +75,25 @@ public sealed partial class OptionsBuilder
     }
 
     [UsedImplicitly]
-    public OptionsBuilder ConsumesRawObject<T>(IMessageHandler<object> handler) where T : class
-        => ConsumesRaw<T>(handler, ObjectReplicationDataMapper.Instance);
+    public OptionsBuilder ConsumesRawObject<T>(IMessageHandler<T> handler) where T : class
+        => ConsumesRaw<T,object>(handler, ObjectReplicationDataMapper.Instance);
 
     [UsedImplicitly]
-    public OptionsBuilder ConsumesRawString<T>(IMessageHandler<string> handler) where T : class
-        => ConsumesRaw<T>(handler, StringReplicationDataMapper.Instance);
+    public OptionsBuilder ConsumesRawString<T>(IMessageHandler<T> handler) where T : class
+        => ConsumesRaw<T, string>(handler, StringReplicationDataMapper.Instance);
 
     [UsedImplicitly]
     public OptionsBuilder ConsumesRawStrings(IMessageHandler<string> handler)
     {
         Ensure.Empty(_replicationDataMapperSelector, _typeRegistry, nameof(ConsumesRawStrings));
 
+        var methodInfo = handler
+                             .GetType()
+                             .GetMethod(nameof(IMessageHandler<string>.Handle),BindingFlags.Instance | BindingFlags.Public, [typeof(string)])
+            ?? throw new ConfigurationException($"Unable to find {nameof(IMessageHandler<string>)} implementation on {handler.GetType().Name}");
+
         _replicationDataMapperSelector.Add(WildCard,
-            new Tuple<IReplicationJsonBMapper, IMessageHandler>(StringReplicationDataMapper.Instance, handler));
+            new Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>(StringReplicationDataMapper.Instance, handler, methodInfo));
         return this;
     }
 
@@ -99,23 +102,35 @@ public sealed partial class OptionsBuilder
     {
         Ensure.Empty(_replicationDataMapperSelector, _typeRegistry, nameof(ConsumesRawObjects));
 
+        var methodInfo = handler
+                             .GetType()
+                             .GetMethod(nameof(IMessageHandler<string>.Handle), BindingFlags.Instance | BindingFlags.Public, [typeof(string)])
+                         ?? throw new ConfigurationException($"Unable to find {nameof(IMessageHandler<string>)} implementation on {handler.GetType().Name}");
+
+
         _replicationDataMapperSelector.Add(WildCard,
-            new Tuple<IReplicationJsonBMapper, IMessageHandler>(ObjectReplicationDataMapper.Instance, handler));
+            new Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>(ObjectReplicationDataMapper.Instance, handler, methodInfo));
         return this;
     }
 
-    private OptionsBuilder ConsumesRaw<T>(IMessageHandler<string> handler,
-        IReplicationJsonBMapper dataMapper) where T : class
+    private OptionsBuilder ConsumesRaw<T, TU>(IMessageHandler<T> handler,
+        IReplicationJsonBMapper dataMapper) where T : class where TU : class
     {
         var urns = typeof(T)
             .GetCustomAttributes(typeof(RawUrnAttribute), false)
             .OfType<RawUrnAttribute>()
             .Select(attribute => attribute.Urn).ToList();
         Ensure.RawUrn<IEnumerable<Uri>,T>(urns, nameof(NamingPolicy));
+
+        var methodInfo = handler
+                             .GetType()
+                             .GetMethod(nameof(IMessageHandler<TU>.Handle), BindingFlags.Instance | BindingFlags.Public, [typeof(TU)])
+                         ?? throw new ConfigurationException($"Unable to find {nameof(IMessageHandler<TU>)} implementation on {handler.GetType().Name}");
+
         using var urnEnum = urns.GetEnumerator();
         while (urnEnum.MoveNext())
             _replicationDataMapperSelector.Add(urnEnum.Current.ToString(),
-                new Tuple<IReplicationJsonBMapper, IMessageHandler>(dataMapper, handler));
+                new Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>(dataMapper, handler, methodInfo));
         return this;
     }
 
@@ -147,7 +162,7 @@ public sealed partial class OptionsBuilder
                 foreach (var (key, value) in typeResolver.RegisteredTypes.Join(_typeRegistry, pair => pair.Value,
                              pair => pair.Key, (pair, valuePair) => (pair.Key, valuePair.Value)))
                     _replicationDataMapperSelector.Add(key,
-                        new Tuple<IReplicationJsonBMapper, IMessageHandler>(_jsonDataMapper, value));
+                        new Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>(_jsonDataMapper, value.Item1, value.Item2));
             }
             else
             {

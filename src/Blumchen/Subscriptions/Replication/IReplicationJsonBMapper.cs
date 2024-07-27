@@ -41,7 +41,6 @@ internal class ReplicationDataMapper<T, TU>(
         try
         {
             var eventType = resolver?.Resolve(typeName);
-            ArgumentNullException.ThrowIfNull(eventType, typeName);
             var value = await replicationDataReader.Read(reader, ct, eventType).ConfigureAwait(false) ?? throw new ArgumentNullException();
             return new OkEnvelope(value, typeName);
         }

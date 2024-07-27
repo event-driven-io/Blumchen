@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json.Serialization;
 using Blumchen.Serialization;
 using Blumchen.Subscriptions.Replication;
@@ -51,7 +52,13 @@ public sealed partial class OptionsBuilder
     public IConsumesTypedJsonOptionsContext Consumes<T>(IMessageHandler<T> handler) where T : class
     {
         Ensure.Empty(_replicationDataMapperSelector, nameof(Consumes));
-        _typeRegistry.Add(typeof(T), handler);
+        var methodInfo = handler
+                             .GetType()
+                             .GetMethod(nameof(IMessageHandler<T>.Handle), BindingFlags.Instance | BindingFlags.Public, [typeof(T)])
+                         ?? throw new ConfigurationException($"Unable to find {nameof(IMessageHandler<T>)} implementation on {handler.GetType().Name}");
+
+
+        _typeRegistry.Add(typeof(T), new Tuple<IMessageHandler, MethodInfo>(handler, methodInfo));
         return new ConsumesTypedJsonTypedJsonOptionsContext(this);
     }
 }

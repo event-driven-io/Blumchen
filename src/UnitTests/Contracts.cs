@@ -16,7 +16,7 @@ namespace UnitTests
     [RawUrn("user-modified:v1")]
     internal class MessageString;
 
-    internal class InvalidMessage;
+    public class InvalidMessage;
 
     [JsonSourceGenerationOptions(WriteIndented = true)]
     [JsonSerializable(typeof(UserCreatedContract))]

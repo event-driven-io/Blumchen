@@ -16,30 +16,40 @@ AppDomain.CurrentDomain.UnhandledException += (_, e) => Console.Out.WriteLine(e.
 TaskScheduler.UnobservedTaskException += (_,e) => Console.Out.WriteLine(e.Exception.ToString());
 
 var ct = cancellationTokenSource.Token;
-var consumer = new Consumer();
 var subscription = new Subscription();
 await using var subscription1 = subscription.ConfigureAwait(false);
 
 try
 {
+    
+    var loggerFactory = LoggerFactory.Create(builder => builder
+        .AddFilter("Microsoft", LogLevel.Warning)
+        .AddFilter("System", LogLevel.Warning)
+        .AddFilter("Npgsql", LogLevel.Information)
+        .AddFilter("Blumchen", LogLevel.Debug)
+        .AddFilter("Subscriber", LogLevel.Trace)
+        .AddSimpleConsole());
+    var logger = loggerFactory.CreateLogger<Program>();
     var dataSourceBuilder = new NpgsqlDataSourceBuilder(Settings.ConnectionString)
-        .UseLoggerFactory(LoggerFactory.Create(builder => builder.AddConsole()));
+        .UseLoggerFactory(loggerFactory);
     var cursor = subscription.Subscribe(
-        builder => builder
-            .DataSource(dataSourceBuilder.Build())
-            .ConnectionString(Settings.ConnectionString)
-            .WithTable(options => options
-                .Id("id")
-                .MessageType("message_type")
-                .MessageData("data")
-            )
-
-        .Consumes<UserCreatedContract>(consumer)
-        .JsonContext(SourceGenerationContext.Default)
-        .NamingPolicy(new AttributeNamingPolicy())
-
-        .ConsumesRawString<MessageString>(consumer)
-        .ConsumesRawObject<MessageObjects>(consumer)
+        builder =>
+        {
+            var consumer = new Consumer(loggerFactory.CreateLogger<Consumer>());
+            return builder
+                .DataSource(dataSourceBuilder.Build())
+                .ConnectionString(Settings.ConnectionString)
+                .WithTable(options => options
+                    .Id("id")
+                    .MessageType("message_type")
+                    .MessageData("data")
+                )
+                .Consumes<UserCreatedContract>(consumer)
+                .JsonContext(SourceGenerationContext.Default)
+                .NamingPolicy(new AttributeNamingPolicy())
+                .ConsumesRawString<MessageString>(consumer)
+                .ConsumesRawObject<MessageObjects>(consumer);
+        }
         //OR
         //.ConsumesRawStrings(consumer)
         //OR
@@ -47,7 +57,9 @@ try
         , ct
     ).GetAsyncEnumerator(ct);
     await using var cursor1 = cursor.ConfigureAwait(false);
-    while (await cursor.MoveNextAsync().ConfigureAwait(false) && !ct.IsCancellationRequested);
+    while (await cursor.MoveNextAsync().ConfigureAwait(false) && !ct.IsCancellationRequested)
+        if(logger.IsEnabled(LogLevel.Trace))
+            logger.LogTrace(cursor.Current.ToString());
 }
 catch (Exception e)
 {
@@ -58,14 +70,27 @@ Console.ReadKey();
 
 namespace Subscriber
 {
-    internal class Consumer:
+    internal class Consumer(ILogger<Consumer> logger):
         IMessageHandler<UserCreatedContract>,
         IMessageHandler<object>,
         IMessageHandler<string>
     {
-        public Task Handle(string value) => Console.Out.WriteLineAsync(value);
-        public Task Handle(object value) => Console.Out.WriteLineAsync(value.ToString());
-        public Task Handle(UserCreatedContract value)  => Console.Out.WriteLineAsync(JsonSerialization.ToJson(value, SourceGenerationContext.Default.UserCreatedContract));
+        private int _completed;
+
+        private Task ReportSuccess<T>(int count)
+        {
+            if (logger.IsEnabled(LogLevel.Debug))
+                logger.LogDebug($"Read #{count} messages {typeof(T).FullName}");
+            return Task.CompletedTask;
+        }
+
+        private Task Handle<T>(T value) =>
+                ReportSuccess<T>(Interlocked.Increment(ref _completed));
+
+        public Task Handle(string value) => Handle<string>(value);
+        public Task Handle(object value) => Handle<object>(value);
+        public Task Handle(UserCreatedContract value)  =>
+            Handle<UserCreatedContract>(value);
 
     }
 }
