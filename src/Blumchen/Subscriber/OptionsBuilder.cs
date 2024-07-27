@@ -8,7 +8,7 @@ using Npgsql;
 
 namespace Blumchen.Subscriber;
 
-public sealed class OptionsBuilder
+public sealed partial class OptionsBuilder
 {
     internal const string WildCard = "*";
 
@@ -26,7 +26,6 @@ public sealed class OptionsBuilder
         _replicationDataMapperSelector = [];
 
     private IErrorProcessor? _errorProcessor;
-    private INamingPolicy? _namingPolicy;
     private static readonly TableDescriptorBuilder TableDescriptorBuilder = new();
     private TableDescriptorBuilder.MessageTable? _tableDescriptor;
 
@@ -34,7 +33,6 @@ public sealed class OptionsBuilder
         new ObjectReplicationDataMapper(new ObjectReplicationDataReader());
 
     private IReplicationJsonBMapper? _jsonDataMapper;
-    private JsonSerializerContext? _jsonSerializerContext;
 
 
     [UsedImplicitly]
@@ -62,20 +60,6 @@ public sealed class OptionsBuilder
     }
 
     [UsedImplicitly]
-    public OptionsBuilder NamingPolicy(INamingPolicy namingPolicy)
-    {
-        _namingPolicy = namingPolicy;
-        return this;
-    }
-
-    [UsedImplicitly]
-    public OptionsBuilder JsonContext(JsonSerializerContext jsonSerializerContext)
-    {
-        _jsonSerializerContext = jsonSerializerContext;
-        return this;
-    }
-
-    [UsedImplicitly]
     public OptionsBuilder WithPublicationOptions(PublicationManagement.PublicationOptions publicationOptions)
     {
 
@@ -93,13 +77,6 @@ public sealed class OptionsBuilder
     }
 
     [UsedImplicitly]
-    public OptionsBuilder Consumes<T>(IMessageHandler<T> handler) where T : class
-    {
-        _typeRegistry.Add(typeof(T), handler);
-        return this;
-    }
-
-    [UsedImplicitly]
     public OptionsBuilder ConsumesRawObject<T>(IMessageHandler<object> handler) where T : class
         => ConsumesRaw<T>(handler, ObjectReplicationDataMapper.Instance);
 
@@ -110,8 +87,8 @@ public sealed class OptionsBuilder
     [UsedImplicitly]
     public OptionsBuilder ConsumesRawStrings(IMessageHandler<string> handler)
     {
-        Ensure.Empty(_replicationDataMapperSelector, nameof(ConsumesRawStrings));
-            
+        Ensure.Empty(_replicationDataMapperSelector, _typeRegistry, nameof(ConsumesRawStrings));
+
         _replicationDataMapperSelector.Add(WildCard,
             new Tuple<IReplicationJsonBMapper, IMessageHandler>(StringReplicationDataMapper.Instance, handler));
         return this;
@@ -120,7 +97,7 @@ public sealed class OptionsBuilder
     [UsedImplicitly]
     public OptionsBuilder ConsumesRawObjects(IMessageHandler<string> handler)
     {
-        Ensure.Empty(_replicationDataMapperSelector, nameof(ConsumesRawObjects));
+        Ensure.Empty(_replicationDataMapperSelector, _typeRegistry, nameof(ConsumesRawObjects));
 
         _replicationDataMapperSelector.Add(WildCard,
             new Tuple<IReplicationJsonBMapper, IMessageHandler>(ObjectReplicationDataMapper.Instance, handler));
@@ -174,7 +151,7 @@ public sealed class OptionsBuilder
             }
             else
             {
-                throw new ConfigurationException($"`${nameof(Consumes)}<>` requires a valid `{nameof(JsonContext)}`.");
+                throw new ConfigurationException($"`${nameof(Consumes)}<>` requires a valid `{nameof(JsonSerializerContext)}`.");
             }
         }
         Ensure.NotEmpty(_replicationDataMapperSelector, $"{nameof(Consumes)}...");

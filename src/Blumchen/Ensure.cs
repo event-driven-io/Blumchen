@@ -6,19 +6,22 @@ namespace Blumchen;
 
 internal static class Ensure
 {
-    public static void RawUrn<T,TR>(T value, params object[] parameters) => new RawUrnTrait<T,TR>().IsValid(value, parameters);
-    public static void Null<T>(T value, params object[] parameters) => new NullTrait<T>().IsValid(value, parameters);
-    public static void NotNull<T>(T value, params object[] parameters) => new NotNullTrait<T>().IsValid(value, parameters);
-    public static void NotEmpty<T>(T value, params object[] parameters) => new NotEmptyTrait<T>().IsValid(value, parameters);
-    public static void Empty<T>(T value, params object[] parameters) => new EmptyTrait<T>().IsValid(value, parameters);
+    public static void RawUrn<T,TR>(T value, string parameters) => new RawUrnTrait<T,TR>().IsValid(value, parameters);
+    public static void Null<T>(T value, string parameters) => new NullTrait<T>().IsValid(value, parameters);
+    public static void NotNull<T>(T value, string parameters) => new NotNullTrait<T>().IsValid(value, parameters);
+    public static void NotEmpty<T>(T value, string parameters) => new NotEmptyTrait<T>().IsValid(value, parameters);
+    public static void Empty<T>(T value, string parameters) => new EmptyTrait<T>().IsValid(value, parameters);
+    public static bool Empty<T, TU>(T value1, TU value2, params string[] parameters) =>
+        new EmptyTrait<T>().IsValid(value1, parameters) && new EmptyTrait<TU>().IsValid(value2, parameters);
 }
 
 internal abstract class Validable<T>(Func<T, bool> condition, string errorFormat)
 {
-    public void IsValid(T value, params object[] parameters)
+    public bool IsValid(T value, params string[] parameters)
     {
         if (!condition(value))
             throw new ConfigurationException(string.Format(errorFormat, parameters));
+        return true;
     }
 }
 

@@ -66,10 +66,11 @@ builder.Services
                     .WithReplicationOptions(new ReplicationSlotManagement.ReplicationSlotOptions($"{nameof(HandleImpl1)}_slot"))
                     .WithPublicationOptions(new PublicationManagement.PublicationOptions($"{nameof(HandleImpl1)}_pub"))
                     .WithErrorProcessor(provider.GetRequiredService<IErrorProcessor>())
-                    .NamingPolicy(provider.GetRequiredService<INamingPolicy>())
-                    .JsonContext(SourceGenerationContext.Default)
+                    
                     .Consumes(provider.GetRequiredService<IMessageHandler<UserCreatedContract>>())
                     .Consumes(provider.GetRequiredService<IMessageHandler<UserModifiedContract>>())
+                    .JsonContext(SourceGenerationContext.Default)
+                    .NamingPolicy(provider.GetRequiredService<INamingPolicy>())
                 )
             .ResiliencyPipeline(provider.GetRequiredService<ResiliencePipelineProvider<string>>().GetPipeline("default"))
     )
@@ -81,9 +82,10 @@ builder.Services
                     .WithReplicationOptions(new ReplicationSlotManagement.ReplicationSlotOptions($"{nameof(HandleImpl2)}_slot"))
                     .WithPublicationOptions(new PublicationManagement.PublicationOptions($"{nameof(HandleImpl2)}_pub"))
                     .WithErrorProcessor(provider.GetRequiredService<IErrorProcessor>())
-                    .NamingPolicy(provider.GetRequiredService<INamingPolicy>())
-                    .JsonContext(SourceGenerationContext.Default)
+                    
                     .Consumes(provider.GetRequiredService<IMessageHandler<UserDeletedContract>>())
+                    .JsonContext(SourceGenerationContext.Default)
+                    .NamingPolicy(provider.GetRequiredService<INamingPolicy>())
                 )
             .ResiliencyPipeline(provider.GetRequiredService<ResiliencePipelineProvider<string>>().GetPipeline("default"))
         );
