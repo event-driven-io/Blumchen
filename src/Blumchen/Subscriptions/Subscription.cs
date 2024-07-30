@@ -125,7 +125,7 @@ public sealed class Subscription: IAsyncDisposable
         switch (envelope)
         {
             case KoEnvelope error:
-                await errorProcessor.Process(error.Error).ConfigureAwait(false);
+                await errorProcessor.Process(error.Error, error.Id).ConfigureAwait(false);
                 yield break;
             case OkEnvelope(var value, var messageType):
             {

@@ -101,9 +101,9 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
 
     private sealed record TestOutErrorProcessor(ITestOutputHelper Output): IErrorProcessor
     {
-        public Func<Exception, Task> Process => exception =>
+        public Func<Exception, string, Task> Process => (exception, id) =>
         {
-            Output.WriteLine($"record id:{0} resulted in error:{exception.Message}");
+            Output.WriteLine($"record id:{id} resulted in error:{exception.Message}");
             return Task.CompletedTask;
         };
     }
