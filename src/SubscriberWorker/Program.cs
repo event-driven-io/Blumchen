@@ -63,32 +63,38 @@ builder.Services
                 subscriptionOptions
                     .ConnectionString(Settings.ConnectionString)
                     .DataSource(provider.GetRequiredService<NpgsqlDataSource>())
-                    .WithReplicationOptions(new ReplicationSlotManagement.ReplicationSlotOptions($"{nameof(HandleImpl1)}_slot"))
+                    .WithReplicationOptions(
+                        new ReplicationSlotManagement.ReplicationSlotOptions($"{nameof(HandleImpl1)}_slot"))
                     .WithPublicationOptions(new PublicationManagement.PublicationOptions($"{nameof(HandleImpl1)}_pub"))
                     .WithErrorProcessor(provider.GetRequiredService<IErrorProcessor>())
-                    
-                    .Consumes(provider.GetRequiredService<IMessageHandler<UserCreatedContract>>())
-                    .Consumes(provider.GetRequiredService<IMessageHandler<UserModifiedContract>>())
-                    .JsonContext(SourceGenerationContext.Default)
-                    .NamingPolicy(provider.GetRequiredService<INamingPolicy>())
-                )
-            .ResiliencyPipeline(provider.GetRequiredService<ResiliencePipelineProvider<string>>().GetPipeline("default"))
+
+                    .Consumes(provider.GetRequiredService<IMessageHandler<UserCreatedContract>>(), opts =>
+                        opts
+                            .Consumes(provider.GetRequiredService<IMessageHandler<UserModifiedContract>>())
+                            .WithJsonContext(SourceGenerationContext.Default)
+                            .AndNamingPolicy(provider.GetRequiredService<INamingPolicy>()))
+            )
+            .ResiliencyPipeline(
+                provider.GetRequiredService<ResiliencePipelineProvider<string>>().GetPipeline("default"))
     )
     .AddBlumchen<HandleImpl2>((provider, workerOptions) =>
         workerOptions
             .Subscription(subscriptionOptions =>
                 subscriptionOptions.ConnectionString(Settings.ConnectionString)
                     .DataSource(provider.GetRequiredService<NpgsqlDataSource>())
-                    .WithReplicationOptions(new ReplicationSlotManagement.ReplicationSlotOptions($"{nameof(HandleImpl2)}_slot"))
+                    .WithReplicationOptions(
+                        new ReplicationSlotManagement.ReplicationSlotOptions($"{nameof(HandleImpl2)}_slot"))
                     .WithPublicationOptions(new PublicationManagement.PublicationOptions($"{nameof(HandleImpl2)}_pub"))
                     .WithErrorProcessor(provider.GetRequiredService<IErrorProcessor>())
-                    
-                    .Consumes(provider.GetRequiredService<IMessageHandler<UserDeletedContract>>())
-                    .JsonContext(SourceGenerationContext.Default)
-                    .NamingPolicy(provider.GetRequiredService<INamingPolicy>())
-                )
-            .ResiliencyPipeline(provider.GetRequiredService<ResiliencePipelineProvider<string>>().GetPipeline("default"))
-        );
+
+                    .Consumes(provider.GetRequiredService<IMessageHandler<UserDeletedContract>>(), opts =>
+                        opts
+                            .WithJsonContext(SourceGenerationContext.Default)
+                            .AndNamingPolicy(provider.GetRequiredService<INamingPolicy>())
+                    ))
+            .ResiliencyPipeline(
+                provider.GetRequiredService<ResiliencePipelineProvider<string>>().GetPipeline("default"))
+    );
 
 await builder
     .Build()

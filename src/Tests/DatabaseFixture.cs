@@ -85,13 +85,14 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
             .DataSource(new NpgsqlDataSourceBuilder(connectionString).Build())
             .ConnectionString(connectionString)
 
-            .Consumes(consumer)
-            .JsonContext(info)
-            .NamingPolicy(namingPolicy)
+            .Consumes(consumer, opts => opts
+                .WithJsonContext(info)
+                .AndNamingPolicy(namingPolicy))
 
             .WithTable(o => o.Named(eventsTable))
             .WithPublicationOptions(
-                new PublicationManagement.PublicationOptions(PublicationName: publicationName ?? Randomise("events_pub"))
+                new PublicationManagement.PublicationOptions(
+                    PublicationName: publicationName ?? Randomise("events_pub"))
             )
             .WithReplicationOptions(
                 new ReplicationSlotManagement.ReplicationSlotOptions(slotName ?? Randomise("events_slot"))

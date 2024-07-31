@@ -44,9 +44,10 @@ try
                     .MessageType("message_type")
                     .MessageData("data")
                 )
-                .Consumes<UserCreatedContract>(consumer)
-                .JsonContext(SourceGenerationContext.Default)
-                .NamingPolicy(new AttributeNamingPolicy())
+                .Consumes<UserCreatedContract>(consumer, opts =>
+                    opts
+                        .WithJsonContext(SourceGenerationContext.Default)
+                        .AndNamingPolicy(new AttributeNamingPolicy()))
                 .ConsumesRawString<MessageString>(consumer)
                 .ConsumesRawObject<MessageObjects>(consumer);
         }

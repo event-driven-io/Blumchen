@@ -20,24 +20,24 @@ public sealed partial class OptionsBuilder
     
     public interface INamingOptionsContext
     {
-        OptionsBuilder NamingPolicy(INamingPolicy namingPolicy);
+        OptionsBuilder AndNamingPolicy(INamingPolicy namingPolicy);
     }
 
     internal class NamingOptionsContext(OptionsBuilder builder): INamingOptionsContext
     {
-        public OptionsBuilder NamingPolicy(INamingPolicy namingPolicy)
+        public OptionsBuilder AndNamingPolicy(INamingPolicy namingPolicy)
             => builder.NamingPolicy(namingPolicy);
     }
 
     public interface IConsumesTypedJsonOptionsContext
     {
-        INamingOptionsContext JsonContext(JsonSerializerContext jsonSerializerContext);
+        INamingOptionsContext WithJsonContext(JsonSerializerContext jsonSerializerContext);
         IConsumesTypedJsonOptionsContext Consumes<T>(IMessageHandler<T> handler) where T : class;
     }
 
     internal class ConsumesTypedJsonTypedJsonOptionsContext(OptionsBuilder builder): IConsumesTypedJsonOptionsContext
     {
-        public INamingOptionsContext JsonContext(JsonSerializerContext jsonSerializerContext)
+        public INamingOptionsContext WithJsonContext(JsonSerializerContext jsonSerializerContext)
         {
             builder._jsonSerializerContext = jsonSerializerContext;
             return new NamingOptionsContext(builder);
@@ -49,7 +49,7 @@ public sealed partial class OptionsBuilder
         }
     }
 
-    public IConsumesTypedJsonOptionsContext Consumes<T>(IMessageHandler<T> handler) where T : class
+    internal IConsumesTypedJsonOptionsContext Consumes<T>(IMessageHandler<T> handler) where T : class
     {
         Ensure.Empty(_replicationDataMapperSelector, nameof(Consumes));
         var methodInfo = handler
@@ -61,4 +61,7 @@ public sealed partial class OptionsBuilder
         _typeRegistry.Add(typeof(T), new Tuple<IMessageHandler, MethodInfo>(handler, methodInfo));
         return new ConsumesTypedJsonTypedJsonOptionsContext(this);
     }
+
+    public OptionsBuilder Consumes<T>(IMessageHandler<T> handler, Func<IConsumesTypedJsonOptionsContext, OptionsBuilder> opts) where T : class
+        => opts(Consumes<T>(handler));
 }
