@@ -76,6 +76,7 @@ builder.Services
             )
             .ResiliencyPipeline(
                 provider.GetRequiredService<ResiliencePipelineProvider<string>>().GetPipeline("default"))
+            .EnableSubscriptionAutoHeal()
     )
     .AddBlumchen<HandleImpl2>((provider, workerOptions) =>
         workerOptions
@@ -94,6 +95,7 @@ builder.Services
                     ))
             .ResiliencyPipeline(
                 provider.GetRequiredService<ResiliencePipelineProvider<string>>().GetPipeline("default"))
+            .EnableSubscriptionAutoHeal()
     );
 
 await builder

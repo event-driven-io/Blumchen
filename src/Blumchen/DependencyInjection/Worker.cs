@@ -32,16 +32,16 @@ public class Worker<T>(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await options.ResiliencePipeline.ExecuteAsync(async token =>
+        await options.OuterPipeline.ExecuteAsync(async token =>
+            await options.InnerPipeline.ExecuteAsync(async ct =>
         {
             await using var subscription = new Subscription();
-            await using var cursor = subscription.Subscribe(options.SubscriberOptions, ct: token)
-                .GetAsyncEnumerator(token);
-            Notify(logger, LogLevel.Information,"{WorkerName} started", WorkerName);
-            while (await cursor.MoveNextAsync().ConfigureAwait(false) && !token.IsCancellationRequested)
+            await using var cursor = subscription.Subscribe(options.SubscriberOptions, ct)
+                .GetAsyncEnumerator(ct);
+            Notify(logger, LogLevel.Information, "{WorkerName} started", WorkerName);
+            while (await cursor.MoveNextAsync().ConfigureAwait(false) && !ct.IsCancellationRequested)
                 Notify(logger, LogLevel.Trace, "{cursor.Current} processed", cursor.Current);
-
-        }, stoppingToken).ConfigureAwait(false);
+        }, token).ConfigureAwait(false), stoppingToken).ConfigureAwait(false);
         Notify(logger, LogLevel.Information, "{WorkerName} stopped", WorkerName);
     }
 

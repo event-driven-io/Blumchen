@@ -28,37 +28,15 @@ public static class ReplicationSlotManagement
         {
             (Subscription.CreateStyle.Never,_) => new None(),
             (Subscription.CreateStyle.WhenNotExists,true) => new AlreadyExists(),
-            (Subscription.CreateStyle.WhenNotExists,false) => await Create(connection, slotName, ct).ConfigureAwait(false),
-            (Subscription.CreateStyle.AlwaysRecreate,true) => await ReCreate(connection, slotName, ct).ConfigureAwait(false),
-            (Subscription.CreateStyle.AlwaysRecreate, false) => await Create(connection, slotName, ct).ConfigureAwait(false),
+            (Subscription.CreateStyle.WhenNotExists,false) => await connection.Create(slotName, ct).ConfigureAwait(false),
+            (Subscription.CreateStyle.AlwaysRecreate,true) => await connection.ReCreate(slotName, ct).ConfigureAwait(false),
+            (Subscription.CreateStyle.AlwaysRecreate, false) => await connection.Create(slotName, ct).ConfigureAwait(false),
 
             _ => throw new ArgumentOutOfRangeException(nameof(options.CreateStyle))
         };
 
-        static async Task<CreateReplicationSlotResult> ReCreate(
-            LogicalReplicationConnection connection,
-            string slotName,
-            CancellationToken ct)
-        {
-            await connection.DropReplicationSlot(slotName, true, ct).ConfigureAwait(false);
-            return await Create(connection, slotName, ct).ConfigureAwait(false);
-        }
-
-        static async Task<CreateReplicationSlotResult> Create(
-            LogicalReplicationConnection connection,
-            string slotName,
-            CancellationToken ct)
-        {
-            var result = await connection.CreatePgOutputReplicationSlot(
-                slotName,
-                slotSnapshotInitMode: LogicalSlotSnapshotInitMode.Export,
-                cancellationToken: ct
-            ).ConfigureAwait(false);
-
-            return new Created(result.SnapshotName!, result.ConsistentPoint);
-        }
     }
-
+    
     public record ReplicationSlotOptions(
         string SlotName = $"{TableDescriptorBuilder.MessageTable.DefaultName}_slot",
         Subscription.CreateStyle CreateStyle = Subscription.CreateStyle.WhenNotExists,
@@ -72,5 +50,31 @@ public static class ReplicationSlotManagement
         public record AlreadyExists: CreateReplicationSlotResult;
 
         public record Created(string SnapshotName, NpgsqlLogSequenceNumber LogSequenceNumber): CreateReplicationSlotResult;
+    }
+}
+
+public static class LogicalReplicationConnectionExtensions
+{
+    internal static async Task<ReplicationSlotManagement.CreateReplicationSlotResult> Create(
+        this LogicalReplicationConnection connection,
+        string slotName,
+        CancellationToken ct)
+    {
+        var result = await connection.CreatePgOutputReplicationSlot(
+            slotName,
+            slotSnapshotInitMode: LogicalSlotSnapshotInitMode.Export,
+            cancellationToken: ct
+        ).ConfigureAwait(false);
+
+        return new Created(result.SnapshotName!, result.ConsistentPoint);
+    }
+
+    public static async Task<ReplicationSlotManagement.CreateReplicationSlotResult> ReCreate(
+        this LogicalReplicationConnection connection,
+        string slotName,
+        CancellationToken ct)
+    {
+        await connection.DropReplicationSlot(slotName, true, ct).ConfigureAwait(false);
+        return await connection.Create(slotName, ct).ConfigureAwait(false);
     }
 }

@@ -70,7 +70,7 @@ public sealed class Subscription: IAsyncDisposable
         await dataSource.SetupPublication(publicationSetupOptions, ct).ConfigureAwait(false);
         var result = await dataSource.SetupReplicationSlot(_connection, replicationSlotSetupOptions, ct)
             .ConfigureAwait(false);
-        IReplicationDataMapper replicationDataMapper = new ReplicationDataMapper(registry);
+        var replicationDataMapper = new ReplicationDataMapper(registry);
         PgOutputReplicationSlot slot;
 
         if (result is not Created created)
