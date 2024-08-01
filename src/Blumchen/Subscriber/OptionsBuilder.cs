@@ -149,7 +149,7 @@ public sealed partial class OptionsBuilder
 
         if (_typeRegistry.Count > 0)
         {
-            Ensure.NotNull<INamingPolicy?>(_namingPolicy, $"{nameof(NamingPolicy)}");
+            Ensure.NotNull(_namingPolicy, $"{nameof(NamingPolicy)}");
             if (_jsonSerializerContext != null)
             {
                 var typeResolver = new JsonTypeResolver(_jsonSerializerContext, _namingPolicy);

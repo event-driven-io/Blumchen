@@ -60,7 +60,7 @@ try
     await using var cursor1 = cursor.ConfigureAwait(false);
     while (await cursor.MoveNextAsync().ConfigureAwait(false) && !ct.IsCancellationRequested)
         if(logger.IsEnabled(LogLevel.Trace))
-            logger.LogTrace($"{cursor.Current} processed");
+            logger.LogTrace("{message} processed", cursor.Current);
 }
 catch (Exception e)
 {
