@@ -3,43 +3,47 @@ using Blumchen.Serialization;
 using JetBrains.Annotations;
 using static Blumchen.TableDescriptorBuilder;
 
-namespace Blumchen.Publications;
+namespace Blumchen.Publisher;
 
-#pragma warning disable CS1591
-public class PublisherSetupOptionsBuilder
+public class OptionsBuilder
 {
-    private INamingPolicy? _namingPolicy;
-    private JsonSerializerContext? _jsonSerializerContext;
+    [System.Diagnostics.CodeAnalysis.NotNull]
+    private INamingPolicy? _namingPolicy = default;
+
+    [System.Diagnostics.CodeAnalysis.NotNull]
+    private JsonSerializerContext? _jsonSerializerContext = default;
+
     private static readonly TableDescriptorBuilder TableDescriptorBuilder = new();
-    private MessageTable? _tableDescriptor;
+
+    private MessageTable? _tableDescriptor = default;
 
     [UsedImplicitly]
-    public PublisherSetupOptionsBuilder NamingPolicy(INamingPolicy namingPolicy)
+    public OptionsBuilder NamingPolicy(INamingPolicy namingPolicy)
     {
         _namingPolicy = namingPolicy;
         return this;
     }
 
     [UsedImplicitly]
-    public PublisherSetupOptionsBuilder JsonContext(JsonSerializerContext jsonSerializerContext)
+    public OptionsBuilder JsonContext(JsonSerializerContext jsonSerializerContext)
     {
         _jsonSerializerContext = jsonSerializerContext;
         return this;
     }
 
     [UsedImplicitly]
-    public PublisherSetupOptionsBuilder WithTable(Func<TableDescriptorBuilder, TableDescriptorBuilder> builder)
+    public OptionsBuilder WithTable(Func<TableDescriptorBuilder, TableDescriptorBuilder> builder)
     {
         _tableDescriptor = builder(TableDescriptorBuilder).Build();
         return this;
     }
 
-    public (MessageTable tableDescriptor, IJsonTypeResolver jsonTypeResolver) Build()
+    public PublisherOptions Build()
     {
-        ArgumentNullException.ThrowIfNull(_jsonSerializerContext);
-        ArgumentNullException.ThrowIfNull(_namingPolicy);
-
         _tableDescriptor ??= TableDescriptorBuilder.Build();
+        Ensure.NotNull(_jsonSerializerContext, nameof(JsonContext));
+        Ensure.NotNull(_namingPolicy, nameof(NamingPolicy));
+
         var jsonTypeResolver = new JsonTypeResolver(_jsonSerializerContext, _namingPolicy);
         using var typeEnum = _jsonSerializerContext.GetType()
             .GetCustomAttributesData()
@@ -49,6 +53,6 @@ public class PublisherSetupOptionsBuilder
         while (typeEnum.MoveNext())
             jsonTypeResolver.WhiteList(typeEnum.Current);
         
-        return (_tableDescriptor,jsonTypeResolver);
+        return new(_tableDescriptor,jsonTypeResolver);
     }
 }

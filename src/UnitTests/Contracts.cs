@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
 using Blumchen.Serialization;
 
-namespace Subscriber
+namespace UnitTests
 {
     [MessageUrn("user-created:v1")]
     public record UserCreatedContract(
@@ -13,8 +13,10 @@ namespace Subscriber
     public class MessageObjects;
 
 
-    [RawUrn("user-modified:v1")] 
+    [RawUrn("user-modified:v1")]
     internal class MessageString;
+
+    public class InvalidMessage;
 
     [JsonSourceGenerationOptions(WriteIndented = true)]
     [JsonSerializable(typeof(UserCreatedContract))]

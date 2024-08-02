@@ -1,11 +1,8 @@
 using System.Runtime.CompilerServices;
 using Blumchen.Database;
-using Blumchen.Subscriptions.Replication;
-using Blumchen.Subscriptions.ReplicationMessageHandlers;
 using Npgsql;
 
-namespace Blumchen.Subscriptions.SnapshotReader;
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+namespace Blumchen.Subscriptions.Replication;
 
 public static class SnapshotReader
 {

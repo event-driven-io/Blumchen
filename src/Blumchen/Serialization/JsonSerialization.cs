@@ -4,7 +4,6 @@ using System.Text.Json.Serialization.Metadata;
 using Blumchen.Streams;
 
 namespace Blumchen.Serialization;
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 public static class JsonSerialization
 {

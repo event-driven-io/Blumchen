@@ -1,35 +1,35 @@
-using Blumchen.Publications;
+using Blumchen.Publisher;
 using Blumchen.Serialization;
 using Blumchen.Subscriptions;
 using Blumchen.Subscriptions.Management;
-using Blumchen.Subscriptions.ReplicationMessageHandlers;
+using Blumchen.Subscriptions.Replication;
 using Npgsql;
 using Xunit.Abstractions;
 
 namespace Tests;
 
 // ReSharper disable once InconsistentNaming
-public class When_Subscription_Already_Exists(ITestOutputHelper testOutputHelper): DatabaseFixture(testOutputHelper)
+public class if_subscription_already_exists(ITestOutputHelper testOutputHelper): DatabaseFixture(testOutputHelper)
 {
     [Fact]
-    public async Task Read_from_transaction_log()
+    public async Task read_from_transaction_log()
     {
         var ct = TimeoutTokenSource().Token;
         var sharedNamingPolicy = new AttributeNamingPolicy();
         var connectionString = Container.GetConnectionString();
         var dataSource = NpgsqlDataSource.Create(connectionString);
         var eventsTable = await CreateOutboxTable(dataSource, ct);
-        var opts = new PublisherSetupOptionsBuilder()
+        var opts = new OptionsBuilder()
             .JsonContext(PublisherContext.Default)
             .NamingPolicy(sharedNamingPolicy)
-            .WithTable(o => o.Name(eventsTable))
+            .WithTable(o => o.Named(eventsTable))
             .Build();
         var slotName = "subscription_test";
         var publicationName = "publication_test";
         
         await dataSource.CreatePublication(publicationName, eventsTable, new HashSet<string>{"urn:message:user-created:v1"}, ct);
         
-        var (_, subscriptionOptions) = SetupFor<SubscriberUserCreated>(connectionString, eventsTable,
+        var subscriptionOptions = SetupFor<SubscriberUserCreated>(connectionString, eventsTable,
             SubscriberContext.Default, sharedNamingPolicy, Output.WriteLine, publicationName: publicationName, slotName: slotName);
 
         //subscriber ignored msg
@@ -46,7 +46,7 @@ public class When_Subscription_Already_Exists(ITestOutputHelper testOutputHelper
 
         var subscription = new Subscription();
         await using var subscription1 = subscription.ConfigureAwait(false);
-        await foreach (var envelope in subscription.Subscribe(_ => subscriptionOptions, null, ct).ConfigureAwait(false))
+        await foreach (var envelope in subscription.Subscribe(_ => subscriptionOptions, ct).ConfigureAwait(false))
         {
             Assert.Equal(@expected, ((OkEnvelope)envelope).Value);
             return;

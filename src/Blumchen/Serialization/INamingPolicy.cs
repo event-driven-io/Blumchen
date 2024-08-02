@@ -1,5 +1,4 @@
 namespace Blumchen.Serialization;
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 public interface INamingPolicy
 {
@@ -12,6 +11,6 @@ public abstract record NamingPolicy(Func<Type, string> Bind):INamingPolicy
 }
 
 //This should be used in shared kernel scenario where common library is shared between Pub and Sub
-public record FQNNamingPolicy(): NamingPolicy(type => type.FullName!);
+public sealed record FQNNamingPolicy(): NamingPolicy(type => type.FullName!);
 //This policy is better suited for distributed components
-public record AttributeNamingPolicy(): NamingPolicy(MessageUrn.ForTypeString);
+public sealed record AttributeNamingPolicy(): NamingPolicy(MessageUrn.ForTypeString);

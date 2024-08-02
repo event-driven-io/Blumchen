@@ -1,9 +1,8 @@
 using System.Collections.Concurrent;
 
 namespace Blumchen.Serialization;
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface)]
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 public class MessageUrnAttribute:
     Attribute
 {
@@ -33,6 +32,8 @@ public class MessageUrnAttribute:
     }
 }
 
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
+public class RawUrnAttribute(string urn): MessageUrnAttribute(urn);
 
 public static class MessageUrn
 {
