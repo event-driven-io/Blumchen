@@ -27,41 +27,68 @@ var resolver = await new OptionsBuilder()
     .ConfigureAwait(false);
 
 //Or you might want to verify at a later stage
+var loggerFactory = LoggerFactory.Create(builder => builder
+    .AddFilter("Microsoft", LogLevel.Warning)
+    .AddFilter("System", LogLevel.Warning)
+    .AddFilter("Npgsql", LogLevel.Information)
+    .AddFilter("Blumchen", LogLevel.Trace)
+    .AddFilter("Publisher", LogLevel.Debug)
+    .AddSimpleConsole());
+var logger = loggerFactory.CreateLogger<Program>();
 await new NpgsqlDataSourceBuilder(Settings.ConnectionString)
-    .UseLoggerFactory(LoggerFactory.Create(builder => builder.AddConsole()))
+    .UseLoggerFactory(loggerFactory)
     .Build()
     .EnsureTableExists(resolver.TableDescriptor, cts.Token).ConfigureAwait(false);
-Parser.Default.ParseArguments<Options>("--help".Split());
-do
+//Uncomment to attach debugger
+//System.Diagnostics.Debugger.Launch();
+async Task GenerateFn(Options o) =>
+    await Generate(generator.Join(o.MessageTypes, pair => pair.Key, s => s, (pair, s) => pair).ToDictionary(),
+        o.Count, resolver, logger, cts);
+
+if (args.Length > 0) //cli
 {
-    async void GenerateFn(Options o) => await Generate(generator.Join(o.MessageTypes, pair => pair.Key, s => s, (pair, s) => pair).ToDictionary(), o.Count, resolver, cts);
-
-    Parser.Default.ParseArguments<Options>(Console.ReadLine()?.Split())
-        .WithParsed(GenerateFn)
+    Parser.Default.ParseArguments<Options>(args)
+        .WithParsed(options => Task.WaitAll([GenerateFn(options)]))
         .WithNotParsed(HandleParseError);
+}
+else
+{
+    Parser.Default.ParseArguments<Options>("--help".Split());
+    do
+    { 
+        Parser.Default.ParseArguments<Options>(Console.ReadLine()?.Split())
+            .WithParsed(options => Task.WaitAll([GenerateFn(options)]))
+            .WithNotParsed(HandleParseError);
 
-} while (true);
+    } while (true);
+}
+
+return;
 
 static void HandleParseError(IEnumerable<Error> errs) => Console.WriteLine("Errors:" + string.Join(',', errs.Select(e => e.Tag)));
 
-async Task Generate(Dictionary<string, Func<object>> dictionary, int result, PublisherOptions publisherOptions,
+async Task Generate(Dictionary<string, Func<object>> dictionary, int count, PublisherOptions publisherOptions,
+    ILogger<Program> l,
     CancellationTokenSource cancellationTokenSource)
 {
     var generatorLength = dictionary.Count;
-    var messageCount = result / generatorLength;
+    var messageCount = count / generatorLength;
     var ct = cancellationTokenSource.Token;
     var connection = new NpgsqlConnection(Settings.ConnectionString);
     await using var connection1 = connection.ConfigureAwait(false);
     await connection.OpenAsync(ct).ConfigureAwait(false);
     //use a command for each message
     {
-        var tuple = Enumerable.Range(0, result).Select(i =>
+        var tuple = Enumerable.Range(0, count).Select(i =>
             dictionary.ElementAt(i % generatorLength));
 
-        foreach (var s in dictionary.Keys.Select((key, i) => $"Publishing {(messageCount + (result % generatorLength > i ? 1 : 0))} {key}").ToList())
-            await Console.Out.WriteLineAsync(s);
+        var messageByType = string.Join(", ",
+            dictionary.Keys.Select((key, i) =>
+                $"Publishing {(messageCount + (count % generatorLength > i ? 1 : 0))} {key}"));
+        l.LogInformation(messageByType);
 
-        foreach (var message in tuple.Select(pair => pair.Value()))
+
+        foreach (var message in tuple.Select(pair => pair.Value())/*.Chunk(10)*/)//Chunking enable batch insert
         {
             var transaction = await connection.BeginTransactionAsync(ct).ConfigureAwait(false);
             try
@@ -89,27 +116,12 @@ async Task Generate(Dictionary<string, Func<object>> dictionary, int result, Pub
             catch (Exception e)
             {
                 await transaction.RollbackAsync(ct).ConfigureAwait(false);
-                Console.WriteLine(e);
+                l.LogCritical(e, e.Message);
                 throw;
             }
         }
-        await Console.Out.WriteLineAsync($"Published {result} messages!");
+        l.LogInformation("Published {count} messages!", count);
     }
-    //use a batch command
-    //{
-    //    var transaction = await connection.BeginTransactionAsync(ct);
-    //    try
-    //    {
-    //        var @events = Enumerable.Range(0, result)
-    //            .Select(i1 => new UserCreated(Guid.NewGuid(), Guid.NewGuid().ToString()));
-    //        await MessageAppender.AppendAsync(@events, resolver, connection, transaction, ct);
-    //    }
-    //    catch (Exception e)
-    //    {
-    //        Console.WriteLine(e);
-    //        throw;
-    //    }
-    //}
 }
 
 internal class Options(IEnumerable<string> messageTypes, int count)
