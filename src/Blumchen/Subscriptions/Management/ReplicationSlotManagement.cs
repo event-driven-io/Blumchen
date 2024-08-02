@@ -53,7 +53,7 @@ public static class ReplicationSlotManagement
     }
 }
 
-public static class LogicalReplicationConnectionExtensions
+internal static class LogicalReplicationConnectionExtensions
 {
     internal static async Task<ReplicationSlotManagement.CreateReplicationSlotResult> Create(
         this LogicalReplicationConnection connection,
@@ -69,7 +69,7 @@ public static class LogicalReplicationConnectionExtensions
         return new Created(result.SnapshotName!, result.ConsistentPoint);
     }
 
-    public static async Task<ReplicationSlotManagement.CreateReplicationSlotResult> ReCreate(
+    internal static async Task<ReplicationSlotManagement.CreateReplicationSlotResult> ReCreate(
         this LogicalReplicationConnection connection,
         string slotName,
         CancellationToken ct)
