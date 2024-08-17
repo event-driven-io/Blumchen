@@ -14,6 +14,7 @@ public sealed partial class OptionsBuilder
     [UsedImplicitly]
     internal OptionsBuilder NamingPolicy(INamingPolicy namingPolicy)
     {
+        Ensure.Null(_namingPolicy, nameof(NamingPolicy));
         _namingPolicy = namingPolicy;
         return this;
     }
@@ -57,7 +58,8 @@ public sealed partial class OptionsBuilder
                              .GetMethod(nameof(IMessageHandler<T>.Handle), BindingFlags.Instance | BindingFlags.Public, [typeof(T)])
                          ?? throw new ConfigurationException($"Unable to find {nameof(IMessageHandler<T>)} implementation on {handler.GetType().Name}");
 
-
+        if (_typeRegistry.ContainsKey(typeof(T)))
+            throw new ConfigurationException($"`{typeof(T).Name}` was already registered.");
         _typeRegistry.Add(typeof(T), new Tuple<IMessageHandler, MethodInfo>(handler, methodInfo));
         return new ConsumesTypedJsonTypedJsonOptionsContext(this);
     }

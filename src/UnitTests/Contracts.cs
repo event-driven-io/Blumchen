@@ -9,6 +9,12 @@ namespace UnitTests
         string Name
     );
 
+    [MessageUrn("user-registered:v1")]
+    public record UserRegisteredContract(
+        Guid Id,
+        string Name
+    );
+
     [RawUrn("user-deleted:v1")]
     public class MessageObjects;
 
@@ -20,5 +26,6 @@ namespace UnitTests
 
     [JsonSourceGenerationOptions(WriteIndented = true)]
     [JsonSerializable(typeof(UserCreatedContract))]
+    [JsonSerializable(typeof(UserRegisteredContract))]
     internal partial class SourceGenerationContext: JsonSerializerContext;
 }

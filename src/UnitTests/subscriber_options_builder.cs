@@ -1,4 +1,5 @@
 using Blumchen;
+using Blumchen.Serialization;
 using Blumchen.Subscriber;
 using Blumchen.Subscriptions;
 using Blumchen.Subscriptions.Replication;
@@ -135,6 +136,39 @@ namespace UnitTests
             var exception = Record.Exception(() => _builder(ValidConnectionString).ConsumesRawString(messageHandler).Build());
             Assert.IsType<ConfigurationException>(exception);
             Assert.Equal("`RawUrnAttribute` missing on `InvalidMessage` message type", exception.Message);
+        }
+
+        [Fact]
+        public void does_not_allow_multiple_registration_of_the_same_typed_consumer()
+        {
+            var messageHandler = Substitute.For<IMessageHandler<UserCreatedContract>>();
+            var exception = Record.Exception(() => _builder(ValidConnectionString)
+                .Consumes(messageHandler)
+                .WithJsonContext(SourceGenerationContext.Default)
+                .AndNamingPolicy(new AttributeNamingPolicy())
+                .Consumes(messageHandler)
+                .WithJsonContext(SourceGenerationContext.Default)
+                .AndNamingPolicy(new AttributeNamingPolicy())
+                .Build());
+            Assert.IsType<ConfigurationException>(exception);
+            Assert.Equal("`UserCreatedContract` was already registered.", exception.Message);
+        }
+
+        [Fact]
+        public void with_typed_consumer_allows_only_one_naming_policy_instance()
+        {
+            var userCreatedMessageHandler = Substitute.For<IMessageHandler<UserCreatedContract>>();
+            var userRegisteredMessageHandler = Substitute.For<IMessageHandler<UserRegisteredContract>>();
+            var exception = Record.Exception(() => _builder(ValidConnectionString)
+                .Consumes(userCreatedMessageHandler)
+                .WithJsonContext(SourceGenerationContext.Default)
+                .AndNamingPolicy(new AttributeNamingPolicy())
+                .Consumes(userRegisteredMessageHandler)
+                .WithJsonContext(SourceGenerationContext.Default)
+                .AndNamingPolicy(new AttributeNamingPolicy())
+                .Build());
+            Assert.IsType<ConfigurationException>(exception);
+            Assert.Equal("`NamingPolicy` method on OptionsBuilder called more then once", exception.Message);
         }
     }
 }
