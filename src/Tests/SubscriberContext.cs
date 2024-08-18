@@ -18,3 +18,6 @@ internal record SubscriberUserCreated(
 [JsonSourceGenerationOptions(WriteIndented = true)]
 [JsonSerializable(typeof(SubscriberUserCreated))]
 internal partial class SubscriberContext: JsonSerializerContext;
+
+[RawUrn("user-created:v1")]
+internal class DecoratedContract;

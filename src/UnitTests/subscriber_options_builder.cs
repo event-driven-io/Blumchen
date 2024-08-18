@@ -123,8 +123,8 @@ namespace UnitTests
         [Fact]
         public void with_typed_raw_consumer_of_object_requires_RawUrn_decoration()
         {
-            var messageHandler = Substitute.For<IMessageHandler<InvalidMessage>>();
-            var exception = Record.Exception(() => _builder(ValidConnectionString).ConsumesRawObject(messageHandler).Build());
+            var messageHandler = Substitute.For<IMessageHandler<object>>();
+            var exception = Record.Exception(() => _builder(ValidConnectionString).ConsumesRawObject<InvalidMessage>(messageHandler).Build());
             Assert.IsType<ConfigurationException>(exception);
             Assert.Equal("`RawUrnAttribute` missing on `InvalidMessage` message type", exception.Message);
         }
@@ -132,8 +132,8 @@ namespace UnitTests
         [Fact]
         public void with_typed_raw_consumer_of_string_requires_RawUrn_decoration()
         {
-            var messageHandler = Substitute.For<IMessageHandler<InvalidMessage>>();
-            var exception = Record.Exception(() => _builder(ValidConnectionString).ConsumesRawString(messageHandler).Build());
+            var messageHandler = Substitute.For<IMessageHandler<string>>();
+            var exception = Record.Exception(() => _builder(ValidConnectionString).ConsumesRawString<InvalidMessage>(messageHandler).Build());
             Assert.IsType<ConfigurationException>(exception);
             Assert.Equal("`RawUrnAttribute` missing on `InvalidMessage` message type", exception.Message);
         }

@@ -8,6 +8,7 @@
 
     <ItemGroup>
         <PackageReference Include="FsCheck.Xunit" Version="2.16.6" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
         <PackageReference Include="NSubstitute" Version="5.1.0" />
         <PackageReference Include="NSubstitute.Analyzers.CSharp" Version="1.0.17">

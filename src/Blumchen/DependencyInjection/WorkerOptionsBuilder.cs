@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Blumchen.Subscriber;
 using Blumchen.Subscriptions.Management;
 using Npgsql;
@@ -21,8 +22,8 @@ public interface IWorkerOptionsBuilder
 
 internal sealed class WorkerOptionsBuilder: IWorkerOptionsBuilder
 {
-    private ResiliencePipeline? _outerPipeline = default;
-    private Func<string, string, ResiliencePipeline>? _innerPipelineFn = default;
+    private ResiliencePipeline? _outerPipeline;
+    private Func<string, string, ResiliencePipeline>? _innerPipelineFn;
     private Func<OptionsBuilder, OptionsBuilder>? _builder;
 
     public IWorkerOptionsBuilder ResiliencyPipeline(ResiliencePipeline resiliencePipeline)
@@ -37,10 +38,9 @@ internal sealed class WorkerOptionsBuilder: IWorkerOptionsBuilder
 
     public WorkerOptions Build()
     {
-        ArgumentNullException.ThrowIfNull(_outerPipeline);
         ArgumentNullException.ThrowIfNull(_builder);
         var subscriberOptions = _builder(new OptionsBuilder()).Build();
-        return new(subscriberOptions, _outerPipeline,
+        return new(subscriberOptions, _outerPipeline ?? ResiliencePipeline.Empty,
             _innerPipelineFn?.Invoke(subscriberOptions.ReplicationOptions.SlotName,subscriberOptions.ConnectionStringBuilder.ConnectionString) ??
             ResiliencePipeline.Empty
         );

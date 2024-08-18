@@ -46,7 +46,7 @@ public sealed partial class OptionsBuilder
 
         public IConsumesTypedJsonOptionsContext Consumes<T>(IMessageHandler<T> handler) where T : class
         {
-            return builder.Consumes<T>(handler);
+            return builder.Consumes(handler);
         }
     }
 
@@ -65,5 +65,5 @@ public sealed partial class OptionsBuilder
     }
 
     public OptionsBuilder Consumes<T>(IMessageHandler<T> handler, Func<IConsumesTypedJsonOptionsContext, OptionsBuilder> opts) where T : class
-        => opts(Consumes<T>(handler));
+        => opts(Consumes(handler));
 }

@@ -8,6 +8,7 @@ using Blumchen.Subscriber;
 using Blumchen.Subscriptions;
 using Blumchen.Subscriptions.Management;
 using Blumchen.Subscriptions.Replication;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using Testcontainers.PostgreSql;
 using Xunit.Abstractions;
@@ -31,6 +32,15 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
                 Console.WriteLine(e);
             }
             await Task.CompletedTask.ConfigureAwait(false);
+        }
+    }
+
+    protected class TestHandler<T>(ILogger<TestHandler<T>> logger): IMessageHandler<T> where T : class
+    {
+        public Task Handle(T value)
+        {
+            logger.LogTrace(value.ToString());
+            return Task.CompletedTask;
         }
     }
 

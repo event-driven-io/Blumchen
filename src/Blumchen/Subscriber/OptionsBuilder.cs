@@ -10,6 +10,7 @@ using Npgsql;
 namespace Blumchen.Subscriber;
 
 public sealed partial class OptionsBuilder
+    : IConsumes
 {
     internal const string WildCard = "*";
 
@@ -75,11 +76,11 @@ public sealed partial class OptionsBuilder
     }
 
     [UsedImplicitly]
-    public OptionsBuilder ConsumesRawObject<T>(IMessageHandler<T> handler) where T : class
+    public OptionsBuilder ConsumesRawObject<T>(IMessageHandler<object> handler) where T : class
         => ConsumesRaw<T,object>(handler, ObjectReplicationDataMapper.Instance);
 
     [UsedImplicitly]
-    public OptionsBuilder ConsumesRawString<T>(IMessageHandler<T> handler) where T : class
+    public OptionsBuilder ConsumesRawString<T>(IMessageHandler<string> handler) where T : class
         => ConsumesRaw<T, string>(handler, StringReplicationDataMapper.Instance);
 
     [UsedImplicitly]
@@ -96,16 +97,16 @@ public sealed partial class OptionsBuilder
             new Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>(StringReplicationDataMapper.Instance, handler, methodInfo));
         return this;
     }
-
+    
     [UsedImplicitly]
-    public OptionsBuilder ConsumesRawObjects(IMessageHandler<string> handler)
+    public OptionsBuilder ConsumesRawObjects(IMessageHandler<object> handler)
     {
         Ensure.Empty(_replicationDataMapperSelector, _typeRegistry, nameof(ConsumesRawObjects));
 
         var methodInfo = handler
                              .GetType()
-                             .GetMethod(nameof(IMessageHandler<string>.Handle), BindingFlags.Instance | BindingFlags.Public, [typeof(string)])
-                         ?? throw new ConfigurationException($"Unable to find {nameof(IMessageHandler<string>)} implementation on {handler.GetType().Name}");
+                             .GetMethod(nameof(IMessageHandler<object>.Handle), BindingFlags.Instance | BindingFlags.Public, [typeof(object)])
+                         ?? throw new ConfigurationException($"Unable to find {nameof(IMessageHandler<object>)} implementation on {handler.GetType().Name}");
 
 
         _replicationDataMapperSelector.Add(WildCard,
@@ -113,7 +114,7 @@ public sealed partial class OptionsBuilder
         return this;
     }
 
-    private OptionsBuilder ConsumesRaw<T, TU>(IMessageHandler<T> handler,
+    private OptionsBuilder ConsumesRaw<T, TU>(IMessageHandler<TU> handler,
         IReplicationJsonBMapper dataMapper) where T : class where TU : class
     {
         var urns = typeof(T)
