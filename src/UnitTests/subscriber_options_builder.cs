@@ -20,7 +20,7 @@ namespace UnitTests
         {
             var exception = Record.Exception(() => new OptionsBuilder().Build());
             Assert.IsType<ConfigurationException>(exception);
-            Assert.Equal("`ConnectionString` method not called on OptionsBuilder", exception.Message);
+            Assert.Equal($"`{nameof(OptionsBuilder.ConnectionString)}` method not called on {nameof(OptionsBuilder)}", exception.Message);
         }
 
         [Fact]
@@ -31,7 +31,7 @@ namespace UnitTests
                 .ConnectionString(ValidConnectionString)
                 .Build());
             Assert.IsType<ConfigurationException>(exception);
-            Assert.Equal("`ConnectionString` method on OptionsBuilder called more then once", exception.Message);
+            Assert.Equal($"`{nameof(OptionsBuilder.ConnectionString)}` method on {nameof(OptionsBuilder)} called more then once", exception.Message);
         }
 
         [Fact]
@@ -39,7 +39,7 @@ namespace UnitTests
         {
             var exception = Record.Exception(() => new OptionsBuilder().ConnectionString(ValidConnectionString).Build());
             Assert.IsType<ConfigurationException>(exception);
-            Assert.Equal("`DataSource` method not called on OptionsBuilder", exception.Message);
+            Assert.Equal($"`{nameof(OptionsBuilder.DataSource)}` method not called on {nameof(OptionsBuilder)}", exception.Message);
         }
 
         [Fact]
@@ -47,7 +47,7 @@ namespace UnitTests
         {
             var exception = Record.Exception(() => _builder(ValidConnectionString).DataSource(new NpgsqlDataSourceBuilder(ValidConnectionString).Build()).Build());
             Assert.IsType<ConfigurationException>(exception);
-            Assert.Equal("`DataSource` method on OptionsBuilder called more then once", exception.Message);
+            Assert.Equal($"`{nameof(OptionsBuilder.DataSource)}` method on {nameof(OptionsBuilder)} called more then once", exception.Message);
         }
 
 
@@ -56,7 +56,7 @@ namespace UnitTests
         {
             var exception = Record.Exception(() => _builder(ValidConnectionString).Build());
             Assert.IsType<ConfigurationException>(exception);
-            Assert.Equal("No `Consumes...` method called on OptionsBuilder", exception.Message);
+            Assert.Equal($"No `Consumes...` method called on {nameof(OptionsBuilder)}", exception.Message);
         }
 
         [Fact]
@@ -105,7 +105,7 @@ namespace UnitTests
                 _builder(ValidConnectionString).ConsumesRawStrings(messageHandler2).ConsumesRawObjects(messageHandler1)
                     .Build());
             Assert.IsType<ConfigurationException>(exception);
-            Assert.Equal("`ConsumesRawObjects` cannot be mixed with other consuming strategies", exception.Message);
+            Assert.Equal($"`{nameof(OptionsBuilder.ConsumesRawObjects)}` cannot be mixed with other consuming strategies", exception.Message);
         }
 
         [Fact]
@@ -117,7 +117,7 @@ namespace UnitTests
                 _builder(ValidConnectionString).ConsumesRawObjects(messageHandler1).ConsumesRawStrings(messageHandler2)
                     .Build());
             Assert.IsType<ConfigurationException>(exception);
-            Assert.Equal("`ConsumesRawStrings` cannot be mixed with other consuming strategies", exception.Message);
+            Assert.Equal($"`{nameof(OptionsBuilder.ConsumesRawStrings)}` cannot be mixed with other consuming strategies", exception.Message);
         }
 
         [Fact]
@@ -126,7 +126,7 @@ namespace UnitTests
             var messageHandler = Substitute.For<IMessageHandler<object>>();
             var exception = Record.Exception(() => _builder(ValidConnectionString).ConsumesRawObject<InvalidMessage>(messageHandler).Build());
             Assert.IsType<ConfigurationException>(exception);
-            Assert.Equal($"`{nameof(RawRoutedByUrnAttribute)}` missing on `InvalidMessage` message type", exception.Message);
+            Assert.Equal($"`{nameof(RawRoutedByUrnAttribute)}` missing on `{nameof(InvalidMessage)}` message type", exception.Message);
         }
 
         [Fact]
@@ -135,7 +135,7 @@ namespace UnitTests
             var messageHandler = Substitute.For<IMessageHandler<string>>();
             var exception = Record.Exception(() => _builder(ValidConnectionString).ConsumesRawString<InvalidMessage>(messageHandler).Build());
             Assert.IsType<ConfigurationException>(exception);
-            Assert.Equal($"`{nameof(RawRoutedByUrnAttribute)}` missing on `InvalidMessage` message type", exception.Message);
+            Assert.Equal($"`{nameof(RawRoutedByUrnAttribute)}` missing on `{nameof(InvalidMessage)}` message type", exception.Message);
         }
 
         [Fact]
@@ -151,7 +151,7 @@ namespace UnitTests
                 .AndNamingPolicy(new AttributeNamingPolicy())
                 .Build());
             Assert.IsType<ConfigurationException>(exception);
-            Assert.Equal("`UserCreatedContract` was already registered.", exception.Message);
+            Assert.Equal($"`{nameof(UserCreatedContract)}` was already registered.", exception.Message);
         }
 
         [Fact]
@@ -168,7 +168,7 @@ namespace UnitTests
                 .AndNamingPolicy(new AttributeNamingPolicy())
                 .Build());
             Assert.IsType<ConfigurationException>(exception);
-            Assert.Equal("`NamingPolicy` method on OptionsBuilder called more then once", exception.Message);
+            Assert.Equal($"`{nameof(OptionsBuilder.NamingPolicy)}` method on OptionsBuilder called more then once", exception.Message);
         }
     }
 }
