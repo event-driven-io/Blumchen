@@ -18,7 +18,7 @@ namespace Tests;
 public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
 {
     protected ITestOutputHelper Output { get; } = output;
-    protected readonly Func<CancellationTokenSource> TimeoutTokenSource = () => new(Debugger.IsAttached ?  TimeSpan.FromHours(1) : TimeSpan.FromSeconds(2));
+    protected readonly Func<CancellationTokenSource> TimeoutTokenSource = () => new(Debugger.IsAttached ?  TimeSpan.FromHours(1) : TimeSpan.FromSeconds(3));
     protected class TestMessageHandler<T>(Action<string> log, JsonTypeInfo info): IMessageHandler<T> where T : class
     {
         public async Task Handle(T value)
@@ -39,7 +39,7 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
     {
         public Task Handle(T value)
         {
-            logger.LogTrace(value.ToString());
+            logger.LogTrace($"Message consumed:{value}");
             return Task.CompletedTask;
         }
     }

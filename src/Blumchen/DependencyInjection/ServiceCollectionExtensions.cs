@@ -33,7 +33,8 @@ public static class ServiceCollectionExtensions
         IWorkerOptionsBuilder MinimalWorkerOptions(IServiceProvider provider, IWorkerOptionsBuilder builder)
              => builder.Subscription(optionsBuilder => consumerFn(provider, optionsBuilder)
                 .ConnectionString(connectionString)
-                .DataSource(NpgsqlDataSource.Create(connectionString)));
+                .DataSource(new NpgsqlDataSourceBuilder(connectionString)
+                    .UseLoggerFactory(provider.GetService<ILoggerFactory>()).Build()));
 
         
     }

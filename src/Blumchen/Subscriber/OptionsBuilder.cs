@@ -118,10 +118,12 @@ public sealed partial class OptionsBuilder
         IReplicationJsonBMapper dataMapper) where T : class where TU : class
     {
         var urns = typeof(T)
-            .GetCustomAttributes(typeof(RawUrnAttribute), false)
-            .OfType<RawUrnAttribute>()
-            .Select(attribute => attribute.Urn).ToList();
-        Ensure.RawUrn<IEnumerable<Uri>,T>(urns, nameof(NamingPolicy));
+            .GetCustomAttributes(typeof(RawRoutedByUrnAttribute), false)
+            .Union(typeof(T)
+                .GetCustomAttributes(typeof(RawRoutedByStringAttribute), false))
+            .OfType<IRouted>()
+            .Select(attribute => attribute.Route).ToList();
+        Ensure.RawUrn<IEnumerable<string>,T>(urns, nameof(NamingPolicy));
 
         var methodInfo = handler
                              .GetType()

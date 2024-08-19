@@ -25,7 +25,7 @@ internal abstract class Validable<T>(Func<T, bool> condition, string errorFormat
     }
 }
 
-internal class RawUrnTrait<T,TR>(): Validable<T>(v => v is ICollection { Count: > 0 }, $"`{nameof(RawUrnAttribute)}` missing on `{typeof(TR).Name}` message type");
+internal class RawUrnTrait<T,TR>(): Validable<T>(v => v is ICollection { Count: > 0 }, $"`{nameof(RawRoutedByUrnAttribute)}` missing on `{typeof(TR).Name}` message type");
 internal class NullTrait<T>(): Validable<T>(v => v is null, $"`{{0}}` method on {nameof(OptionsBuilder)} called more then once");
 internal class NotNullTrait<T>(): Validable<T>(v => v is not null, $"`{{0}}` method not called on {nameof(OptionsBuilder)}");
 internal class NotEmptyTrait<T>(): Validable<T>(v => v is ICollection { Count: > 0 }, $"No `{{0}}` method called on {nameof(OptionsBuilder)}");

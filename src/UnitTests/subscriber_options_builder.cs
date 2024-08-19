@@ -126,7 +126,7 @@ namespace UnitTests
             var messageHandler = Substitute.For<IMessageHandler<object>>();
             var exception = Record.Exception(() => _builder(ValidConnectionString).ConsumesRawObject<InvalidMessage>(messageHandler).Build());
             Assert.IsType<ConfigurationException>(exception);
-            Assert.Equal("`RawUrnAttribute` missing on `InvalidMessage` message type", exception.Message);
+            Assert.Equal($"`{nameof(RawRoutedByUrnAttribute)}` missing on `InvalidMessage` message type", exception.Message);
         }
 
         [Fact]
@@ -135,7 +135,7 @@ namespace UnitTests
             var messageHandler = Substitute.For<IMessageHandler<string>>();
             var exception = Record.Exception(() => _builder(ValidConnectionString).ConsumesRawString<InvalidMessage>(messageHandler).Build());
             Assert.IsType<ConfigurationException>(exception);
-            Assert.Equal("`RawUrnAttribute` missing on `InvalidMessage` message type", exception.Message);
+            Assert.Equal($"`{nameof(RawRoutedByUrnAttribute)}` missing on `InvalidMessage` message type", exception.Message);
         }
 
         [Fact]

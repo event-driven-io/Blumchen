@@ -3,23 +3,23 @@ using Blumchen.Serialization;
 
 namespace UnitTests
 {
-    [MessageUrn("user-created:v1")]
+    [MessageRoutedByUrn("user-created:v1")]
     public record UserCreatedContract(
         Guid Id,
         string Name
     );
 
-    [MessageUrn("user-registered:v1")]
+    [MessageRoutedByUrn("user-registered:v1")]
     public record UserRegisteredContract(
         Guid Id,
         string Name
     );
 
-    [RawUrn("user-deleted:v1")]
+    [RawRoutedByUrn("user-deleted:v1")]
     public class MessageObjects;
 
 
-    [RawUrn("user-modified:v1")]
+    [RawRoutedByUrn("user-modified:v1")]
     internal class MessageString;
 
     public class InvalidMessage;

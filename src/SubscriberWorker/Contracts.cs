@@ -3,19 +3,19 @@ using Blumchen.Serialization;
 
 namespace SubscriberWorker
 {
-    [MessageUrn("user-created:v1")]
+    [MessageRoutedByUrn("user-created:v1")]
     public record UserCreatedContract(
         Guid Id,
         string Name
     );
 
-    [MessageUrn("user-deleted:v1")]
+    [MessageRoutedByUrn("user-deleted:v1")]
     public record UserDeletedContract(
         Guid Id,
         string Name
     );
 
-    [MessageUrn("user-modified:v1")] //subscription ignored
+    [MessageRoutedByUrn("user-modified:v1")] //subscription ignored
     public record UserModifiedContract(
         Guid Id,
         string Name = "Modified"

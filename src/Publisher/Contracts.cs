@@ -4,25 +4,25 @@ using Blumchen.Serialization;
 namespace Publisher;
 public interface IContract{}
 
-[MessageUrn("user-created:v1")]
+[MessageRoutedByUrn("user-created:v1")]
 internal record UserCreated(
     Guid Id,
     string Name = "Created"
 ):IContract;
 
-[MessageUrn("user-deleted:v1")]
+[MessageRoutedByUrn("user-deleted:v1")]
 internal record UserDeleted(
     Guid Id,
     string Name = "Deleted"
 ): IContract;
 
-[MessageUrn("user-modified:v1")]
+[MessageRoutedByUrn("user-modified:v1")]
 internal record UserModified(
     Guid Id,
     string Name = "Modified"
 ): IContract;
 
-[MessageUrn("user-subscribed:v1")]
+[MessageRoutedByUrn("user-subscribed:v1")]
 internal record UserSubscribed(
     Guid Id,
     string Name = "Subscribed"
