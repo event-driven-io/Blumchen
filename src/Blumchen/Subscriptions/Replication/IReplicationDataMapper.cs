@@ -19,13 +19,9 @@ internal class ReplicationDataMapper(IDictionary<string, Tuple<IReplicationJsonB
 {
     private readonly Func<string, IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>>, IReplicationJsonBMapper> _memoizer = Memoizer<string, IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>>, IReplicationJsonBMapper>.Execute(SelectMapper);
 
-    private static IReplicationJsonBMapper SelectMapper(string key,
-        IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>> registry) =>
-        registry.TryGetValue(key, out var tuple)
-            ? tuple.Item1
-            : registry.TryGetValue(OptionsBuilder.WildCard, out tuple)
-                ? tuple.Item1
-                : throw new Exception($"Unexpected message `{key}`");
+    private static IReplicationJsonBMapper SelectMapper(string key, IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>> registry)
+        => registry.FindByMultiKey(key, OptionsBuilder.WildCard)?.Item1
+           ?? throw new NotSupportedException($"Unexpected message `{key}`");
 
     public async Task<IEnvelope> ReadFromReplication(InsertMessage insertMessage, CancellationToken ct)
     {
