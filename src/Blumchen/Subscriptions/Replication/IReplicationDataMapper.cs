@@ -4,6 +4,7 @@ using Npgsql.Replication.PgOutput;
 using Npgsql.Replication.PgOutput.Messages;
 using System.Text.Json;
 using Blumchen.Subscriber;
+using ImTools;
 
 namespace Blumchen.Subscriptions.Replication;
 
@@ -17,11 +18,12 @@ public interface IReplicationDataMapper
 internal class ReplicationDataMapper(IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>> mapperSelector)
     : IReplicationDataMapper
 {
-    private readonly Func<string, IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>>, IReplicationJsonBMapper> _memoizer = Memoizer<string, IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>>, IReplicationJsonBMapper>.Execute(SelectMapper);
 
-    private static IReplicationJsonBMapper SelectMapper(string key, IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>> registry)
-        => registry.FindByMultiKey(key, OptionsBuilder.WildCard)?.Item1
-           ?? throw new NotSupportedException($"Unexpected message `{key}`");
+    private ImHashMap<string, IReplicationJsonBMapper> _memo = ImHashMap<string, IReplicationJsonBMapper>.Empty;
+
+    private static IReplicationJsonBMapper SelectMapper(string key, IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>> registry) =>
+        registry.FindByMultiKey(key, OptionsBuilder.WildCard)?.Item1
+        ?? throw new NotSupportedException($"Unexpected message `{key}`");
 
     public async Task<IEnvelope> ReadFromReplication(InsertMessage insertMessage, CancellationToken ct)
     {
@@ -47,7 +49,13 @@ internal class ReplicationDataMapper(IDictionary<string, Tuple<IReplicationJsonB
                         }
                     case 2 when column.GetDataTypeName().Equals("jsonb", StringComparison.OrdinalIgnoreCase):
 
-                        return await _memoizer(typeName, mapperSelector).ReadFromReplication(id, typeName, column, ct);
+                        
+                        _memo = _memo.AddOrGetEntry(typeName.GetHashCode(),
+                            new KVEntry<string, IReplicationJsonBMapper>(typeName.GetHashCode(), typeName,
+                                SelectMapper(typeName, mapperSelector)));
+                        return await _memo.GetValueOrDefault(typeName.GetHashCode(), typeName)
+                            .ReadFromReplication(id, typeName, column, ct);
+
                 }
             }
             catch (Exception ex) when (ex is ArgumentException or NotSupportedException or InvalidOperationException
@@ -62,6 +70,14 @@ internal class ReplicationDataMapper(IDictionary<string, Tuple<IReplicationJsonB
         throw new InvalidOperationException("You should not get here");
     }
 
+    private IReplicationJsonBMapper Get(string typeName)
+    {
+        if (_memo.TryFind(typeName, out var mapper)) return mapper;
+        mapper = SelectMapper(typeName, mapperSelector);
+        _memo = _memo.AddOrUpdate(typeName, mapper);
+        return mapper;
+    }
+
     public async Task<IEnvelope> ReadFromSnapshot(NpgsqlDataReader reader, CancellationToken ct)
     {
         long id = default;
@@ -69,12 +85,13 @@ internal class ReplicationDataMapper(IDictionary<string, Tuple<IReplicationJsonB
         {
             id = reader.GetInt64(0);
             var typeName = reader.GetString(1);
-            return await _memoizer(typeName, mapperSelector).ReadFromSnapshot(typeName, id, reader, ct);
+            var mapper = Get(typeName);
+            return await mapper.ReadFromSnapshot(typeName, id, reader, ct);
         }
-        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or InvalidOperationException or JsonException)
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or InvalidOperationException
+                                       or JsonException)
         {
             return new KoEnvelope(ex, id.ToString());
         }
     }
 }
-

@@ -1,9 +1,11 @@
+using System.Dynamic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Blumchen.Database;
 using Blumchen.Subscriber;
 using Blumchen.Subscriptions.Management;
 using Blumchen.Subscriptions.Replication;
+using ImTools;
 using Npgsql;
 using Npgsql.Replication;
 using Npgsql.Replication.PgOutput;
@@ -17,27 +19,7 @@ public sealed class Subscription: IAsyncDisposable
     private LogicalReplicationConnection? _connection;
     private readonly OptionsBuilder _builder = new();
 
-    private readonly
-        Func<string, IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>>, Type, (
-            IMessageHandler messageHandler, MethodInfo methodInfo)> _messageHandler;
-
-    public Subscription()
-    {
-        _messageHandler =
-            Memoizer<string, IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>>, Type, (
-                IMessageHandler messageHandler,
-                MethodInfo methodInfo)>.Execute(MessageHandler);
-    }
-
-    private (IMessageHandler messageHandler, MethodInfo methodInfo) MessageHandler(
-        string messageType, IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>> registry,
-        Type objType)
-    {
-        var (_, messageHandler, methodInfo) = registry.FindByMultiKey(messageType, OptionsBuilder.WildCard) ??
-                                              throw new NotSupportedException(
-                                                  $"Unregistered type for {objType.AssemblyQualifiedName}");
-        return (messageHandler, methodInfo);
-    }
+    private ImHashMap<string, (IMessageHandler messageHandler, MethodInfo methodInfo)> _messageHandlers = ImHashMap<string, (IMessageHandler messageHandler, MethodInfo methodInfo)>.Empty;
 
     public enum CreateStyle
     {
@@ -116,6 +98,28 @@ public sealed class Subscription: IAsyncDisposable
         }
     }
 
+    private (IMessageHandler, MethodInfo) GetConsumer(
+        string messageType,
+        Type type,
+        IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>> registry
+        )
+    {
+        if (_messageHandlers.TryFind(messageType, out var tuple)) return tuple;
+        tuple = MessageHandler(messageType, registry, type);
+        _messageHandlers = _messageHandlers.AddOrUpdate(messageType, tuple);
+        return tuple;
+
+        static (IMessageHandler messageHandler, MethodInfo methodInfo) MessageHandler(
+            string messageType, IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>> registry,
+            Type objType)
+        {
+            var (_, messageHandler, methodInfo) = registry.FindByMultiKey(messageType, OptionsBuilder.WildCard) ??
+                                                  throw new NotSupportedException(
+                                                      $"Unregistered type for {objType.AssemblyQualifiedName}");
+            return (messageHandler, methodInfo);
+        }
+    }
+
     private async IAsyncEnumerable<IEnvelope> ProcessEnvelope(
         IEnvelope envelope,
         IDictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>> registry,
@@ -129,8 +133,7 @@ public sealed class Subscription: IAsyncDisposable
                 yield break;
             case OkEnvelope(var value, var messageType):
             {
-                var (messageHandler, methodInfo) =
-                    _messageHandler(messageType, registry, value.GetType());
+                var (messageHandler, methodInfo) = GetConsumer(messageType, value.GetType(), registry);
                 await ((Task)methodInfo.Invoke(messageHandler, [value])!).ConfigureAwait(false);
                 yield return envelope;
                 yield break;

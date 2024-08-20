@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text.Json.Serialization;
 using Blumchen.Serialization;
 using Blumchen.Subscriptions.Replication;
+using ImTools;
 using JetBrains.Annotations;
 
 namespace Blumchen.Subscriber;
@@ -58,9 +59,13 @@ public sealed partial class OptionsBuilder
                              .GetMethod(nameof(IMessageHandler<T>.Handle), BindingFlags.Instance | BindingFlags.Public, [typeof(T)])
                          ?? throw new ConfigurationException($"Unable to find {nameof(IMessageHandler<T>)} implementation on {handler.GetType().Name}");
 
-        if (_typeRegistry.ContainsKey(typeof(T)))
+        if (_typeRegistry.GetEntryOrNull(typeof(T).GetHashCode()) != null)
             throw new ConfigurationException($"`{typeof(T).Name}` was already registered.");
-        _typeRegistry.Add(typeof(T), new Tuple<IMessageHandler, MethodInfo>(handler, methodInfo));
+        _typeRegistry = _typeRegistry.AddSureNotPresentEntry(
+            new KVEntry<Type, Tuple<IMessageHandler, MethodInfo>>(typeof(T).GetHashCode(), typeof(T),
+                new Tuple<IMessageHandler, MethodInfo>(handler, methodInfo))
+        );
+
         return new ConsumesTypedJsonTypedJsonOptionsContext(this);
     }
 

@@ -1,11 +1,15 @@
+using System.Collections;
 using System.Reflection;
+using System.Security.Principal;
 using System.Text.Json.Serialization;
 using Blumchen.Serialization;
 using Blumchen.Subscriptions;
 using Blumchen.Subscriptions.Management;
 using Blumchen.Subscriptions.Replication;
+using ImTools;
 using JetBrains.Annotations;
 using Npgsql;
+// ReSharper disable RedundantDefaultMemberInitializer
 
 namespace Blumchen.Subscriber;
 
@@ -22,7 +26,7 @@ public sealed partial class OptionsBuilder
 
     private PublicationManagement.PublicationOptions _publicationOptions = new();
     private ReplicationSlotManagement.ReplicationSlotOptions? _replicationSlotOptions;
-    private readonly Dictionary<Type, Tuple<IMessageHandler, MethodInfo>> _typeRegistry = [];
+    private ImHashMap<Type, Tuple<IMessageHandler, MethodInfo>> _typeRegistry = ImHashMap<Type, Tuple<IMessageHandler, MethodInfo>>.Empty;
 
     private readonly Dictionary<string, Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>>
         _replicationDataMapperSelector = [];
@@ -86,7 +90,11 @@ public sealed partial class OptionsBuilder
     [UsedImplicitly]
     public OptionsBuilder ConsumesRawStrings(IMessageHandler<string> handler)
     {
-        Ensure.Empty(_replicationDataMapperSelector, _typeRegistry, nameof(ConsumesRawStrings));
+        Ensure.And(
+            new EmptyTrait<ICollection>(), _replicationDataMapperSelector,
+            new BoolTrait<ImHashMap<Type, Tuple<IMessageHandler, MethodInfo>>>(r => r.IsEmpty, Ensure.CannotBeMixedWithOtherConsumingStrategies),
+            _typeRegistry,nameof(ConsumesRawStrings)
+            );
 
         var methodInfo = handler
                              .GetType()
@@ -101,7 +109,11 @@ public sealed partial class OptionsBuilder
     [UsedImplicitly]
     public OptionsBuilder ConsumesRawObjects(IMessageHandler<object> handler)
     {
-        Ensure.Empty(_replicationDataMapperSelector, _typeRegistry, nameof(ConsumesRawObjects));
+        Ensure.And(
+            new EmptyTrait<ICollection>(), _replicationDataMapperSelector,
+            new BoolTrait<ImHashMap<Type, Tuple<IMessageHandler, MethodInfo>>>(r => r.IsEmpty, Ensure.CannotBeMixedWithOtherConsumingStrategies),
+            _typeRegistry, nameof(ConsumesRawObjects)
+        );
 
         var methodInfo = handler
                              .GetType()
@@ -117,22 +129,22 @@ public sealed partial class OptionsBuilder
     private OptionsBuilder ConsumesRaw<T, TU>(IMessageHandler<TU> handler,
         IReplicationJsonBMapper dataMapper) where T : class where TU : class
     {
-        var urns = typeof(T)
-            .GetCustomAttributes(typeof(RawRoutedByUrnAttribute), false)
-            .Union(typeof(T)
-                .GetCustomAttributes(typeof(RawRoutedByStringAttribute), false))
-            .OfType<IRouted>()
-            .Select(attribute => attribute.Route).ToList();
-        Ensure.RawUrn<IEnumerable<string>,T>(urns, nameof(NamingPolicy));
+        var routingList = typeof(T)
+            .GetAttributes<RawRoutedByUrnAttribute>()
+            .Union(
+                typeof(T).GetAttributes<RawRoutedByStringAttribute>()
+                )
+            .Select(routed => routed.Route).ToList();
+        Ensure.RawUrn<IEnumerable<string>>(routingList, typeof(T).Name);
 
         var methodInfo = handler
                              .GetType()
                              .GetMethod(nameof(IMessageHandler<TU>.Handle), BindingFlags.Instance | BindingFlags.Public, [typeof(TU)])
                          ?? throw new ConfigurationException($"Unable to find {nameof(IMessageHandler<TU>)} implementation on {handler.GetType().Name}");
 
-        using var urnEnum = urns.GetEnumerator();
+        using var urnEnum = routingList.GetEnumerator();
         while (urnEnum.MoveNext())
-            _replicationDataMapperSelector.Add(urnEnum.Current.ToString(),
+            _replicationDataMapperSelector.Add(urnEnum.Current,
                 new Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>(dataMapper, handler, methodInfo));
         return this;
     }
@@ -150,19 +162,19 @@ public sealed partial class OptionsBuilder
         Ensure.NotNull<NpgsqlConnectionStringBuilder?>(_connectionStringBuilder, $"{nameof(ConnectionString)}");
         Ensure.NotNull<NpgsqlDataSource?>(_dataSource, $"{nameof(DataSource)}");
 
-        if (_typeRegistry.Count > 0)
+        if (!_typeRegistry.IsEmpty)
         {
             Ensure.NotNull(_namingPolicy, $"{nameof(NamingPolicy)}");
             if (_jsonSerializerContext != null)
             {
                 var typeResolver = new JsonTypeResolver(_jsonSerializerContext, _namingPolicy);
-                foreach (var type in _typeRegistry.Keys)
-                    typeResolver.WhiteList(type);
+                foreach (var kv in _typeRegistry.Enumerate())
+                    typeResolver.WhiteList(kv.Key);
 
                 _jsonDataMapper =
                     new JsonReplicationDataMapper(typeResolver, new JsonReplicationDataReader(typeResolver));
 
-                foreach (var (key, value) in typeResolver.RegisteredTypes.Join(_typeRegistry, pair => pair.Value,
+                foreach (var (key, value) in typeResolver.RegisteredTypes.Join(_typeRegistry.Enumerate(), pair => pair.Value,
                              pair => pair.Key, (pair, valuePair) => (pair.Key, valuePair.Value)))
                     _replicationDataMapperSelector.Add(key,
                         new Tuple<IReplicationJsonBMapper, IMessageHandler, MethodInfo>(_jsonDataMapper, value.Item1, value.Item2));

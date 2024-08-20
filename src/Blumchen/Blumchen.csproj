@@ -48,6 +48,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="ImTools" Version="4.0.0" />
         <PackageReference Include="JetBrains.Annotations" Version="2024.2.0">
             <PrivateAssets>all</PrivateAssets>
             <ExcludeAssets>none</ExcludeAssets>
