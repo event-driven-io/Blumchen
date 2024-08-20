@@ -4,20 +4,22 @@ using System.Text.Json.Serialization.Metadata;
 using Blumchen;
 using Blumchen.Database;
 using Blumchen.Serialization;
+using Blumchen.Subscriber;
 using Blumchen.Subscriptions;
 using Blumchen.Subscriptions.Management;
+using Blumchen.Subscriptions.Replication;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using Testcontainers.PostgreSql;
 using Xunit.Abstractions;
 
 namespace Tests;
 
-
 public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
 {
     protected ITestOutputHelper Output { get; } = output;
-    protected readonly Func<CancellationTokenSource> TimeoutTokenSource = () => new(Debugger.IsAttached ?  TimeSpan.FromHours(1) : TimeSpan.FromSeconds(2));
-    protected class TestConsumer<T>(Action<string> log, JsonTypeInfo info): IConsumes<T> where T : class
+    protected readonly Func<CancellationTokenSource> TimeoutTokenSource = () => new(Debugger.IsAttached ?  TimeSpan.FromHours(1) : TimeSpan.FromSeconds(3));
+    protected class TestMessageHandler<T>(Action<string> log, JsonTypeInfo info): IMessageHandler<T> where T : class
     {
         public async Task Handle(T value)
         {
@@ -30,6 +32,18 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
                 Console.WriteLine(e);
             }
             await Task.CompletedTask.ConfigureAwait(false);
+        }
+    }
+
+    protected class TestHandler<T>(ILogger<TestHandler<T>> logger): IMessageHandler<T> where T : class
+    {
+        private int _counter;
+        internal int Counter => _counter;
+        public Task Handle(T value)
+        {
+            logger.LogTrace($"Message consumed:{value}");
+            Interlocked.Increment(ref _counter);
+            return Task.CompletedTask;
         }
     }
 
@@ -48,7 +62,7 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
     {
         var tableName = Randomise("outbox");
 
-        var tableDesc = new TableDescriptorBuilder().Name(tableName).Build();
+        var tableDesc = new TableDescriptorBuilder().Named(tableName).Build();
         await dataSource.EnsureTableExists(tableDesc, ct).ConfigureAwait(false);
 
         return tableName;
@@ -67,7 +81,7 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
         await command.ExecuteNonQueryAsync(ct);
     }
 
-    protected (TestConsumer<T> consumer, SubscriptionOptionsBuilder subscriptionOptionsBuilder) SetupFor<T>(
+    protected  OptionsBuilder SetupFor<T>(
         string connectionString,
         string eventsTable,
         JsonSerializerContext info,
@@ -78,28 +92,32 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
     {
         var jsonTypeInfo = info.GetTypeInfo(typeof(T));
         ArgumentNullException.ThrowIfNull(jsonTypeInfo);
-        var consumer = new TestConsumer<T>(log, jsonTypeInfo);
-        var subscriptionOptionsBuilder = new SubscriptionOptionsBuilder()
+        var consumer = new TestMessageHandler<T>(log, jsonTypeInfo);
+        var subscriptionOptionsBuilder = new OptionsBuilder()
             .WithErrorProcessor(new TestOutErrorProcessor(Output))
+            .DataSource(new NpgsqlDataSourceBuilder(connectionString).Build())
             .ConnectionString(connectionString)
-            .JsonContext(info)
-            .NamingPolicy(namingPolicy)
-            .Consumes<T, TestConsumer<T>>(consumer)
-            .WithTable(o => o.Name(eventsTable))
+
+            .Consumes(consumer, opts => opts
+                .WithJsonContext(info)
+                .AndNamingPolicy(namingPolicy))
+
+            .WithTable(o => o.Named(eventsTable))
             .WithPublicationOptions(
-                new PublicationManagement.PublicationSetupOptions(PublicationName: publicationName ?? Randomise("events_pub"))
+                new PublicationManagement.PublicationOptions(
+                    PublicationName: publicationName ?? Randomise("events_pub"))
             )
             .WithReplicationOptions(
-                new ReplicationSlotManagement.ReplicationSlotSetupOptions(slotName ?? Randomise("events_slot"))
+                new ReplicationSlotManagement.ReplicationSlotOptions(slotName ?? Randomise("events_slot"))
             );
-        return (consumer, subscriptionOptionsBuilder);
+        return subscriptionOptionsBuilder;
     }
 
     private sealed record TestOutErrorProcessor(ITestOutputHelper Output): IErrorProcessor
     {
-        public Func<Exception, Task> Process => exception =>
+        public Func<Exception, string, Task> Process => (exception, id) =>
         {
-            Output.WriteLine($"record id:{0} resulted in error:{exception.Message}");
+            Output.WriteLine($"record id:{id} resulted in error:{exception.Message}");
             return Task.CompletedTask;
         };
     }

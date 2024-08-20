@@ -4,7 +4,7 @@ using Blumchen.Serialization;
 
 namespace Tests;
 
-[MessageUrn("user-created:v1")]
+[MessageRoutedByUrn("user-created:v1")]
 internal record SubscriberUserCreated(
      Guid Id,
      string Name
@@ -18,3 +18,9 @@ internal record SubscriberUserCreated(
 [JsonSourceGenerationOptions(WriteIndented = true)]
 [JsonSerializable(typeof(SubscriberUserCreated))]
 internal partial class SubscriberContext: JsonSerializerContext;
+
+[RawRoutedByUrn("user-created:v1")]
+[RawRoutedByString("Tests.PublisherUserCreated")]
+internal class DecoratedContract;
+
+

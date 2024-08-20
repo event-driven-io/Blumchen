@@ -3,20 +3,20 @@ using Blumchen.Serialization;
 
 namespace Subscriber
 {
-    [MessageUrn("user-created:v1")]
+    [MessageRoutedByUrn("user-created:v1")]
     public record UserCreatedContract(
         Guid Id,
         string Name
     );
 
-    [MessageUrn("user-deleted:v1")]
-    public record UserDeletedContract(
-        Guid Id,
-        string Name
-    );
+    [RawRoutedByUrn("user-deleted:v1")]
+    public class MessageObjects;
+
+
+    [RawRoutedByUrn("user-modified:v1")] 
+    internal class MessageString;
 
     [JsonSourceGenerationOptions(WriteIndented = true)]
     [JsonSerializable(typeof(UserCreatedContract))]
-    [JsonSerializable(typeof(UserDeletedContract))]
     internal partial class SourceGenerationContext: JsonSerializerContext;
 }

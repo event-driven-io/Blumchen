@@ -3,13 +3,13 @@ using Blumchen.Serialization;
 
 namespace Tests;
 
-[MessageUrn("user-created:v1")]
+[MessageRoutedByUrn("user-created:v1")]
 internal record PublisherUserCreated(
     Guid Id,
     string Name
 );
 
-[MessageUrn("user-deleted:v1")]
+[MessageRoutedByUrn("user-deleted:v1")]
 internal record PublisherUserDeleted(
     Guid Id,
     string Name

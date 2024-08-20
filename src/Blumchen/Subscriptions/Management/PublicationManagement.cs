@@ -1,9 +1,7 @@
 using Blumchen.Database;
-using Blumchen.Serialization;
 using Npgsql;
 
 #pragma warning disable CA2208
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 namespace Blumchen.Subscriptions.Management;
 
@@ -13,41 +11,39 @@ public static class PublicationManagement
 {
     public static async Task<SetupPublicationResult> SetupPublication(
         this NpgsqlDataSource dataSource,
-        PublicationSetupOptions setupOptions,
+        PublicationOptions options,
         CancellationToken ct
     )
     {
-        var (publicationName, createStyle, shouldReAddTablesIfWereRecreated, typeResolver, tableDescription) = setupOptions;
+        var (publicationName, createStyle, shouldReAddTablesIfWereRecreated, registeredTypes, tableDescription) = options;
 
         return createStyle switch
         {
             Subscription.CreateStyle.Never => new None(),
-            Subscription.CreateStyle.AlwaysRecreate => await ReCreate(dataSource, publicationName, tableDescription.Name, typeResolver, ct).ConfigureAwait(false),
+            Subscription.CreateStyle.AlwaysRecreate => await ReCreate(dataSource, publicationName, tableDescription.Name, registeredTypes, ct).ConfigureAwait(false),
             Subscription.CreateStyle.WhenNotExists when await dataSource.PublicationExists(publicationName, ct).ConfigureAwait(false) => await Refresh(dataSource, publicationName, tableDescription.Name, shouldReAddTablesIfWereRecreated, ct).ConfigureAwait(false),
-            Subscription.CreateStyle.WhenNotExists => await Create(dataSource, publicationName, tableDescription.Name, typeResolver, ct).ConfigureAwait(false),
-            _ => throw new ArgumentOutOfRangeException(nameof(setupOptions.CreateStyle))
+            Subscription.CreateStyle.WhenNotExists => await Create(dataSource, publicationName, tableDescription.Name, registeredTypes, ct).ConfigureAwait(false),
+            _ => throw new ArgumentOutOfRangeException(nameof(options.CreateStyle))
         };
 
         static async Task<SetupPublicationResult> ReCreate(
             NpgsqlDataSource dataSource,
             string publicationName,
             string tableName,
-            JsonTypeResolver? typeResolver,
+            ISet<string> registeredTypes,
             CancellationToken ct
         ) {
             await dataSource.DropPublication(publicationName, ct).ConfigureAwait(false);
-            return await Create(dataSource, publicationName, tableName, typeResolver, ct).ConfigureAwait(false);
+            return await Create(dataSource, publicationName, tableName, registeredTypes, ct).ConfigureAwait(false);
         }
 
         static async Task<SetupPublicationResult> Create(NpgsqlDataSource dataSource,
             string publicationName,
             string tableName,
-            JsonTypeResolver? typeResolver,
+            ISet<string> registeredTypes,
             CancellationToken ct
         ) {
-            await dataSource.CreatePublication(publicationName, tableName,
-                typeResolver.Keys().ToHashSet(), ct).ConfigureAwait(false);
-               
+            await dataSource.CreatePublication(publicationName, tableName, registeredTypes, ct).ConfigureAwait(false);
             return new Created();
         }
 
@@ -63,24 +59,29 @@ public static class PublicationManagement
         }
     }
 
+    internal static string CreatePublication(
+        string publicationName,
+        string tableName,
+        ISet<string> registeredTypes
+    )
+    {
+        var sql = $"CREATE PUBLICATION \"{publicationName}\" FOR TABLE {tableName} {{0}} WITH (publish = 'insert');";
+        return registeredTypes.Count switch
+        {
+            0 => string.Format(sql, string.Empty),
+            _ => string.Format(sql, $"WHERE ({PublicationFilter(registeredTypes)})")
+        };
+        static string PublicationFilter(ICollection<string> input) => string.Join(" OR ", input.Select(s => $"message_type = '{s}'"));
+    }
+
     internal static Task CreatePublication(
         this NpgsqlDataSource dataSource,
         string publicationName,
         string tableName,
-        ISet<string> eventTypes,
+        ISet<string> registeredTypes,
         CancellationToken ct
-    ) {
-        return eventTypes.Count switch
-        {
-            0 => Execute(dataSource, $"CREATE PUBLICATION {publicationName} FOR TABLE {tableName} WITH (publish = 'insert');",
-                ct
-            ),
-            _ => Execute(dataSource, $"CREATE PUBLICATION {publicationName} FOR TABLE {tableName} WHERE ({PublicationFilter(eventTypes)}) WITH (publish = 'insert');",
-                ct
-            )
-        };
-        static string PublicationFilter(ICollection<string> input) => string.Join(" OR ", input.Select(s => $"message_type = '{s}'"));
-    }
+    ) => Execute(dataSource, CreatePublication(publicationName, tableName, registeredTypes), ct);
+    
 
     private static async Task Execute(
         this NpgsqlDataSource dataSource,
@@ -129,8 +130,7 @@ public static class PublicationManagement
         this NpgsqlDataSource dataSource,
         string publicationName,
         CancellationToken ct
-    ) =>
-        dataSource.Exists("pg_publication", "pubname = $1", [publicationName], ct);
+    ) => dataSource.Exists("pg_publication", "pubname = $1", [publicationName], ct);
 
     public abstract record SetupPublicationResult
     {
@@ -141,14 +141,14 @@ public static class PublicationManagement
         public record Created: SetupPublicationResult;
     }
 
-    public sealed record PublicationSetupOptions(
-        string PublicationName = PublicationSetupOptions.DefaultPublicationName,
+    public sealed record PublicationOptions(
+        string PublicationName = PublicationOptions.DefaultName,
         Subscription.CreateStyle CreateStyle = Subscription.CreateStyle.WhenNotExists,
         bool ShouldReAddTablesIfWereRecreated = false
     )
     {
-        internal const string DefaultPublicationName = "pub";
-        internal JsonTypeResolver? TypeResolver { get; init; } = default;
+        internal const string DefaultName = "pub";
+        internal ISet<string> RegisteredTypes { get; init; } = Enumerable.Empty<string>().ToHashSet();
 
         internal TableDescriptorBuilder.MessageTable TableDescriptor { get; init; } = new TableDescriptorBuilder().Build();
 
@@ -156,13 +156,13 @@ public static class PublicationManagement
             out string publicationName,
             out Subscription.CreateStyle createStyle,
             out bool reAddTablesIfWereRecreated,
-            out JsonTypeResolver? typeResolver,
+            out ISet<string> registeredTypes,
             out TableDescriptorBuilder.MessageTable tableDescription)
         {
             publicationName = PublicationName;
             createStyle = Subscription.CreateStyle.WhenNotExists;
             reAddTablesIfWereRecreated = ShouldReAddTablesIfWereRecreated;
-            typeResolver = TypeResolver;
+            registeredTypes = RegisteredTypes;
             tableDescription = TableDescriptor;
         }
 

@@ -3,6 +3,7 @@ version: '3.8'  # Specify Docker Compose version
 services:
     postgres:
         image: postgres:15.1-alpine
+        container_name: db
         ports:
             - "5432:5432"
         environment:
@@ -15,9 +16,8 @@ services:
             - "wal_level=logical"
             - "-c"
             - "wal_compression=on"
-        volumes:
-            - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
-
+            - "-c"
+            - "max_slot_wal_keep_size=1"   
     pgadmin:
         container_name: pgadmin_container
         image: dpage/pgadmin4
@@ -36,4 +36,3 @@ services:
         depends_on:
             - postgres
         restart: unless-stopped
-
