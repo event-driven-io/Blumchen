@@ -91,7 +91,7 @@ namespace Tests
                 Container.GetConnectionString(),
                 ct.Token
             );
-            
+
             var builder = Host.CreateApplicationBuilder();
             builder.Services
                 .AddXunitLogging(Output)
@@ -101,9 +101,10 @@ namespace Tests
                     consumesFn
                     );
 
-            await builder
-                .Build()
-                .RunAsync(ct.Token);
+            using var host = builder.Build();
+            var handler = host.Services.GetRequiredService<TestHandler<T>>();
+            await host.RunAsync(ct.Token);
+            Assert.True(handler.Counter > 0);
 
         }
     }

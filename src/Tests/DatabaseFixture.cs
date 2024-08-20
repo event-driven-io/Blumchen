@@ -37,9 +37,12 @@ public abstract class DatabaseFixture(ITestOutputHelper output): IAsyncLifetime
 
     protected class TestHandler<T>(ILogger<TestHandler<T>> logger): IMessageHandler<T> where T : class
     {
+        private int _counter;
+        internal int Counter => _counter;
         public Task Handle(T value)
         {
             logger.LogTrace($"Message consumed:{value}");
+            Interlocked.Increment(ref _counter);
             return Task.CompletedTask;
         }
     }
